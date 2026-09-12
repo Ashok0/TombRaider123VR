@@ -1,4 +1,16 @@
-c:\dev\tombraider123vr\build\x64\release\winmm.pdb
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\vc145.pdb
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmm_proxy.obj
 c:\dev\tombraider123vr\build\x64\release\winmm.dll
+c:\dev\tombraider123vr\build\x64\release\winmm.pdb
+c:\dev\tombraider123vr\build\x64\release\winmm.lib
+c:\dev\tombraider123vr\build\x64\release\winmm.exp
 c:\dev\tombraider123vr\build\x64\release\winmm.ilk
 c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.vcxproj.filelistabsolute.txt
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\cl.command.1.tlog
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\cl.items.tlog
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\cl.read.1.tlog
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\cl.write.1.tlog
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\link.command.1.tlog
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\link.read.1.tlog
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\link.secondary.1.tlog
+c:\dev\tombraider123vr\build\obj\proxy\x64\release\winmmproxy.tlog\link.write.1.tlog

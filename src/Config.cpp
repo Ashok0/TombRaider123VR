@@ -170,6 +170,14 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.seatedOrigin        = GetBool (L"SeatedOrigin",       g_cfg.seatedOrigin,       ini);
     g_cfg.ceilingClearance    = GetBool (L"CeilingClearance",   g_cfg.ceilingClearance,   ini);
     g_cfg.ceilingMarginUnits  = GetFloat(L"CeilingMarginUnits", g_cfg.ceilingMarginUnits, ini);
+    g_cfg.portalCulling       = GetBool (L"PortalCulling",      g_cfg.portalCulling,      ini);
+    g_cfg.cullFovMarginDegrees = GetFloat(L"CullFovMarginDegrees", g_cfg.cullFovMarginDegrees, ini);
+    g_cfg.cullMaxDepth        = GetInt  (L"CullMaxDepth",       g_cfg.cullMaxDepth,       ini);
+    g_cfg.cullMaxPortals      = GetInt  (L"CullMaxPortals",     g_cfg.cullMaxPortals,     ini);
+    g_cfg.cullFarUnits        = GetFloat(L"CullFarUnits",       g_cfg.cullFarUnits,       ini);
+    g_cfg.cullWidenBounds     = GetBool (L"CullWidenBounds",    g_cfg.cullWidenBounds,    ini);
+    g_cfg.cullObjects         = GetBool (L"CullObjects",        g_cfg.cullObjects,        ini);
+    g_cfg.cullDumpKey         = GetIntAuto(L"CullDumpKey",      g_cfg.cullDumpKey,        ini);
     g_cfg.worldUnitsPerMetre  = GetFloat(L"WorldUnitsPerMetre", g_cfg.worldUnitsPerMetre, ini);
     g_cfg.ipdScale            = GetFloat(L"IpdScale",           g_cfg.ipdScale,           ini);
     g_cfg.scaleUpKey          = GetIntAuto(L"ScaleUpKey",       g_cfg.scaleUpKey,         ini);
@@ -238,6 +246,17 @@ void LoadConfig(const wchar_t* ini) {
     if (g_cfg.superSample > 4.0f)  g_cfg.superSample = 4.0f;
     if (g_cfg.worldUnitsPerMetre < 1.0f) g_cfg.worldUnitsPerMetre = 1.0f;
 
+    // Culling budgets. The lower bounds are not taste: a depth or portal budget
+    // of zero would silently turn the feature into a no-op that still logs as
+    // active, and the upper bounds keep a typo out of the render thread.
+    if (g_cfg.cullMaxDepth   < 1)     g_cfg.cullMaxDepth   = 1;
+    if (g_cfg.cullMaxDepth   > 64)    g_cfg.cullMaxDepth   = 64;
+    if (g_cfg.cullMaxPortals < 64)    g_cfg.cullMaxPortals = 64;
+    if (g_cfg.cullMaxPortals > 65536) g_cfg.cullMaxPortals = 65536;
+    if (g_cfg.cullFovMarginDegrees < 0.0f)  g_cfg.cullFovMarginDegrees = 0.0f;
+    if (g_cfg.cullFovMarginDegrees > 45.0f) g_cfg.cullFovMarginDegrees = 45.0f;
+    if (g_cfg.cullFarUnits < 0.0f)          g_cfg.cullFarUnits = 0.0f;
+
     LogF("config: mode=%s tracking=%s origin=%s units/m=%.1f ss=%.2f "
          "flipProjY=%d flipViewY=%d dup=%d flatHud=%d",
          g_cfg.monoTracking ? "MONO head-tracking" : "stereo",
@@ -246,6 +265,11 @@ void LoadConfig(const wchar_t* ini) {
          g_cfg.worldUnitsPerMetre, g_cfg.superSample,
          g_cfg.flipProjectionY, g_cfg.flipViewY,
          g_cfg.duplicateDraws, g_cfg.flatHud);
+    LogF("config: culling=%s margin=%.1fdeg depth<=%d portals<=%d far=%.0f "
+         "widen=%d objects=%d",
+         g_cfg.portalCulling ? "head frustum" : "ENGINE (rooms will vanish)",
+         g_cfg.cullFovMarginDegrees, g_cfg.cullMaxDepth, g_cfg.cullMaxPortals,
+         g_cfg.cullFarUnits, g_cfg.cullWidenBounds, g_cfg.cullObjects);
     if (g_cfg.traceFrames > 0) {
         LogF("config: frame-graph trace armed -- %d frame(s), hotkey vk=0x%02X",
              g_cfg.traceFrames, g_cfg.traceKey);

@@ -1,0 +1,6 @@
+[mcp_servers.re-mcp]
+command = "re-mcp-ghidra"
+args = ["stdio"]
+
+[mcp_servers.re-mcp.env]
+GHIDRA_INSTALL_DIR = 'C:\Ghidra\'

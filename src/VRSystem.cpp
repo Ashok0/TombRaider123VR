@@ -273,10 +273,8 @@ void VRSystem::BeginFrame() {
     }
 }
 
-Affine VRSystem::EyeView(Eye eye) const {
+Affine VRSystem::HeadView() const {
     const auto& c = Cfg();
-
-    const float scale = LiveWorldUnitsPerMetre();
 
     // Head pose, with positional dropped when only rotation is wanted. This is
     // honoured in stereo as well as mono -- it used to apply only to mono, which
@@ -285,11 +283,44 @@ Affine VRSystem::EyeView(Eye eye) const {
     if (!c.positionalTracking) {
         head.r[0][3] = head.r[1][3] = head.r[2][3] = 0.0f;
     }
+    return ToEngineSpace(head, LiveWorldUnitsPerMetre(), c.flipViewY);
+}
+
+bool VRSystem::CullTangents(float& tanX, float& tanY) const {
+    float x = 0.0f, y = 0.0f;
+    for (int e = 0; e < 2; ++e) {
+        const float l = std::fabs(m_rawProj[e][0]);
+        const float r = std::fabs(m_rawProj[e][1]);
+        const float t = std::fabs(m_rawProj[e][2]);
+        const float b = std::fabs(m_rawProj[e][3]);
+        if (l > x) x = l;
+        if (r > x) x = r;
+        if (t > y) y = t;
+        if (b > y) y = b;
+    }
+    // Zero means GetProjectionRaw has not run (no runtime, or Init failed part
+    // way). Report that rather than hand back a degenerate frustum that would
+    // cull everything.
+    if (!(x > 0.0f) || !(y > 0.0f)) return false;
+    tanX = x;
+    tanY = y;
+    return true;
+}
+
+Affine VRSystem::EyeView(Eye eye) const {
+    const auto& c = Cfg();
+
+    const float scale = LiveWorldUnitsPerMetre();
 
     // Mono: the centred head view, with no per-eye offset. There is only one
     // image, so applying half an IPD to it would just shift the whole picture.
     if (c.monoTracking) {
-        return ToEngineSpace(head, scale, c.flipViewY);
+        return HeadView();
+    }
+
+    Affine head = m_headFromTracking;
+    if (!c.positionalTracking) {
+        head.r[0][3] = head.r[1][3] = head.r[2][3] = 0.0f;
     }
 
     int idx = static_cast<int>(eye);

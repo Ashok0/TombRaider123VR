@@ -53,6 +53,73 @@ struct Config {
     // cap feels like it arrives too early.
     float ceilingMarginUnits  = 128.0f;
 
+    // --- room culling --------------------------------------------------------
+    //
+    // The engine draws only the rooms its portal traversal reaches from the
+    // GAME CAMERA. Look somewhere the game camera is not pointing and the
+    // geometry that should be there was never submitted. PortalCull.cpp runs
+    // the same traversal from the tracked head instead, with the headset's
+    // frustum, and appends whatever it finds; nothing the engine listed is ever
+    // removed, so turning this off returns the stock behaviour exactly.
+    //
+    // Off means the engine's culling stands and rooms will vanish as you turn
+    // your head. It is on because that is the whole point; it is a toggle
+    // because it is the only thing here that writes into the game DLL's own
+    // draw list.
+    bool  portalCulling         = true;
+
+    // Angle added to each half of the culling frustum, in degrees.
+    //
+    // Two things need covering and neither is large: the traversal runs once
+    // from the head rather than once per eye, so the couple of degrees a canted
+    // display puts between the two frusta has to be allowed for, and the pose
+    // that culls a frame is a few milliseconds older than the pose that renders
+    // it. Raise it if geometry pops in at the very edge of vision when you turn
+    // quickly; every degree costs a little more draw.
+    float cullFovMarginDegrees  = 8.0f;
+
+    // How many doorways deep the traversal may go, and how many portals it may
+    // look at in one frame.
+    //
+    // NEITHER IS A VISIBILITY CRITERION -- the frustum shrinking at every
+    // doorway is what stops the traversal, and these only bound the worst case
+    // so a pathological level cannot spend the frame in here. If the log ever
+    // reports budgets being hit during normal play, raise them; the numbers are
+    // not tuned to anything except "far past what a level does".
+    int   cullMaxDepth          = 16;
+    int   cullMaxPortals        = 4096;
+
+    // Optional distance limit in world units, 0 for none. A sector is 1024.
+    //
+    // Default off deliberately. The engine's own phd_zfar is 65536 units, which
+    // culls nothing, and a room you can see down a long corridor is a room you
+    // should be able to see. This exists as a frame-rate lever, not a fix.
+    float cullFarUnits          = 0.0f;
+
+    // Widen every listed room's clip rectangle to the whole target.
+    //
+    // The engine stores a per-room screen rect, clipped at each doorway, and
+    // PrintRooms turns it into a scissor box -- so a room reached down a
+    // corridor is pixel-clipped to where the GAME CAMERA saw its doorway. The
+    // stereo path already overrides the scissor per draw, so on the modern
+    // renderer this is belt and braces; on the classic renderer, where the same
+    // rect drives vertex clipping, it is what makes the added rooms visible.
+    bool  cullWidenBounds       = true;
+
+    // Extend the same fix to items.
+    //
+    // S_GetObjectBounds rejects an item whose bounding box misses the game
+    // camera's screen rect or sits behind its near plane, which is every item
+    // in every room this feature adds. Without it, rooms behind you draw with
+    // their furniture, enemies and pickups missing. Answers are only ever
+    // promoted from "invisible" to "visible, clip it", never the other way.
+    bool  cullObjects           = true;
+
+    // Virtual-key code that dumps the current draw list to the log, 0 to
+    // disable. Prints which rooms the engine found and which the head frustum
+    // added, which is the first thing worth knowing about any culling glitch.
+    int   cullDumpKey           = 0;
+
     // Rotation-only head tracking. The safest possible first test: the camera
     // can pivot but can never be displaced into geometry, so a wrong world
     // scale cannot put you inside a wall. Turn positional on once looking

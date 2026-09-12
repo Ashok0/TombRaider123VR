@@ -15,12 +15,14 @@ information.
 Written with Claude Code (Opus 5). Every address, struct offset and function
 signature in `src/Engine.h` and `src/GameDll.cpp` was extracted from the shipped
 PDBs by the tools in `tools\`, and `tools\verify_addresses.py` re-derives all
-139 of them and fails if any disagrees.
+244 of them and fails if any disagrees.
 
 ## VR Mod Features
 
 - Native stereo 3D, 6DOF head tracking, per-eye asymmetric frustums.
 - All three games (TR1, TR2, TR3) through one build.
+- Head-driven room culling, so geometry does not vanish when you look away
+  from the game camera.
 - World-locked HUD and inventory rather than a flat overlay pinned to your face.
 - FMV cutscenes captured offscreen and replayed as real geometry, so they
   keystone and roll correctly instead of sitting flat.
@@ -47,14 +49,15 @@ for the settings.
 
 ## Status
 
-Verified working: the mod loads, binds, installs all six hooks, brings up
+Verified working: the mod loads, binds, installs all six exe hooks, brings up
 OpenVR, creates the stereo target and submits stereo frames with correct per-eye
 separation. What has **not** been done is a full playthrough of all three games,
 so per-level and per-cutscene issues are likely to remain.
 
-One TR4-6 feature is deliberately **not** carried over: the portal/room-culling
-expansion that stopped geometry disappearing when you look away from the game
-camera. See "Not carried over" below.
+The culling fix is confirmed working in play: geometry no longer disappears when
+you look away from the game camera. `PortalCulling=0` returns the stock
+behaviour exactly. See "Culling Fix" below for what it does, how it differs from
+the TR4-6 attempt, and how to read its log lines.
 
 ---
 
@@ -77,8 +80,9 @@ python tools\verify_addresses.py                          re-derive and diff eve
 `pdbdump.py` and `typedump.py` drive `dbghelp.dll` through `ctypes` — no SDK, no
 external dependency. `disasm.py` and `xrefs.py` add `capstone` and `pefile`.
 
-The whole mod was built with these alone — no decompiler. That worked *because*
-of the PDBs; see "Ghidra / re-mcp" below for where it stops working.
+Everything except the room culling was built with these alone — no decompiler.
+That worked *because* of the PDBs; see "Ghidra / re-mcp" below for the one place
+symbols and types were not enough.
 
 The first three questions that decided whether the port was viable at all were
 answered in about ten minutes:
@@ -138,7 +142,7 @@ self-test asserts it.
 
 ### What it hooks
 
-Six inline hooks, all in `tomb123.exe`:
+Six inline hooks in `tomb123.exe`:
 
 | hook | job |
 |---|---|
@@ -148,6 +152,16 @@ Six inline hooks, all in `tomb123.exe`:
 | `ogl_present` | submit to the compositor, mirror, `WaitGetPoses` |
 | `ogl_setRenderTarget` | latch whether the engine is drawing to the backbuffer |
 | `fmvShow` | exact "a video is on screen this frame" signal |
+
+...and two in whichever of `tomb1/2/3.dll` is running, for the culling:
+
+| hook | job |
+|---|---|
+| `PrintRoomsList` | expand the draw list along the head's frustum before it is drawn |
+| `S_GetObjectBounds` | second-guess "this item is off screen" from the head |
+
+Both are the same function in all three DLLs, with the same 5-byte
+position-independent prologue, so one table serves all of them.
 
 `tools\xrefs.py` disassembles all 1017 named functions and reports:
 
@@ -231,22 +245,153 @@ Y-down, so the ceiling has the *smaller* Y and a positive result means the camer
 is below it. Anything outside 0..32768 units is reported as "unknown" rather than
 clamped on, because a wrong clamp is worse than none.
 
-### Not carried over
+### Culling Fix
 
-The TR4-6 mod expanded the engine's visible set along portal connectivity so
-geometry did not vanish when you turned your head away from the game camera. That
-is **not** in this build, and its settings are absent rather than present and
-inert.
+**Symptom.** Turn your head away from the game camera and the world empties out:
+walls, floors and whole rooms simply are not drawn. It is the single most
+disorienting thing a VR port of this engine can do, because it happens exactly
+when you look around — the one thing VR is for.
 
-The culling lives in the game DLL, not the executable. TR4-6 implemented it
-against reverse-engineered addresses inside `tomb4.dll` and `tomb5.dll`; TR1-3
-would need the same work three more times. It is tractable — those DLLs ship
-PDBs, and `GetRoomBounds` is right there by name — but it is not done. Until it
-is, geometry outside the game camera's frustum is not drawn.
+**Cause.** The engine draws only the rooms its portal traversal reaches from the
+**game camera**, carrying a screen rectangle that is clipped at every doorway. A
+room is submitted only if some chain of doorways lands on the game camera's
+screen. That is right for a monitor and wrong for a headset: you see wider than
+the game camera, and you can look somewhere it is not pointing at all. The
+culling lives in the game DLL, not the exe, which is why nothing the stereo
+layer does can reach it.
 
-One measured finding from that work does carry over: widening the projection the
-engine hands the game changes nothing about what is culled, because the DLL
-builds its cull planes independently. Do not re-run that experiment.
+**Fix.** `src\PortalCull.cpp` hooks `PrintRoomsList` — the last moment before
+the draw list is consumed — and runs the same traversal a second time from the
+tracked head, in world space, with the headset's frustum, appending what it
+finds. Nothing the engine listed is ever removed, so `PortalCulling=0` is the
+stock behaviour exactly, and with your head aligned to the game camera the
+result is what the engine would have drawn anyway.
+
+**The frustum shrinks at every doorway.** The portal quad is transformed into
+eye space, clipped against the planes arriving from the previous room, and a new
+plane is built from the head through each surviving edge. A room enters the list
+only if it can really be seen through that chain of openings — not merely
+because it is nearby or connected. The engine's own back-face test is kept
+unchanged, with the head substituted for the camera; that substitution is free,
+because the world→eye transform is orthogonal, so `dot(A·n, A·(p−c) + t)` is
+`dot(n, p − headPos)` and the comparison survives being done in eye space.
+
+#### Where the code is
+
+| file | what it holds |
+|---|---|
+| `src\PortalCull.cpp` | the traversal, both DLL hooks, the draw-list surgery |
+| `src\PortalGeom.h` | the frustum maths — dependency-free, so the self-test can include it |
+| `src\GameDll.cpp` | the three-row address table these run against |
+| `tests\selftest.cpp` | 26 hand-worked checks on the geometry |
+| `tools\verify_addresses.py` | re-derives every address and both hook prologues from the PDBs |
+
+#### How this differs from TR4-6
+
+The TR4-6 mod expanded the list by **portal hops**: take every room already
+listed, add everything one doorway away, repeat *N* times. It worked, and every
+row below is something it had to live with that a real traversal does not.
+
+| | TR4-6 (`RoomCull.cpp`) | here (`PortalCull.cpp`) |
+|---|---|---|
+| criterion | hop count `N` | whether the head can see through the doorways |
+| depth | `PortalHops`, tuned per level | decided by the geometry; the budgets only bound the worst case |
+| flip rooms | added, then excluded by a hand-kept list | unreachable by construction |
+| addresses | `FUN_18002ea30`, `DAT_18063dc60` | `PrintRoomsList`, `draw_rooms`, by name, from the PDBs |
+
+The flip-room point is the interesting one. A flip map's inactive half is a real
+entry in the room array at the same world position as its live twin, so a
+mechanism that adds rooms the traversal never reached will happily add both and
+draw one over the other. TR4-6 hit exactly that and needed
+`DrawAllRoomsExclude=215` and then a `flipped_room` check to suppress it. No
+live room's portals name a storage room, so a real traversal cannot reach one —
+the same reason the engine's own never draws one. There is no exclusion list
+here because there is nothing to exclude.
+
+#### The two levers behind the room list
+
+Fixing the list alone is not enough, because the same camera-shaped assumption
+is baked in twice more:
+
+* **`ROOM_INFO::left/right/top/bottom`**, the per-room clip rect. `PrintRooms`
+  copies it into `phd_left/right/top/bottom` and `CheckClipping` turns it into a
+  scissor box, so a room reached down a corridor is pixel-clipped to where the
+  game camera saw its doorway. Every listed room's rect is widened to the whole
+  target (`CullWidenBounds`). On the modern renderer this is belt and braces —
+  the stereo hook already replaces the scissor per draw — but on the classic
+  renderer the same rect drives vertex clipping in `calc_roomvert`.
+* **`S_GetObjectBounds`**, which answers 1 / −1 / 0 for an item's bounding box.
+  Zero is reached two ways and both are the game camera's opinion: every corner
+  behind `phd_znear`, or the projected rectangle missing the screen rect. An
+  enemy behind the camera fails the first, one beside it the second. Without
+  `CullObjects` the added rooms draw with their furniture, enemies and pickups
+  missing. Only the zero answer is second-guessed, and only ever upward to −1
+  ("visible, clip it") — never the other way, and never in the inventory or on
+  the title screen.
+
+TR2 and TR3 additionally keep an `outside` flag and a separate screen rect for
+the sky, grown as the traversal meets outdoor rooms. Both are maintained the way
+the engine maintains them. TR1 has no such state at all, and those five columns
+of the address table are zero for it.
+
+#### One space, one sign
+
+The whole thing turns on a single relationship, so it is worth stating plainly.
+The game's culling works in **phd view space** — `v = R·(p − camPos)`, X right,
+Y down, **+Z forward** (`SetRoomBounds` tests `z < 1` for "behind the camera").
+The mod's matrices work in the space `mView_packed` defines, which is the same
+transform with its **third rotation row negated**, i.e. −Z forward. That is not
+inferred: `vid_setViewMatrix` (RVA `0x0000A5E0`) builds it from the same
+`int[12]` and negates exactly `m[8]`, `m[9]`, `m[10]`, leaving every other term
+alone.
+
+So `eye = HeadView · N · phd` with `N = diag(1, 1, −1)`, and the whole chain
+collapses to one 3×3 and two translations. Get that sign backwards and the
+traversal culls the half of the world you are looking at.
+
+#### What it costs, and what to watch
+
+The traversal is integer-free float work over portal quads — a few hundred
+portals a frame at most — so its own cost is nothing. What costs is the extra
+geometry it lets through, which is the point. The health report prints it:
+
+```
+cull: 12.4 rooms/frame from the engine + 3.1 added by the head frustum, 4.2 items rescued/frame
+```
+
+`added = 0` forever means either the head never left the game camera's cone or
+the traversal is not running; the `cull: head-frustum portal traversal live`
+line tells the two apart. `CullDumpKey` prints the whole list with the added
+rooms starred, which turns "that wall is missing" into a room number.
+
+#### Settings
+
+All in `[VR]`, all documented at length in `TombRaiderVR.ini` itself.
+
+| key | default | what it is for |
+|---|---|---|
+| `PortalCulling` | `1` | the whole feature; `0` is stock behaviour |
+| `CullFovMarginDegrees` | `8` | angle added to each half of the culling frustum — covers canted displays and the few ms between the pose that culls and the pose that renders |
+| `CullMaxDepth` | `16` | doorways deep, worst-case bound only |
+| `CullMaxPortals` | `4096` | portals per frame, worst-case bound only |
+| `CullFarUnits` | `0` | optional distance limit, off by default; a frame-rate lever, not a fix |
+| `CullWidenBounds` | `1` | widen the per-room clip rect (see above) |
+| `CullObjects` | `1` | extend the fix to items (see above) |
+| `CullDumpKey` | `0` | virtual-key code that dumps the draw list to the log |
+
+Neither budget is a visibility criterion. The frustum closing at successive
+doorways is what ends the traversal; the budgets exist so a pathological level
+cannot spend the whole frame in here, and the log says so if either is hit.
+
+#### One thing not to try again
+
+Widening the projection the exe hands the game changes **nothing** about what is
+culled. TR4-6 swept it to 200% of screen each way, and 20× on TR6, and got
+neither extra geometry nor a frame-rate change. The DLL builds its cull planes
+from its own matrices and never looks at the projection matrix; on TR1-3 a
+portal beside or behind the camera fails the near-plane test inside
+`SetRoomBounds` before any rectangle is consulted. Do not re-run that
+experiment.
 
 `preserveProjOffset` is kept but is expected to be permanently inert: there is no
 `vid_setPerspOffset` on this engine and `ogl_setPersp` zeroes `mProj[1].e02/.e12`
@@ -255,11 +400,21 @@ report is ever non-zero, something is happening that this analysis says cannot.
 
 ### Ghidra / re-mcp
 
-The mod as it stands was written without a decompiler, because the PDBs made one
-unnecessary. That stops being true for the room-culling work, which is
-algorithm-shaped rather than layout-shaped: following `GetRoomBounds`'s portal
-traversal and the draw-list structure in raw disassembly is exactly what a
-decompiler is for.
+Everything except the culling was written without a decompiler, because the PDBs
+made one unnecessary. The culling is where that stops: it is algorithm-shaped
+rather than layout-shaped, and no amount of symbol and type information tells
+you that `SetRoomBounds` rejects a portal when `dot(normal, vertex − camera)`
+is non-negative, that its four `z < 1` tests are what make a portal behind the
+camera unreachable, or that `PrintRoomsList` clears `bound_active` for every
+listed room on its way out. Those came out of the decompiler, and they are what
+the reimplementation had to agree with.
+
+Worth knowing before reading either implementation: **TR1 and TR2/TR3 do not
+share a traversal.** TR1 recurses (`GetRoomBounds` calls itself per portal); TR2 and
+TR3 run a queue in `bound_list` with `bound_start`/`bound_end` and keep an
+enqueue count in the upper bits of `bound_active`. Only bit 0 of that byte means
+"already in `draw_rooms`" in both, which is why one line of ours works on all
+three — and why writing our own traversal was simpler than driving theirs.
 
 `.mcp.json` configures [`re-mcp`](https://pypi.org/project/re-mcp/)'s Ghidra
 backend for this repo:
@@ -310,8 +465,9 @@ installed.
 ### Verification
 
 ```powershell
-python tools\verify_addresses.py     # 139 checks against the PDBs
-tests\build_selftest.cmd             # matrix maths, consts bits, hook mechanism
+python tools\verify_addresses.py     # 244 checks against the PDBs
+tests\build_selftest.cmd             # matrix maths, consts bits, portal frustum,
+                                     # hook mechanism
 ```
 
 `verify_addresses.py` re-derives every address, struct offset, structural
@@ -325,7 +481,9 @@ fails, it names what moved.
 src\             the mod
   Engine.h/.cpp    address map, struct layouts, module binding
   Hooks.cpp        the stereo injection layer
-  GameDll.cpp      the two pieces of state that live in tomb1/2/3.dll
+  GameDll.cpp      binding and address table for tomb1/2/3.dll
+  PortalCull.cpp   head-driven room culling, hooked into the game DLL
+  PortalGeom.h     the frustum maths behind it, tested by tests\
   StereoMath.h     matrix maths against this engine's conventions
   proxy\           the winmm shim
 tools\           PDB extraction, disassembly, verification

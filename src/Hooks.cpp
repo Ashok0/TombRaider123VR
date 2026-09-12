@@ -94,6 +94,7 @@
 #include "Gamepad.h"
 #include "Callsite.h"
 #include "GameDll.h"
+#include "PortalCull.h"
 #include "VRSystem.h"
 
 #include <cstring>
@@ -1267,6 +1268,7 @@ void __cdecl Detour_ogl_present() {
     PollTraceKey();
     PollDumpKey();
     PollTuningKeys();
+    PortalCullPollKey();
 
     // Re-assert the XInput pointer every frame: cheap, and it self-heals if the
     // game re-resolves XInput or if we got here before WinMain had.
@@ -1276,6 +1278,10 @@ void __cdecl Detour_ogl_present() {
     // the player moves between games from the title screen, so this is not a
     // one-time bind.
     GameDllUpdate();
+
+    // Install or drop the culling hooks to match. Must follow GameDllUpdate:
+    // it hooks INSIDE the game DLL, so it needs to know which one is live.
+    PortalCullUpdate();
 
     // Periodic health report, in deltas. A one-shot report at a fixed frame only
     // ever samples the menus, where almost everything legitimately is 2D.
@@ -1361,6 +1367,23 @@ void __cdecl Detour_ogl_present() {
         }
 
         LogProjHistogram();
+
+        // Room culling, averaged over the window. `added` is the whole point:
+        // zero of it means either the head never left the game camera's cone or
+        // the traversal is not running, and the two are told apart by whether
+        // the "cull: head-frustum portal traversal live" line ever appeared.
+        {
+            const PortalCullStats cs = PortalCullTakeStats();
+            if (cs.frames) {
+                LogF("cull: %.1f rooms/frame from the engine + %.1f added by the "
+                     "head frustum, %.1f items rescued/frame%s",
+                     double(cs.rooms) / cs.frames,
+                     double(cs.added) / cs.frames,
+                     double(cs.items) / cs.frames,
+                     cs.truncated ? "  *** A BUDGET WAS HIT -- raise "
+                                    "CullMaxPortals/CullMaxDepth ***" : "");
+            }
+        }
 
         if (dWorld > 200 && pct < 25) {
             LogF("stereo health: *** only %u%% of world draws got per-eye matrices "
@@ -1487,6 +1510,7 @@ bool InstallHooks() {
 
 void RemoveHooks() {
     GamepadShutdown();
+    PortalCullShutdown();
     GameDllShutdown();
 
     // Reverse order of installation.

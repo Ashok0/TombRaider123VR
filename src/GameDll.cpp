@@ -29,27 +29,70 @@ constexpr uint32_t room_stride     = 168;
 constexpr uint32_t room_maxceiling = 56;   // int32, the ceiling's Y
 } // namespace off
 
-struct DllLayout {
-    const wchar_t* module;      // file name as the loader knows it
-    const char*    name;
-    uint32_t       timestamp;   // PE TimeDateStamp
-    uint32_t       lara;        // RVA of `lara`         (lara_info)
-    uint32_t       camera;      // RVA of `camera`       (camera_info)
-    uint32_t       room;        // RVA of `room`         (ROOM_INFO*)
-    uint32_t       numberRooms; // RVA of `number_rooms` (int16)
-};
-
-// Every RVA read out of the matching PDB. See the header.
-constexpr DllLayout kDlls[] = {
+// Every RVA read out of the matching PDB, by name. Re-derived and diffed by
+// tools\verify_addresses.py, which fails the build check if any of them moves.
+//
+//   python tools\pdbdump.py PDB\tomb1.dll draw_rooms w2v_matrix PrintRoomsList
+//
+// Column order matches GameDllLayout in the header. The five `outside*` entries
+// are zero for TR1 because TR1's renderer has no such state: TR2 and TR3 track
+// a separate screen rect for the sky, TR1 does not.
+constexpr GameDllLayout kDlls[] = {
     { L"tomb1.dll", "Tomb Raider I",   0x6A4B48FF,
-      0x0033BC00, 0x0041DF60, 0x0041E088, 0x0041DF50 },
+      /* lara            */ 0x0033BC00,
+      /* camera          */ 0x0041DF60,
+      /* room            */ 0x0041E088,
+      /* number_rooms    */ 0x0041DF50,
+      /* draw_rooms      */ 0x0041DDC0,
+      /* number_draw_..  */ 0x0041DF54,
+      /* w2v_matrix      */ 0x002C8C40,
+      /* phd_mxptr       */ 0x0010E928,
+      /* phd_winxmax     */ 0x002C8C04,
+      /* phd_winymax     */ 0x002C8C00,
+      /* outside         */ 0, 0, 0, 0, 0,
+      /* PrintRoomsList  */ 0x0006E950,
+      /* S_GetObjectB..  */ 0x00063DF0 },
+
     { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
-      0x0037AD40, 0x00433160, 0x0045D220, 0x00433070 },
+      /* lara            */ 0x0037AD40,
+      /* camera          */ 0x00433160,
+      /* room            */ 0x0045D220,
+      /* number_rooms    */ 0x00433070,
+      /* draw_rooms      */ 0x00432EE0,
+      /* number_draw_..  */ 0x0043307C,
+      /* w2v_matrix      */ 0x00307D60,
+      /* phd_mxptr       */ 0x001490F8,
+      /* phd_winxmax     */ 0x00307DA0,
+      /* phd_winymax     */ 0x00307D9C,
+      /* outside         */ 0x0042CE94,
+      /* outside_left    */ 0x00538070,
+      /* outside_right   */ 0x00538060,
+      /* outside_top     */ 0x00538068,
+      /* outside_bottom  */ 0x00538064,
+      /* PrintRoomsList  */ 0x000A0C30,
+      /* S_GetObjectB..  */ 0x00095740 },
+
     { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
-      0x003D1C40, 0x00491FA0, 0x00492020, 0x00491150 },
+      /* lara            */ 0x003D1C40,
+      /* camera          */ 0x00491FA0,
+      /* room            */ 0x00492020,
+      /* number_rooms    */ 0x00491150,
+      /* draw_rooms      */ 0x00490FC0,
+      /* number_draw_..  */ 0x00491154,
+      /* w2v_matrix      */ 0x0035EC80,
+      /* phd_mxptr       */ 0x0019DA98,
+      /* phd_winxmax     */ 0x0035EC30,
+      /* phd_winymax     */ 0x0035EC2C,
+      /* outside         */ 0x0048B708,
+      /* outside_left    */ 0x005977B0,
+      /* outside_right   */ 0x005977A0,
+      /* outside_top     */ 0x005977A8,
+      /* outside_bottom  */ 0x005977A4,
+      /* PrintRoomsList  */ 0x000EAF50,
+      /* S_GetObjectB..  */ 0x000DFB70 },
 };
 
-const DllLayout* g_dll  = nullptr;
+const GameDllLayout* g_dll  = nullptr;
 uint64_t         g_base = 0;
 bool             g_loggedStamp   = false;
 bool             g_loggedNoRooms = false;
@@ -104,7 +147,7 @@ bool GameDllUpdate() {
     g_dll  = nullptr;
     g_base = 0;
 
-    const DllLayout& d = kDlls[game];
+    const GameDllLayout& d = kDlls[game];
     HMODULE h = GetModuleHandleW(d.module);
     if (!h) return false;
 
@@ -139,6 +182,9 @@ bool GameDllUpdate() {
          d.module, d.name, game, (void*)base);
     return true;
 }
+
+const GameDllLayout* GameDllBound() { return g_dll; }
+uint64_t             GameDllBase()  { return g_base; }
 
 int LaraWaterStatus() {
     if (!g_dll) return -1;

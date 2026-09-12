@@ -19,6 +19,7 @@
 
 #include "Engine.h"
 #include "StereoMath.h"
+#include "PortalGeom.h"
 #include "InlineHook.h"
 #include "Log.h"
 
@@ -341,6 +342,146 @@ static void TestEngineConstBits() {
     Check(tr::kShaderCount == 74,         "kShaderCount == 74");
 }
 
+// ---------------------------------------------------------------------------
+// 7. Portal frustum maths (PortalGeom.h).
+//
+// This is the part of the room culling that can be wrong without crashing: a
+// sign slip in the edge planes turns "visible through that doorway" into "not
+// visible", and the symptom on screen -- geometry missing when you look away
+// from the game camera -- is indistinguishable from the bug the whole feature
+// exists to fix. So the cases below are worked out by hand rather than
+// captured from a run.
+//
+// Everything is in eye space with the viewpoint at the origin and -Z forward.
+// ---------------------------------------------------------------------------
+using tr::portal::Vec3;
+using tr::portal::Plane;
+using tr::portal::Poly;
+
+static bool InsideAll(const Plane* pl, int n, const Vec3& p) {
+    for (int i = 0; i < n; ++i) {
+        if (tr::portal::Dot(pl[i].n, p) + pl[i].d < 0.0f) return false;
+    }
+    return true;
+}
+
+static void TestPortalGeometry() {
+    printf("\nportal frustum maths\n");
+
+    // --- the root frustum ---------------------------------------------------
+    //
+    // tanX = 1 is 45 degrees a side, so at 1000 units ahead the edge is at
+    // x = +/-1000 exactly. The boundary case matters: `inside` is >= 0, so a
+    // point exactly on the edge counts as visible, which is the conservative
+    // direction.
+    Plane root[tr::portal::kMaxPlanes];
+    const int nRoot = tr::portal::RootPlanes(1.0f, 0.5f, root);
+    Check(nRoot == 5, "root frustum is 5 planes (near + four sides)");
+
+    Check( InsideAll(root, nRoot, Vec3{    0.0f,   0.0f, -1000.0f }), "straight ahead is inside");
+    Check( InsideAll(root, nRoot, Vec3{  999.0f,   0.0f, -1000.0f }), "just inside the right edge");
+    Check(!InsideAll(root, nRoot, Vec3{ 1001.0f,   0.0f, -1000.0f }), "just outside the right edge");
+    Check( InsideAll(root, nRoot, Vec3{    0.0f, 499.0f, -1000.0f }), "just inside the bottom edge");
+    Check(!InsideAll(root, nRoot, Vec3{    0.0f, 501.0f, -1000.0f }), "just outside the bottom edge");
+    Check(!InsideAll(root, nRoot, Vec3{    0.0f,   0.0f,  1000.0f }), "behind the head is outside");
+    Check(!InsideAll(root, nRoot, Vec3{    0.0f,   0.0f,    -1.0f }), "nearer than the near plane is outside");
+
+    // --- looking through a doorway -----------------------------------------
+    //
+    // A 200x200 opening 1000 units ahead. The cone through it widens linearly,
+    // so at 2000 units it is 400 wide: x = 150 is inside, x = 250 is not. That
+    // is the whole point of the mechanism -- the frustum SHRINKS at the doorway
+    // rather than the room beyond simply being let in.
+    Poly door;
+    door.n = 4;
+    door.v[0] = Vec3{ -100.0f, -100.0f, -1000.0f };
+    door.v[1] = Vec3{  100.0f, -100.0f, -1000.0f };
+    door.v[2] = Vec3{  100.0f,  100.0f, -1000.0f };
+    door.v[3] = Vec3{ -100.0f,  100.0f, -1000.0f };
+
+    Plane thru[tr::portal::kMaxPlanes];
+    const int nThru = tr::portal::BuildPlanes(door, thru);
+    Check(nThru == 5, "a quad opening yields near + four edge planes");
+
+    Check( InsideAll(thru, nThru, Vec3{   0.0f,   0.0f, -2000.0f }), "through the doorway, on axis");
+    Check( InsideAll(thru, nThru, Vec3{ 150.0f,   0.0f, -2000.0f }), "through the doorway, inside the cone");
+    Check(!InsideAll(thru, nThru, Vec3{ 250.0f,   0.0f, -2000.0f }), "beside the doorway is culled");
+    Check(!InsideAll(thru, nThru, Vec3{   0.0f, 250.0f, -2000.0f }), "above the doorway is culled");
+    Check( InsideAll(thru, nThru, Vec3{  90.0f,   0.0f, -1000.0f }), "in the doorway itself");
+
+    // The engine stores portal vertices in an order relative to the room that
+    // owns them, so the same opening arrives wound either way depending on
+    // which side it is crossed from. The centroid test in BuildPlanes is what
+    // makes that not matter, and this is the case that would catch it.
+    Poly reversed;
+    reversed.n = 4;
+    for (int i = 0; i < 4; ++i) reversed.v[i] = door.v[3 - i];
+    Plane rthru[tr::portal::kMaxPlanes];
+    const int nR = tr::portal::BuildPlanes(reversed, rthru);
+    Check(nR == nThru, "reversed winding yields the same plane count");
+    Check( InsideAll(rthru, nR, Vec3{ 150.0f, 0.0f, -2000.0f }), "reversed winding: inside is still inside");
+    Check(!InsideAll(rthru, nR, Vec3{ 250.0f, 0.0f, -2000.0f }), "reversed winding: outside is still outside");
+
+    // --- clipping one opening against another ------------------------------
+    Poly cut = door;
+    const Plane half{ Vec3{ 1.0f, 0.0f, 0.0f }, 0.0f };      // keep x >= 0
+    Check(tr::portal::ClipPoly(cut, half), "clip against a half-space succeeds");
+    Check(cut.n == 4, "a square cut down the middle is still four-sided");
+    bool allRight = true;
+    for (int i = 0; i < cut.n; ++i) if (cut.v[i].x < -1e-3f) allRight = false;
+    Check(allRight, "every surviving vertex is on the kept side");
+
+    Poly gone = door;
+    const Plane away{ Vec3{ 1.0f, 0.0f, 0.0f }, -1000.0f };  // keep x >= 1000
+    Check(tr::portal::ClipPoly(gone, away), "clip that removes everything still succeeds");
+    Check(gone.n < 3, "a fully-clipped opening is empty");
+
+    // --- degenerate openings ------------------------------------------------
+    //
+    // A portal seen exactly edge-on has every edge in a plane through the apex.
+    // BuildPlanes must drop those rather than emit garbage normals; reporting
+    // fewer than four planes is how the traversal is told to keep the frustum
+    // it already had.
+    Poly edgeOn;
+    edgeOn.n = 4;
+    edgeOn.v[0] = Vec3{ 0.0f, -100.0f, -1000.0f };
+    edgeOn.v[1] = Vec3{ 0.0f, -100.0f, -2000.0f };
+    edgeOn.v[2] = Vec3{ 0.0f,  100.0f, -2000.0f };
+    edgeOn.v[3] = Vec3{ 0.0f,  100.0f, -1000.0f };
+    Plane eplanes[tr::portal::kMaxPlanes];
+    const int nE = tr::portal::BuildPlanes(edgeOn, eplanes);
+    Check(nE >= 1 && nE <= 5, "an edge-on opening produces no bogus planes");
+
+    // --- box culling --------------------------------------------------------
+    //
+    // A box far larger than the frustum's cross-section, straddling the axis.
+    // No corner of it is inside, and the naive "is any corner visible" test
+    // would drop it -- which on screen is a wall or a large static mesh
+    // vanishing when you stand close to it.
+    Vec3 big[8];
+    int  bi = 0;
+    for (int xs = 0; xs < 2; ++xs)
+        for (int ys = 0; ys < 2; ++ys)
+            for (int zs = 0; zs < 2; ++zs)
+                big[bi++] = Vec3{ xs ? 5000.0f : -5000.0f,
+                                  ys ? 5000.0f : -5000.0f,
+                                  zs ? -900.0f : -1100.0f };
+    bool anyCornerInside = false;
+    for (int i = 0; i < 8; ++i) if (InsideAll(root, nRoot, big[i])) anyCornerInside = true;
+    Check(!anyCornerInside, "the oversized box has no corner inside the frustum");
+    Check(tr::portal::BoxVisible(big, root, nRoot), "...and BoxVisible reports it visible anyway");
+
+    Vec3 behind[8];
+    bi = 0;
+    for (int xs = 0; xs < 2; ++xs)
+        for (int ys = 0; ys < 2; ++ys)
+            for (int zs = 0; zs < 2; ++zs)
+                behind[bi++] = Vec3{ xs ? 100.0f : -100.0f,
+                                     ys ? 100.0f : -100.0f,
+                                     zs ? 2000.0f : 1000.0f };
+    Check(!tr::portal::BoxVisible(behind, root, nRoot), "a box wholly behind the head is culled");
+}
+
 int main() {
     printf("TombRaiderVR self-test\n======================\n");
 
@@ -352,6 +493,7 @@ int main() {
     TestEngineSpaceConversion();
     TestPackedView();
     TestEngineConstBits();
+    TestPortalGeometry();
     TestInlineHook();
 
     printf("\n%s (%d failure%s)\n",

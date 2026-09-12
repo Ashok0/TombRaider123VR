@@ -131,6 +131,7 @@
     <ClCompile Include="src\Hooks.cpp" />
     <ClCompile Include="src\InlineHook.cpp" />
     <ClCompile Include="src\Log.cpp" />
+    <ClCompile Include="src\PortalCull.cpp" />
     <ClCompile Include="src\StereoRenderer.cpp" />
     <ClCompile Include="src\VRSystem.cpp" />
     <ClCompile Include="src\VideoPanel.cpp" />
@@ -147,6 +148,8 @@
     <ClInclude Include="src\Hooks.h" />
     <ClInclude Include="src\InlineHook.h" />
     <ClInclude Include="src\Log.h" />
+    <ClInclude Include="src\PortalCull.h" />
+    <ClInclude Include="src\PortalGeom.h" />
     <ClInclude Include="src\StereoMath.h" />
     <ClInclude Include="src\StereoRenderer.h" />
     <ClInclude Include="src\VRSystem.h" />

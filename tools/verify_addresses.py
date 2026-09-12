@@ -135,19 +135,51 @@ for what, a, b in rel:
 print('=== tomb1/2/3.dll: globals and layouts (src/GameDll.cpp) ===')
 gd = open(os.path.join(ROOT, 'src', 'GameDll.cpp'), encoding='utf-8',
           errors='replace').read()
-rows = re.findall(
-    r'\{\s*L"(tomb[123]\.dll)",[^,]+,\s*(0x[0-9A-Fa-f]+),\s*'
-    r'(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+)\s*\}', gd)
+
+# One row of GameDllLayout per DLL: module, display name, PE timestamp, then the
+# RVAs in declaration order. Parsed positionally (comments stripped first) so
+# adding a column to the struct is caught here as a length mismatch rather than
+# silently checking the wrong field against the wrong symbol.
+LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
+          'draw_rooms', 'number_draw_rooms', 'w2v_matrix', 'phd_mxptr',
+          'phd_winxmax', 'phd_winymax',
+          'outside', 'outside_left', 'outside_right', 'outside_top',
+          'outside_bottom',
+          'PrintRoomsList', 'S_GetObjectBounds']
+
+rows = []
+for m in re.finditer(r'\{\s*L"(tomb[123]\.dll)",\s*"[^"]*",\s*(0x[0-9A-Fa-f]+),(.*?)\}', gd, re.S):
+    body = re.sub(r'/\*.*?\*/', '', m.group(3), flags=re.S)
+    vals = [int(v, 0) for v in re.findall(r'0x[0-9A-Fa-f]+|\b\d+\b', body)]
+    rows.append((m.group(1), m.group(2), vals))
+
 if len(rows) != 3:
     fails.append('GameDll.cpp: expected 3 DLL rows, parsed %d' % len(rows))
     checks += 1
 
-for dll, stamp, lara, camera, room, numrooms in rows:
+for dll, stamp, vals in rows:
     ds = syms(dll)
-    check('%s lara'         % dll, int(lara, 16),     ds['lara'][0])
-    check('%s camera'       % dll, int(camera, 16),   ds['camera'][0])
-    check('%s room'         % dll, int(room, 16),     ds['room'][0])
-    check('%s number_rooms' % dll, int(numrooms, 16), ds['number_rooms'][0])
+
+    if len(vals) != len(LAYOUT):
+        fails.append('%-46s %d RVAs in the row, GameDllLayout has %d'
+                     % (dll, len(vals), len(LAYOUT)))
+        checks += 1
+        continue
+
+    for name, got in zip(LAYOUT, vals):
+        if name in ds:
+            check('%s %s' % (dll, name), got, ds[name][0])
+        else:
+            # A symbol this build does not have must be spelled 0 in the table,
+            # because the code tests for zero to decide whether to touch it.
+            # TR1 has no `outside` machinery at all; TR2 and TR3 do.
+            check('%s %s absent from the PDB -> 0' % (dll, name), got, 0)
+
+    # draw_rooms is indexed with a hard cap of 200 in PortalCull.cpp, and in
+    # tomb1.dll `number_rooms` is the very next global -- so an off-by-one there
+    # corrupts the room count rather than overwriting padding.
+    check('%s sizeof(draw_rooms) == 400' % dll, ds['draw_rooms'][2], 400)
+    check('%s sizeof(w2v_matrix) == 48' % dll, ds['w2v_matrix'][2], 48)
 
     size, f = udt(dll, 'lara_info')
     check('%s sizeof(lara_info)' % dll, 432, size)
@@ -160,71 +192,102 @@ for dll, stamp, lara, camera, room, numrooms in rows:
     size, f = udt(dll, 'ROOM_INFO')
     check('%s sizeof(ROOM_INFO)' % dll, 168, size)
     check('%s ROOM_INFO::maxceiling' % dll, 56, f.get('maxceiling'))
+    # The fields PortalCull.cpp reads and writes. `door` is the portal list the
+    # traversal walks; bound_active bit 0 is "already in draw_rooms"; the four
+    # shorts are the clip rect it widens.
+    for fld, want in (('door', 8), ('x', 40), ('y', 44), ('z', 48),
+                      ('bound_active', 77), ('left', 80), ('right', 82),
+                      ('top', 84), ('bottom', 86), ('flags', 102)):
+        check('%s ROOM_INFO::%s' % (dll, fld), want, f.get(fld))
 
     size, f = udt(dll, 'game_vector')
     check('%s sizeof(game_vector)' % dll, 16, size)
     check('%s game_vector::y' % dll, 4, f.get('y'))
     check('%s game_vector::room_number' % dll, 12, f.get('room_number'))
 
-# ------------------------------------------------- hook prologues (Hooks.cpp)
+# ------------------------------------------------------------ hook prologues
 #
 # The stolen-byte windows are what make inline patching safe. Three properties
 # have to hold, and all three are checked here against the real .text:
-#   1. the bytes in Hooks.cpp are the bytes actually at the target;
+#   1. the bytes in the source are the bytes actually at the target;
 #   2. the window ends on an instruction boundary;
 #   3. no instruction inside the window has a RIP-relative operand, because
-#      Hooks.cpp passes no displacement fixups.
-print('=== hook prologues (src/Hooks.cpp) ===')
+#      neither hook site passes displacement fixups.
+#
+# Two sources install hooks: Hooks.cpp into tomb123.exe, and PortalCull.cpp into
+# whichever of tomb1/2/3.dll is running -- so the DLL windows are checked
+# against all three images, since one prologue table serves all of them.
+print('=== hook prologues (src/Hooks.cpp, src/PortalCull.cpp) ===')
 try:
     import pefile
     from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 
-    hooks = open(os.path.join(ROOT, 'src', 'Hooks.cpp'),
-                 encoding='utf-8', errors='replace').read()
-
-    # const uint8_t kNamePrologue[] = { 0x.., 0x.., ... };
-    arrays = {m.group(1): [int(b, 16) for b in re.findall(r'0x([0-9A-Fa-f]{2})', m.group(2))]
-              for m in re.finditer(r'const uint8_t k(\w+)Prologue\[\]\s*=\s*\{([^}]*)\}', hooks)}
-
-    # { &g_hX, L().name, ..., <stolen>, kNamePrologue, ...
-    stolen = {m.group(2): int(m.group(1))
-              for m in re.finditer(r'(\d+),\s*k(\w+)Prologue,', hooks)}
-
-    TARGETS = {'SetPass': 'vid_setPass', 'Validate': 'validate_draw',
-               'Draw': 'ogl_draw', 'Present': 'ogl_present',
-               'FmvShow': 'fmvShow', 'SetRt': 'ogl_setRenderTarget'}
-
-    pe = pefile.PE(os.path.join(PDB, 'tomb123.exe'), fast_load=True)
-    image = pe.get_memory_mapped_image()
     md = Cs(CS_ARCH_X86, CS_MODE_64)
     md.detail = True
 
-    for key, fn in TARGETS.items():
-        if key not in arrays:
-            fails.append('%-46s no kPrologue array in Hooks.cpp' % fn); checks += 1; continue
-        want = bytes(arrays[key])
-        rva  = s[fn][0]
-        got  = image[rva:rva + len(want)]
-        # check(what, <what the source says>, <what the binary says>)
-        check('%s prologue bytes' % fn, want.hex(), got.hex())
+    def prologues(src):
+        """Parse `const uint8_t kNamePrologue[] = {...}` and the stolen counts."""
+        txt = open(os.path.join(ROOT, 'src', src), encoding='utf-8',
+                   errors='replace').read()
+        arrays = {m.group(1): [int(x, 16) for x in re.findall(r'0x([0-9A-Fa-f]{2})', m.group(2))]
+                  for m in re.finditer(r'const uint8_t k(\w+)Prologue\[\]\s*=\s*\{([^}]*)\}', txt)}
+        stolen = {m.group(2): int(m.group(1))
+                  for m in re.finditer(r'(\d+),\s*k(\w+)Prologue,', txt)}
+        return arrays, stolen
 
-        n = stolen.get(key)
-        if n is None:
-            fails.append('%-46s no stolen count in the Target table' % fn); checks += 1; continue
-        check('%s stolen >= 5' % fn, n >= 5, True)
-        check('%s stolen covers the byte pattern' % fn, n >= len(want), True)
+    def check_prologues(image, src, targets):
+        global checks
+        arrays, stolen = prologues(src)
+        pe = pefile.PE(os.path.join(PDB, image), fast_load=True)
+        data = pe.get_memory_mapped_image()
+        base = pe.OPTIONAL_HEADER.ImageBase
+        table = syms(image)
+        for key, fn in targets.items():
+            label = '%s!%s' % (image, fn)
+            if key not in arrays:
+                fails.append('%-46s no kPrologue array in %s' % (label, src))
+                checks += 1
+                continue
+            if fn not in table:
+                fails.append('%-46s MISSING from the PDB' % label)
+                checks += 1
+                continue
+            want = bytes(arrays[key])
+            rva  = table[fn][0]
+            got  = data[rva:rva + len(want)]
+            # check(what, <what the source says>, <what the binary says>)
+            check('%s prologue bytes' % label, want.hex(), got.hex())
 
-        # Walk the window: it must end exactly on a boundary, with no RIP operand.
-        total, riprel = 0, []
-        for ins in md.disasm(image[rva:rva + n + 24], 0x140000000 + rva):
-            if total >= n:
-                break
-            if 'rip' in ins.op_str:
-                riprel.append('%s %s' % (ins.mnemonic, ins.op_str))
-            total += ins.size
-        check('%s window ends on an instruction boundary' % fn, n, total)
-        check('%s window is free of RIP-relative operands' % fn,
-              riprel if riprel else 'none', 'none')
+            n = stolen.get(key)
+            if n is None:
+                fails.append('%-46s no stolen count beside the array' % label)
+                checks += 1
+                continue
+            check('%s stolen >= 5' % label, n >= 5, True)
+            check('%s stolen covers the byte pattern' % label, n >= len(want), True)
+
+            # Walk the window: it must end exactly on a boundary, with no RIP
+            # operand.
+            total, riprel = 0, []
+            for ins in md.disasm(data[rva:rva + n + 24], base + rva):
+                if total >= n:
+                    break
+                if 'rip' in ins.op_str:
+                    riprel.append('%s %s' % (ins.mnemonic, ins.op_str))
+                total += ins.size
+            check('%s window ends on an instruction boundary' % label, n, total)
+            check('%s window is free of RIP-relative operands' % label,
+                  riprel if riprel else 'none', 'none')
+
+    check_prologues('tomb123.exe', 'Hooks.cpp',
+                    {'SetPass': 'vid_setPass', 'Validate': 'validate_draw',
+                     'Draw': 'ogl_draw', 'Present': 'ogl_present',
+                     'FmvShow': 'fmvShow', 'SetRt': 'ogl_setRenderTarget'})
+
+    for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
+        check_prologues(dll, 'PortalCull.cpp',
+                        {'PrintRoomsList': 'PrintRoomsList',
+                         'ObjectBounds': 'S_GetObjectBounds'})
 
 except ImportError:
     print('  SKIPPED -- pip install pefile capstone to run this section')

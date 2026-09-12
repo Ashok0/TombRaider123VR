@@ -34,6 +34,24 @@ public:
     // view matrix:   finalView = EyeView(eye) * gameView
     Affine EyeView(Eye eye) const;
 
+    // The same transform WITHOUT the per-eye offset: head centre rather than
+    // either pupil. This is what the room culling wants -- one frustum that
+    // covers both eyes, rather than two traversals that would agree about
+    // everything except a 64 mm baseline. In mono, EyeView IS this.
+    Affine HeadView() const;
+
+    // Half-angle tangents of a SYMMETRIC frustum that contains both eyes'
+    // asymmetric ones: the largest |l|,|r| and |t|,|b| across the pair.
+    //
+    // Deliberately conservative. Culling wants a superset of what will be
+    // rendered, and taking the max of the magnitudes removes every dependence
+    // on which way round OpenVR's raw tangents are signed -- the one part of
+    // BuildEyeProjection that had to be worked out rather than read off.
+    //
+    // False before the projection is known, in which case the caller should
+    // fall back to something wide rather than cull with a guess.
+    bool CullTangents(float& tanX, float& tanY) const;
+
     // Fills `out` with this eye's projection in the engine's mProj layout,
     // preserving the near/far currently in use.
     void EyeProjection(Eye eye, float zNear, float zFar, mat4& out) const;

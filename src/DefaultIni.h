@@ -1,14 +1,14 @@
 // DefaultIni.h -- the stock TombRaiderVR.ini, embedded.
 //
 // GENERATED FILE. Do not edit by hand: change TombRaiderVR.ini in the repo root
-// and run  python tools\\gen_default_ini.py
+// and run  python tools\gen_default_ini.py
 //
 // The DLL writes this out when no ini exists beside it, so a fresh install gets
 // the documented, working configuration rather than bare struct defaults -- the
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 31855 bytes, 632 lines.
+// Source: TombRaiderVR.ini, 29943 bytes, 605 lines.
 #pragma once
 
 namespace tr {
@@ -79,6 +79,100 @@ CeilingClearance=1
 ; at the default scale. Raise it if you still clip through, lower it if the cap
 ; feels like it arrives too early.
 CeilingMarginUnits=128
+
+; --- room culling -----------------------------------------------------------
+;
+; THE PROBLEM. The engine decides what to draw by walking portals out from the
+; room the GAME CAMERA is in, carrying a screen rectangle that is clipped at
+; every doorway. A room is submitted only if some chain of doorways lands on the
+; game camera's screen. That is exactly right for a monitor and exactly wrong
+; for a headset: you see wider than the game camera, and you can look somewhere
+; it is not pointing at all. Turn far enough and the geometry that should be
+; there was never drawn.
+;
+; THE FIX. The same traversal is run a second time from the tracked HEAD, in
+; world space, with the headset's frustum, and anything it finds is appended.
+; At every doorway the frustum is clipped to the opening -- the portal quad is
+; cut against the incoming planes and a new plane is built from the head through
+; each surviving edge -- so a room is added only if it can really be seen
+; through that chain of doorways.
+;
+; Nothing the engine listed is ever removed, so PortalCulling=0 gives the stock
+; behaviour exactly, and with your head aligned to the game camera the result is
+; what the engine would have drawn anyway.
+;
+; HOW THIS DIFFERS FROM THE TR4-6 MOD, which had PortalHops and DrawAllRooms
+; here: that one expanded the list by N doorways in every direction, with no
+; visibility test. N is not a visibility criterion -- too small and rooms are
+; still missing, too large and the whole level is drawn -- and because it added
+; rooms the traversal had not reached, it also added flip-map STORAGE rooms
+; (the inactive half of a flooded/drained or collapsed pair, which sits at the
+; same world position as its live twin) and needed a hand-maintained exclusion
+; list to stop them being drawn over the real geometry. A real traversal cannot
+; reach a storage room -- no live room's portals name one -- so there is no
+; exclusion list here, and no hop count.
+;
+; Watch it work in TombRaiderVR.log:
+;   cull: hooked tomb1.dll (Tomb Raider I)
+;   cull: head-frustum portal traversal live on Tomb Raider I -- ...
+;   cull: 12.4 rooms/frame from the engine + 3.1 added by the head frustum, ...
+PortalCulling=1
+
+; Angle added to each half of the culling frustum, in degrees.
+;
+; Covers two small things: the traversal runs once from the head rather than
+; once per eye, so the couple of degrees a canted display puts between the two
+; frusta has to be allowed for, and the pose that culls a frame is a few
+; milliseconds older than the pose that renders it.
+;
+; Raise it if geometry pops in at the very edge of vision when you turn quickly.
+; Every degree costs a little more draw.
+CullFovMarginDegrees=8
+
+; How many doorways deep the traversal may go, and how many portals it may look
+; at in one frame.
+;
+; NEITHER IS A VISIBILITY CRITERION. The frustum shrinking at every doorway is
+; what stops the traversal; these only bound the worst case so a pathological
+; level cannot spend the whole frame in here. If the log ever says
+;   *** A BUDGET WAS HIT -- raise CullMaxPortals/CullMaxDepth ***
+; during normal play, raise them.
+CullMaxDepth=16
+CullMaxPortals=4096
+
+; Optional distance limit in world units, 0 for none. One sector is 1024.
+;
+; Off by default on purpose. The engine's own phd_zfar is 65536 units, which
+; culls nothing, and a room you can see down a long corridor is a room you
+; should be able to see. This is a frame-rate lever, not a fix -- set it and
+; distant rooms will pop.
+CullFarUnits=0
+
+; Widen every listed room's clip rectangle to the whole target. Leave at 1.
+;
+; The engine keeps a per-room screen rect, clipped at each doorway, and turns it
+; into a scissor box -- so a room reached down a corridor is pixel-clipped to
+; where the GAME CAMERA saw its doorway. The stereo path already replaces the
+; scissor per draw, so on the modern renderer this is belt and braces; on the
+; classic renderer, where the same rect drives vertex clipping, it is what makes
+; the added rooms actually appear.
+CullWidenBounds=1
+
+; Extend the same fix to items: furniture, enemies, pickups, statics.
+;
+; The engine rejects an item whose bounding box misses the game camera's screen
+; rect or sits behind its near plane -- which is every item in every room this
+; feature adds. With CullObjects=0 the rooms behind you draw, but empty.
+;
+; Answers are only ever promoted from "invisible" to "visible, clip it", never
+; the other way, and never in the inventory or on the title screen.
+CullObjects=1
+
+; Virtual-key code that dumps the current draw list to the log, 0 = disabled.
+; 0x68 = numpad 8. Prints which rooms the engine found and which the head
+; frustum added, starred -- the first thing worth knowing about any culling
+; glitch, because it turns "that wall is missing" into a room number.
+CullDumpKey=0
 
 ; TR world units per metre -- the main scale control.
 ;
@@ -218,8 +312,7 @@ HudFlipY=1
 
 ; Carry the engine's own projection OFFSET through the per-eye substitution.
 ;
-)INI"
-           R"INI(; e02/e12 are the two shear terms of the projection. A shear of s shifts the
+; e02/e12 are the two shear terms of the projection. A shear of s shifts the
 ; image by -s at every depth, so it is a way for an engine to place a draw on
 ; screen without moving its geometry.
 ;
@@ -233,7 +326,8 @@ HudFlipY=1
 ;   * ogl_setPersp zeroes mProj[1].e02 and .e12 explicitly every time it builds
 ;     the perspective matrix (verified in the disassembly at RVA 0x0000FAD0).
 ;
-; So the guard never fires. If the projoffset= counter in the health report is
+)INI"
+           R"INI(; So the guard never fires. If the projoffset= counter in the health report is
 ; ever non-zero, something is writing a shear that this analysis says cannot
 ; exist, and the log line names the shader so it can be looked at.
 ;
@@ -337,8 +431,7 @@ VideoOffscreen=1
 ; Flip the captured video vertically on replay. Only if it comes out upside down.
 VideoFlipV=0
 
-)INI"
-           R"INI(
+
 ; --- controllers ------------------------------------------------------------
 
 ; Present the Oculus Touch controllers to the game as an Xbox pad.
@@ -473,28 +566,21 @@ GamepadMenuUsesBack=1
 ; Deduplicated and capped at 64 sites per hook, but still verbose. Off for play.
 LogCallsites=0
 
-; --- not carried over from the TR4-6 mod -------------------------------------
+; --- one thing NOT to try again ----------------------------------------------
 ;
-; The TR4-6 build had a room-culling feature here (PortalHops, DrawAllRooms and
-; friends) that widened the engine's visible set so geometry did not vanish
-; when you turned your head away from the game camera. It is NOT in this build,
-; and its options are absent rather than present-and-inert.
+; Room culling is under PortalCulling above; it is done, and it is done in the
+; game DLL where the culling actually lives.
 ;
-; Why: that culling lives in the GAME DLL, not the executable. The TR4-6 version
-; was written against reverse-engineered addresses inside tomb4.dll and
-; tomb5.dll. TR1-3 would need the same work done three more times, in tomb1.dll,
-; tomb2.dll and tomb3.dll.
-;
-; It is tractable -- those DLLs ship PDBs too, in PDB\ -- but it is not done.
-; Until it is, geometry outside the game camera's frustum is not drawn.
-;
-; One measured finding from that work does carry over and is worth keeping:
-; widening the projection the engine hands the game changes NOTHING about what
-; is culled. The DLL builds its cull planes independently of the engine's
-; projection matrix. Do not re-run that experiment.
+; What is worth recording is the approach that was MEASURED not to work, on both
+; engines: widening the projection the exe hands the game changes NOTHING about
+; what is culled. TR4-6 swept it to 200% of screen each way and 20x on TR6 and
+; got neither extra geometry nor a frame-rate change. The DLL builds its cull
+; planes from its own matrices and never consults the projection matrix at all,
+; and on TR1-3 a portal beside or behind the camera fails the near-plane test in
+; SetRoomBounds before any rectangle is looked at. Do not re-run that
+; experiment.
 
-)INI"
-           R"INI(; Issue every draw twice, once per eye. Turn off to keep matrix injection but
+; Issue every draw twice, once per eye. Turn off to keep matrix injection but
 ; draw once -- useful for telling a matrix problem from a duplication problem.
 DuplicateDraws=1
 
@@ -535,8 +621,7 @@ TraceStartFrame=0
 DumpDraws=0
 
 ; Virtual-key code that arms the dump. 0x78 = F9.
-)INI"
-           R"INI(DumpKey=0x78
+DumpKey=0x78
 )INI";
 }
 
