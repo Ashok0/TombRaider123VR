@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TombRaiderVR", "TombRaiderVR.vcxproj", "{9E2C1A74-6B33-4D8E-9F41-27B5C0D8A311}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinmmProxy", "WinmmProxy.vcxproj", "{B71D4E82-59C6-4A17-8E30-6D9F2A4C7155}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E2C1A74-6B33-4D8E-9F41-27B5C0D8A311}.Debug|x64.ActiveCfg = Debug|x64
+		{9E2C1A74-6B33-4D8E-9F41-27B5C0D8A311}.Debug|x64.Build.0 = Debug|x64
+		{9E2C1A74-6B33-4D8E-9F41-27B5C0D8A311}.Release|x64.ActiveCfg = Release|x64
+		{9E2C1A74-6B33-4D8E-9F41-27B5C0D8A311}.Release|x64.Build.0 = Release|x64
+		{B71D4E82-59C6-4A17-8E30-6D9F2A4C7155}.Debug|x64.ActiveCfg = Debug|x64
+		{B71D4E82-59C6-4A17-8E30-6D9F2A4C7155}.Debug|x64.Build.0 = Debug|x64
+		{B71D4E82-59C6-4A17-8E30-6D9F2A4C7155}.Release|x64.ActiveCfg = Release|x64
+		{B71D4E82-59C6-4A17-8E30-6D9F2A4C7155}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C4F80B16-2A5D-4E93-BB07-8F1E6A93D204}
+	EndGlobalSection
+EndGlobal

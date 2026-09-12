@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{9E2C1A74-6B33-4D8E-9F41-27B5C0D8A311}</ProjectGuid>
+    <RootNamespace>TombRaiderVR</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <!-- Whatever this VS install actually ships. Microsoft.Cpp.Default.props
+         sets DefaultPlatformToolset, so this builds on 2019/2022/18 alike
+         instead of hard-failing on a toolset that is not installed. -->
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
+            Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
+            Label="LocalAppDataPlatform" />
+  </ImportGroup>
+
+  <PropertyGroup>
+    <TargetName>TombRaiderVR</TargetName>
+    <OutDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+
+  <!--
+    Where the game is installed. Building copies the DLL here, and the settings
+    that are actually in force are the ones in this folder.
+
+    The runtime resolves its ini next to the DLL:
+
+        GetModuleFileNameW(g_self, path, MAX_PATH);
+        LoadConfig(dir + L"\\TombRaiderVR.ini");
+
+    so once deployed, GameDir\TombRaiderVR.ini IS the configuration. Nothing in
+    the build copies an ini over it - the repo's TombRaiderVR.ini is a template
+    for a fresh install, and overwriting a tuned setup with it on every build
+    would throw away exactly the values that took a session to find.
+
+    Override on the command line if your install lives elsewhere:
+        msbuild /p:GameDir="D:\Games\Tomb Raider I-III Remastered\"
+  -->
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)'==''">C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\</GameDir>
+    <DeployToGame Condition="'$(DeployToGame)'==''">true</DeployToGame>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)third_party\openvr\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- We patch running code and cast between function pointer types on
+           purpose; C4100 fires on the deliberately-unused Submit() parameters,
+           and C4505 on config helpers kept for symmetry. -->
+      <DisableSpecificWarnings>4100;4505;4127</DisableSpecificWarnings>
+      <!-- Hot-patching our own detours would be self-defeating. -->
+      <CreateHotpatchableImage>false</CreateHotpatchableImage>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- openvr_api.dll is resolved with LoadLibrary at runtime, so there is
+           deliberately no openvr_api.lib here. -->
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <!-- Static CRT: the DLL is injected into a process we do not control and
+           must not depend on a redistributable being present. -->
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <ClCompile Include="src\Callsite.cpp" />
+    <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\dllmain.cpp" />
+    <ClCompile Include="src\Engine.cpp" />
+    <ClCompile Include="src\GL.cpp" />
+    <ClCompile Include="src\GameDll.cpp" />
+    <ClCompile Include="src\Gamepad.cpp" />
+    <ClCompile Include="src\Hooks.cpp" />
+    <ClCompile Include="src\InlineHook.cpp" />
+    <ClCompile Include="src\Log.cpp" />
+    <ClCompile Include="src\StereoRenderer.cpp" />
+    <ClCompile Include="src\VRSystem.cpp" />
+    <ClCompile Include="src\VideoPanel.cpp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="src\Callsite.h" />
+    <ClInclude Include="src\Config.h" />
+    <ClInclude Include="src\DefaultIni.h" />
+    <ClInclude Include="src\Engine.h" />
+    <ClInclude Include="src\GL.h" />
+    <ClInclude Include="src\GameDll.h" />
+    <ClInclude Include="src\Gamepad.h" />
+    <ClInclude Include="src\Hooks.h" />
+    <ClInclude Include="src\InlineHook.h" />
+    <ClInclude Include="src\Log.h" />
+    <ClInclude Include="src\StereoMath.h" />
+    <ClInclude Include="src\StereoRenderer.h" />
+    <ClInclude Include="src\VRSystem.h" />
+    <ClInclude Include="src\VideoPanel.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="TombRaiderVR.ini" />
+    <None Include="README.md" />
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!--
+    Copy the built DLL into the game folder so a build is a deploy.
+    ContinueOnError: the game holds the DLL open while it runs, and a failed
+    copy then is expected rather than a broken build. The message says what
+    happened so it is not mistaken for success.
+  -->
+  <Target Name="DeployToGameFolder" AfterTargets="Build" Condition="'$(DeployToGame)'=='true'">
+    <Message Importance="high" Text="Deploying $(TargetFileName) to $(GameDir)" />
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(GameDir)"
+          ContinueOnError="true">
+      <Output TaskParameter="CopiedFiles" ItemName="DeployedOk" />
+    </Copy>
+    <Message Importance="high"
+             Condition="'@(DeployedOk)'==''"
+             Text="  NOT deployed -- the file is in use. Quit the game and build again; the ini in $(GameDir) is untouched either way." />
+    <Message Importance="high"
+             Condition="'@(DeployedOk)'!=''"
+             Text="  Deployed. Settings in force: $(GameDir)TombRaiderVR.ini" />
+  </Target>
+
+</Project>

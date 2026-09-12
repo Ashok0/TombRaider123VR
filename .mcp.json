@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "re-mcp": {
+      "command": "re-mcp-ghidra",
+      "args": [
+        "stdio"
+      ],
+      "env": {
+        "GHIDRA_INSTALL_DIR": "C:\\Ghidra\\"
+      }
+    }
+  }
+}
