@@ -178,6 +178,7 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.cullWidenBounds     = GetBool (L"CullWidenBounds",    g_cfg.cullWidenBounds,    ini);
     g_cfg.cullObjects         = GetBool (L"CullObjects",        g_cfg.cullObjects,        ini);
     g_cfg.cullDumpKey         = GetIntAuto(L"CullDumpKey",      g_cfg.cullDumpKey,        ini);
+    g_cfg.skyAtInfinity       = GetBool (L"SkyAtInfinity",      g_cfg.skyAtInfinity,      ini);
     g_cfg.worldUnitsPerMetre  = GetFloat(L"WorldUnitsPerMetre", g_cfg.worldUnitsPerMetre, ini);
     g_cfg.ipdScale            = GetFloat(L"IpdScale",           g_cfg.ipdScale,           ini);
     g_cfg.scaleUpKey          = GetIntAuto(L"ScaleUpKey",       g_cfg.scaleUpKey,         ini);
@@ -266,10 +267,11 @@ void LoadConfig(const wchar_t* ini) {
          g_cfg.flipProjectionY, g_cfg.flipViewY,
          g_cfg.duplicateDraws, g_cfg.flatHud);
     LogF("config: culling=%s margin=%.1fdeg depth<=%d portals<=%d far=%.0f "
-         "widen=%d objects=%d",
+         "widen=%d objects=%d  sky=%s",
          g_cfg.portalCulling ? "head frustum" : "ENGINE (rooms will vanish)",
          g_cfg.cullFovMarginDegrees, g_cfg.cullMaxDepth, g_cfg.cullMaxPortals,
-         g_cfg.cullFarUnits, g_cfg.cullWidenBounds, g_cfg.cullObjects);
+         g_cfg.cullFarUnits, g_cfg.cullWidenBounds, g_cfg.cullObjects,
+         g_cfg.skyAtInfinity ? "infinity" : "ENGINE (finite dome)");
     if (g_cfg.traceFrames > 0) {
         LogF("config: frame-graph trace armed -- %d frame(s), hotkey vk=0x%02X",
              g_cfg.traceFrames, g_cfg.traceKey);

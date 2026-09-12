@@ -145,7 +145,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'phd_winxmax', 'phd_winymax',
           'outside', 'outside_left', 'outside_right', 'outside_top',
           'outside_bottom',
-          'PrintRoomsList', 'S_GetObjectBounds']
+          'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD']
 
 rows = []
 for m in re.finditer(r'\{\s*L"(tomb[123]\.dll)",\s*"[^"]*",\s*(0x[0-9A-Fa-f]+),(.*?)\}', gd, re.S):
@@ -288,6 +288,8 @@ try:
         check_prologues(dll, 'PortalCull.cpp',
                         {'PrintRoomsList': 'PrintRoomsList',
                          'ObjectBounds': 'S_GetObjectBounds'})
+        check_prologues(dll, 'Sky.cpp',
+                        {'DrawSkyHD': 'DrawSkyHD'})
 
 except ImportError:
     print('  SKIPPED -- pip install pefile capstone to run this section')

@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\dev\TombRaider123VR\build\x64\Release\winmm.dll</FullPath>
+      <FullPath>C:\dev\TR_GROK\TombRaider123VR\build\x64\Release\winmm.dll</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

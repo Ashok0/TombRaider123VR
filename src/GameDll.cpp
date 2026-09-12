@@ -51,7 +51,8 @@ constexpr GameDllLayout kDlls[] = {
       /* phd_winymax     */ 0x002C8C00,
       /* outside         */ 0, 0, 0, 0, 0,
       /* PrintRoomsList  */ 0x0006E950,
-      /* S_GetObjectB..  */ 0x00063DF0 },
+      /* S_GetObjectB..  */ 0x00063DF0,
+      /* DrawSkyHD       */ 0x0006E480 },
 
     { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
       /* lara            */ 0x0037AD40,
@@ -70,7 +71,8 @@ constexpr GameDllLayout kDlls[] = {
       /* outside_top     */ 0x00538068,
       /* outside_bottom  */ 0x00538064,
       /* PrintRoomsList  */ 0x000A0C30,
-      /* S_GetObjectB..  */ 0x00095740 },
+      /* S_GetObjectB..  */ 0x00095740,
+      /* DrawSkyHD       */ 0x000A0760 },
 
     { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
       /* lara            */ 0x003D1C40,
@@ -89,7 +91,8 @@ constexpr GameDllLayout kDlls[] = {
       /* outside_top     */ 0x005977A8,
       /* outside_bottom  */ 0x005977A4,
       /* PrintRoomsList  */ 0x000EAF50,
-      /* S_GetObjectB..  */ 0x000DFB70 },
+      /* S_GetObjectB..  */ 0x000DFB70,
+      /* DrawSkyHD       */ 0x000EAA80 },
 };
 
 const GameDllLayout* g_dll  = nullptr;

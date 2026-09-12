@@ -63,6 +63,7 @@ struct GameDllLayout {
     // --- hook targets ------------------------------------------------------
     uint32_t printRoomsList;    // void PrintRoomsList(void)
     uint32_t sGetObjectBounds;  // int  S_GetObjectBounds(int16* bounds)
+    uint32_t drawSkyHD;         // void DrawSkyHD(void) -- HD sky/horizon
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

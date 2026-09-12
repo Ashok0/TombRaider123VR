@@ -120,6 +120,21 @@ struct Config {
     // added, which is the first thing worth knowing about any culling glitch.
     int   cullDumpKey           = 0;
 
+    // Draw the HD sky at optical infinity. 1 = on and the default.
+    //
+    // DrawSkyHD already zeros the camera translation of the matrix stack so
+    // the sky dome stays centred on the game camera -- "at infinity" on a
+    // monitor. The stereo path then composes the eye transform, whose
+    // translation is IPD plus any 6DOF head offset, and the dome gets stereo
+    // disparity equal to its mesh radius: a painted sphere a few metres away,
+    // sitting in front of distant geometry.
+    //
+    // On: those draws use the rotation of the eye transform only (head look
+    // still turns the sky; leaning and IPD do not) and the fragments are
+    // pushed to the far plane so they never occlude the world. Off: stock
+    // finite-dome stereo, for A/B.
+    bool  skyAtInfinity         = true;
+
     // Rotation-only head tracking. The safest possible first test: the camera
     // can pivot but can never be displaced into geometry, so a wrong world
     // scale cannot put you inside a wall. Turn positional on once looking

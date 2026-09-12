@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 29943 bytes, 605 lines.
+// Source: TombRaiderVR.ini, 30692 bytes, 620 lines.
 #pragma once
 
 namespace tr {
@@ -244,6 +244,21 @@ FlipSubmitV=0
 ;       view-space position; E is metres-scale so head rotation cannot blow up.
 EyeOffsetMode=3
 
+; Draw the HD sky at optical infinity. 1 = on and the default.
+;
+; DrawSkyHD already zeros the camera translation of the matrix stack so the
+; sky dome stays centred on the game camera -- that is "at infinity" on a
+; monitor. The stereo path then composes the eye transform, whose translation
+; is IPD plus any 6DOF head offset, and the dome gets stereo disparity equal
+; to its mesh radius: a painted sphere a few metres away, sitting in front of
+; distant geometry.
+;
+; On: those draws use the rotation of the eye transform only (looking around
+; still turns the sky; leaning and IPD do not) and the fragments are pushed
+; to the far plane so they never occlude the world. Off: stock finite-dome
+; stereo, for A/B.
+SkyAtInfinity=1
+
 ; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
 ; eyes, so the only remaining difference is the frustum shear -- a constant
 ; sideways shift that carries no depth. Diagnostic only.
@@ -313,7 +328,8 @@ HudFlipY=1
 ; Carry the engine's own projection OFFSET through the per-eye substitution.
 ;
 ; e02/e12 are the two shear terms of the projection. A shear of s shifts the
-; image by -s at every depth, so it is a way for an engine to place a draw on
+)INI"
+           R"INI(; image by -s at every depth, so it is a way for an engine to place a draw on
 ; screen without moving its geometry.
 ;
 ; ON TR1-3 THIS IS EXPECTED TO DO NOTHING AT ALL, and you can leave it alone.
@@ -326,8 +342,7 @@ HudFlipY=1
 ;   * ogl_setPersp zeroes mProj[1].e02 and .e12 explicitly every time it builds
 ;     the perspective matrix (verified in the disassembly at RVA 0x0000FAD0).
 ;
-)INI"
-           R"INI(; So the guard never fires. If the projoffset= counter in the health report is
+; So the guard never fires. If the projoffset= counter in the health report is
 ; ever non-zero, something is writing a shear that this analysis says cannot
 ; exist, and the log line names the shader so it can be looked at.
 ;
@@ -617,7 +632,8 @@ TraceStartFrame=0
 ; Per-draw state dump: which matrix carries the difference between one drawn
 ; element and the next -- projection, view, or model. Get the screen in
 ; question up, then press DumpKey. One line per draw, logged before any of our
-; substitutions, so what appears is what the ENGINE set. 0 = disabled.
+)INI"
+           R"INI(; substitutions, so what appears is what the ENGINE set. 0 = disabled.
 DumpDraws=0
 
 ; Virtual-key code that arms the dump. 0x78 = F9.

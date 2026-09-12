@@ -15,7 +15,7 @@ information.
 Written with Claude Code (Opus 5). Every address, struct offset and function
 signature in `src/Engine.h` and `src/GameDll.cpp` was extracted from the shipped
 PDBs by the tools in `tools\`, and `tools\verify_addresses.py` re-derives all
-244 of them and fails if any disagrees.
+262 of them and fails if any disagrees.
 
 ## VR Mod Features
 
@@ -30,6 +30,8 @@ PDBs by the tools in `tools\`, and `tools\verify_addresses.py` re-derives all
   head/aim pitch.
 - Ceiling clearance clamp, so standing up in a crawlspace does not put your head
   through the ceiling.
+- Sky at optical infinity, so the HD dome does not sit a few metres away in
+  stereo or paint over distant geometry.
 - Live IPD and world-scale tuning on the numpad.
 
 ## Installation
@@ -58,6 +60,9 @@ The culling fix is confirmed working in play: geometry no longer disappears when
 you look away from the game camera. `PortalCulling=0` returns the stock
 behaviour exactly. See "Culling Fix" below for what it does, how it differs from
 the TR4-6 attempt, and how to read its log lines.
+
+The sky fix hooks `DrawSkyHD` in the live game DLL. `SkyAtInfinity=0` returns
+the stock finite-dome stereo. See "Sky at infinity" below.
 
 ---
 
@@ -153,15 +158,18 @@ Six inline hooks in `tomb123.exe`:
 | `ogl_setRenderTarget` | latch whether the engine is drawing to the backbuffer |
 | `fmvShow` | exact "a video is on screen this frame" signal |
 
-...and two in whichever of `tomb1/2/3.dll` is running, for the culling:
+...and three in whichever of `tomb1/2/3.dll` is running:
 
 | hook | job |
 |---|---|
 | `PrintRoomsList` | expand the draw list along the head's frustum before it is drawn |
 | `S_GetObjectBounds` | second-guess "this item is off screen" from the head |
+| `DrawSkyHD` | mark every sky draw so stereo can put the dome at optical infinity |
 
-Both are the same function in all three DLLs, with the same 5-byte
-position-independent prologue, so one table serves all of them.
+The culling pair and `DrawSkyHD` are each the same function in all three DLLs,
+with the same 5-byte position-independent prologue, so one table serves all of
+them. `DrawSkyHD` is independent of `PortalCulling`: it installs whenever
+`SkyAtInfinity=1`.
 
 `tools\xrefs.py` disassembles all 1017 named functions and reports:
 
@@ -398,6 +406,85 @@ experiment.
 explicitly (verified at `0x0000FAD0`). If the `projoffset=` counter in the health
 report is ever non-zero, something is happening that this analysis says cannot.
 
+### Sky at infinity
+
+**Symptom.** Outdoors, the sky is a painted sphere a few metres away. Distant
+cliffs sit *behind* it, and leaning or IPD makes the dome slide. On a monitor
+the same mesh is fine.
+
+**Cause.** `DrawSkyHD` in `tomb1/2/3.dll` already does the classic
+monitor-correct thing: it copies the current matrix, **zeros its translation**,
+and draws `hd_sky` through `GetRoomShader` / `app.setPass` / `app.draw`. The
+dome is centred on the game camera, so there is no parallax from walking. That
+is optical infinity for one viewpoint.
+
+The stereo path then composes the eye transform `E` — IPD plus any 6DOF head
+offset — into the projection (`EyeOffsetMode=3`: `P' = P * E`). The dome's
+vertices still sit at a finite mesh radius, so that translation gives them
+stereo disparity equal to a few metres, and `glDepthRange` is still the engine's
+own, so the dome's depth values can occlude farther world geometry.
+
+The PDBs say this is the only sky draw path. There is no `DrawFlatSky`,
+`DrawSkySegment` or `SkyDrawPhase` in these DLLs. `tools\xrefs.py` against
+`tomb1.dll` reports a single caller:
+
+```
+DrawSkyHD            <- PrintRoomsList (x1)
+```
+
+The exe PDB names the shader blobs (`ogl_SKY_vs`, `ogl_SKY_HD_vs`, and the
+matching pixel shaders) but no extra draw entry point. `hd_sun` is 24 bytes of
+data, not a function. One hook covers every sky triangle the remaster issues.
+
+**Fix.** `src\Sky.cpp` hooks `DrawSkyHD` and sets a flag for the life of that
+call. Every `validate_draw` that runs underneath it uses the **rotation** of `E`
+only (looking around still turns the sky; leaning and IPD do not). Every
+`ogl_draw` underneath it sets `glDepthRange(1, 1)` for that draw and restores
+the engine's range afterwards, so the fragments land on the far plane and cannot
+win a depth test against the world. `SkyAtInfinity=0` is the stock behaviour
+exactly: the hook is not installed.
+
+The stolen window is the same 5-byte PIC `mov [rsp+8], rbx` as `PrintRoomsList`,
+and it is the same bytes in all three DLLs:
+
+| DLL | `DrawSkyHD` RVA | size |
+|---|---|---|
+| `tomb1.dll` | `0x0006E480` | 558 |
+| `tomb2.dll` | `0x000A0760` | 558 |
+| `tomb3.dll` | `0x000EAA80` | 558 |
+
+#### Where the code is
+
+| file | what it holds |
+|---|---|
+| `src\Sky.cpp` | the `DrawSkyHD` hook and the in-sky flag |
+| `src\Hooks.cpp` | rotation-only `E` at inject time; far-plane depth around `ogl_draw` |
+| `src\GameDll.cpp` | the three-row address table those RVAs live in |
+| `tools\verify_addresses.py` | re-derives the three RVAs and the prologue from the PDBs |
+
+#### What to watch
+
+```
+sky: hooked tomb1.dll (Tomb Raider I) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
+sky: first DrawSkyHD draw (shader N) -- rotation-only eye transform, far-plane depth
+```
+
+The health report's `sky=` count is per injected eye. Outdoors it should be
+non-zero; `sky=0` forever with the "hooked" line present means `DrawSkyHD` is
+not running (indoors, or a title screen).
+
+The GPU verify sample skips sky draws on purpose. Both eyes share a
+translation-free `E` there, so sampling one would report zero separation and
+look like an injection failure.
+
+#### Settings
+
+All in `[VR]`, documented in `TombRaiderVR.ini`.
+
+| key | default | what it is for |
+|---|---|---|
+| `SkyAtInfinity` | `1` | the whole feature; `0` is stock finite-dome stereo |
+
 ### Ghidra / re-mcp
 
 Everything except the culling was written without a decompiler, because the PDBs
@@ -465,7 +552,7 @@ installed.
 ### Verification
 
 ```powershell
-python tools\verify_addresses.py     # 244 checks against the PDBs
+python tools\verify_addresses.py     # 262 checks against the PDBs
 tests\build_selftest.cmd             # matrix maths, consts bits, portal frustum,
                                      # hook mechanism
 ```
@@ -484,6 +571,7 @@ src\             the mod
   GameDll.cpp      binding and address table for tomb1/2/3.dll
   PortalCull.cpp   head-driven room culling, hooked into the game DLL
   PortalGeom.h     the frustum maths behind it, tested by tests\
+  Sky.cpp          DrawSkyHD hook: sky draws at optical infinity
   StereoMath.h     matrix maths against this engine's conventions
   proxy\           the winmm shim
 tools\           PDB extraction, disassembly, verification
