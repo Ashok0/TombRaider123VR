@@ -99,7 +99,9 @@ constexpr GameDllLayout kDlls[][3] = {
           /* DrawSkyHD       */ 0x000EAA80 },
     },
 
-    // Patched build, shipped without PDBs (exe row: kBuildPatch2 in Engine.h).
+    // Aspyr retail build, shipped without PDBs (exe row: kBuildAspyrRetail in
+    // Engine.h). The Tomb Raider Gold mod patches these DLLs in place without
+    // moving anything or changing their timestamps, so it uses these rows too.
     // Carried across by tools\port_build.py, which maps each global through the
     // RIP-relative references to it in functions matched between the builds.
     // Every global won its vote unanimously except tomb2 `room`, at 152 of 154,

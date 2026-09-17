@@ -14,10 +14,11 @@ information.
 
 Written with Claude Code (Opus 5). For the original build, every address,
 struct offset and function signature in `src/Engine.h` and `src/GameDll.cpp` was
-extracted from the shipped PDBs by the tools in `tools\`. The later patched build
-shipped without PDBs, so its addresses were carried across by
-`tools\port_build.py`. `tools\verify_addresses.py` checks both, 431 checks in
-all, and fails if any disagrees.
+extracted from the shipped PDBs by the tools in `tools\`. The current Aspyr
+retail build shipped without PDBs, so its addresses were carried across by
+`tools\port_build.py`. `tools\verify_addresses.py` checks the PDB build and both
+PDB-less builds (Aspyr retail and Tomb Raider Gold), 600 checks in all, and fails
+if any disagrees.
 
 ## VR Mod Features
 
@@ -66,12 +67,46 @@ the TR4-6 attempt, and how to read its log lines.
 The sky fix hooks `DrawSkyHD` in the live game DLL. `SkyAtInfinity=0` returns
 the stock finite-dome stereo. See "Sky at infinity" below.
 
-Two game builds are supported: the original retail build (exe PE timestamp
-`0x6A4B4928`), and the later Steam patch (`0x6A4B7C52`), which shipped without
-PDBs. The mod picks the address table for each module by its PE timestamp and
-refuses to patch anything it does not recognise. The patched build's addresses
-are verified statically against the binaries but have **not** yet been tested
-in play; see "Supporting the patched build" below.
+Supported builds:
+
+| build | exe PE timestamp | address table | in the headset |
+|---|---|---|---|
+| earlier build that shipped with PDBs | `0x6A4B4928` | `kBuildStock`, read from the PDBs | working |
+| current Aspyr retail (Steam) | `0x6A4B7C52` | `kBuildAspyrRetail`, carried across without PDBs | working (TR1 tested) |
+| Tomb Raider Gold (modders' patch of Aspyr retail) | `0x6A4B7C52` | the same row as Aspyr retail | working |
+
+The mod picks the address table for each module by its PE timestamp and refuses
+to patch anything it does not recognise. On Aspyr retail, a run of Tomb Raider I
+installed all nine hooks at the retail addresses, bound `tomb1.dll`, brought up
+OpenVR and submitted stereo frames with correct eye separation. TR2 and TR3 on
+retail pass every static check but have not yet been played; their first run
+should log `gamedll: bound to tomb2.dll` (or `tomb3.dll`). See "Supporting the
+Aspyr retail and Tomb Raider Gold builds" below.
+
+### Troubleshooting: the game runs on the monitor and SteamVR never starts
+
+Almost always an old `TombRaiderVR.dll` in the game folder, one that predates
+support for the exe you are running. Look in `TombRaiderVR.log` next to it:
+
+```
+engine: unrecognised build (PE timestamp 0x6A4B7C52, ...)
+hook[validate_draw]: prologue mismatch at ... Wrong game build; not patching.
+hooks: at least one hook failed -- rolling all of them back
+TombRaiderVR: hook installation failed
+```
+
+That is exactly what happened the first time Aspyr retail was tried. The DLL in
+the Steam folder was a build from before retail support existed, so the fix
+was not in the code but in deploying the current build. The mod never reached
+OpenVR, so SteamVR was never started and the game ran flat. Rebuild with the game
+closed (a build copies the DLL into the game folder), or copy
+`build\x64\Release\TombRaiderVR.dll` in by hand. A working start logs
+`engine: build identified as ...` for your build, six `hook[...]` lines with no
+mismatch, and `vr: up and running`.
+
+Current builds refuse an unknown exe with `refusing to patch an executable no
+address table describes`. If you see that, the exe is genuinely new; see
+"Supporting the Aspyr retail and Tomb Raider Gold builds" for how to add it.
 
 ---
 
@@ -494,18 +529,35 @@ All in `[VR]`, documented in `TombRaiderVR.ini`.
 |---|---|---|
 | `SkyAtInfinity` | `1` | the whole feature; `0` is stock finite-dome stereo |
 
-### Supporting the patched build (no PDBs)
+### Supporting the Aspyr retail and Tomb Raider Gold builds (no PDBs)
 
-A later Steam update replaced `tomb123.exe` and all three game DLLs. Every image
-has a new PDB GUID. It was relinked with a newer toolchain: `.fptable` appears,
+The current Aspyr retail build differs from the build in `PDB\` in
+`tomb123.exe` and all three game DLLs. Every image has a new PDB GUID. It was
+relinked with a newer toolchain: `.fptable` appears,
 `_RDATA` is gone, and constants are now loaded with `mov r, imm` where the old
 compiler used `lea r, [reg+k]`. It shipped **without PDBs**, and the game's
 `pdb\` folder is empty. Almost every address the mod uses moved, and nothing
 could be read out of dbghelp this time.
 
+This work was first done on the **Tomb Raider Gold** binaries, and only then on
+the Aspyr retail build. Gold turns out to be an in-place byte patch of retail:
+same sizes, same PE timestamps, same PDB GUIDs, so both select the same address
+table. A byte diff of the two:
+
+| image | bytes changed | where |
+|---|---|---|
+| `tomb123.exe` | 6 | `.data`, inside `texDesc`: 1920×1080 → 3840×2160, 2 → 4 |
+| `tomb1.dll` | 35 | one 30-byte code patch, plus `.rdata` |
+| `tomb2.dll` | 56 | the same code patch, plus `.rdata`/`.data` |
+| `tomb3.dll` | 150 | the same code patch, four more patched functions, plus `.data` |
+
+None of those bytes falls inside a hook window, a hooked function, or any
+global the mod reads. `port_build.py` run separately on `retail\` and `gold\`
+derives identical addresses, and `verify_addresses.py` passes against both.
+
 **How the addresses were recovered.** `tools\port_build.py <dir>` carries the
 symbols across from the PDB build in `PDB\` to the build in `<dir>` (here
-`update\`):
+`retail\` and `gold\`):
 
 1. `.pdata` gives every non-leaf function's exact extent in both images.
 2. Each function is reduced to one token per instruction. RIP-relative
@@ -533,7 +585,7 @@ new images:
 | `validate_draw` forces `0x3F001F` and runs the same 11 bit tests in the same order | `ConstBits` is unchanged |
 | `vid_setViewMatrix` writes the same 25 offsets relative to `vid_state` | `mView_packed` really is `vid_state + 400` |
 | every structural relationship `Engine.cpp` asserts holds on the new row | no typo in the row |
-| every value in `Engine.h`/`GameDll.cpp` equals `update\port_build.json` | the source says what the tool derived |
+| every value in `Engine.h`/`GameDll.cpp` equals `<dir>\port_build.json` | the source says what the tool derived |
 
 Also checked while porting: all 191 mapped references into `APP` keep their
 field offset. `ogl_setRenderTarget` still branches on `test edi, edi` (now at
@@ -551,18 +603,18 @@ offsets.
 
 | file | what changed |
 |---|---|
-| `src\Engine.h` | `kBuildPatch2`, the exe row, as hex literals with the evidence in the comment |
+| `src\Engine.h` | `kBuildAspyrRetail`, the exe row (Aspyr retail and Gold), as hex literals with the evidence in the comment |
 | `src\Engine.cpp` | `kBuilds` lists both builds |
 | `src\GameDll.cpp` | `kDlls` is now `[build][gGame]`, selected by the DLL's own PE timestamp |
 | `tools\port_build.py` | the matcher; prints paste-ready rows and writes `port_build.json` |
-| `tools\verify_addresses.py` | checks rows for PDB-less builds (default dir `update\`) |
+| `tools\verify_addresses.py` | checks rows for PDB-less builds (default dirs `retail\` and `gold\`) |
 
 **Two safety bugs fixed along the way.** Both had let a mismatched build through:
 
 - `IdentifyBuild` used to fall back to `StructuralCheckPasses` against the stock
   table for an unknown exe. That check compares the table's constants with each
   other and reads nothing from the image except `shaders[]`, so it passed for
-  *every* exe. On the patched exe it would have redirected `FBO_default` and the
+  *every* exe. On the Aspyr retail exe it would have redirected `FBO_default` and the
   XInput slot at stale addresses. The prologue check doesn't cover those writes,
   and `vid_setPass` happens to keep RVA `0xABA0`, so it could not be relied on
   either. An unknown exe is now refused.
@@ -570,6 +622,19 @@ offsets.
   that nothing is written through that table. That stopped being true when
   `PortalCull` began writing `draw_rooms` and the room clip rects. An unknown DLL
   is now left unbound, and every consumer already treats that as "stand down".
+
+The old fallback was visible in practice: the pre-retail DLL, run on the retail
+exe, logged `structural check passed; proceeding with the stock addresses`. It
+was saved only because five of the six stock hook sites happened not to match,
+which rolled all of them back (see "Troubleshooting" above).
+
+**Confirmed in the headset.** Gold was confirmed first. Aspyr retail was
+confirmed next, once the current DLL was deployed. Its log shows the build
+matched by timestamp, all six exe hooks at the new addresses (`validate_draw`
+at `+0xEFE0`, `ogl_setRenderTarget` at `+0x103A0` with its 13-byte window, and
+so on), the three `tomb1.dll` hooks, `vr: up and running`, head pose acquired,
+and 26.13 world units of eye separation. It also shows a clean unhook of all
+nine on exit.
 
 The consequence is deliberate: after a future patch the mod does nothing until
 a row is added. The log names the unrecognised timestamp. To add one, copy the
@@ -644,8 +709,8 @@ installed.
 ### Verification
 
 ```powershell
-python tools\port_build.py update    # only after a PDB-less patch: derive rows
-python tools\verify_addresses.py     # 431 checks: the PDB build, plus update\
+python tools\port_build.py retail    # only for a new PDB-less build: derive rows
+python tools\verify_addresses.py     # 600 checks: the PDB build, retail\, gold\
 tests\build_selftest.cmd             # matrix maths, consts bits, portal frustum,
                                      # hook mechanism
 ```
@@ -653,7 +718,7 @@ tests\build_selftest.cmd             # matrix maths, consts bits, portal frustum
 `verify_addresses.py` re-derives every address, struct offset, structural
 relationship and hook prologue from the PDBs and diffs them against the source.
 For each build without PDBs (the directories named on the command line, default
-`update\`), it checks that build's rows against `port_build.json` and against
+`retail\` and `gold\`), it checks that build's rows against `port_build.json` and against
 the images themselves. Run it after any game patch: if it passes, the addresses
 are still right; if it fails, it names what moved.
 
@@ -672,7 +737,8 @@ src\             the mod
 tools\           PDB extraction, cross-build porting, disassembly, verification
 tests\           self-test
 PDB\             tomb123.exe + tomb1/2/3.dll and their PDBs (original build)
-update\          the patched build's binaries (no PDBs) + port_build.json
+retail\          Aspyr retail binaries (no PDBs) + port_build.json
+gold\            Tomb Raider Gold binaries (no PDBs) + port_build.json
 third_party\     OpenVR headers
 ```
 

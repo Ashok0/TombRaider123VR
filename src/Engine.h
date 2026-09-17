@@ -7,9 +7,10 @@
 //
 //   tomb123.exe  (Tomb Raider I-III Remastered, PE timestamp checked at runtime)
 //
-// A later Steam build shipped without PDBs; its row (kBuildPatch2, below) was
-// carried across from this one by tools\port_build.py. The rva/drva constants
-// in this file describe the stock build only.
+// The current Aspyr retail build shipped without PDBs; its row
+// (kBuildAspyrRetail, below) was carried across from this one by
+// tools\port_build.py. The rva/drva constants in this file describe the PDB
+// build only.
 //
 // The tools that produced it are in tools\ and are reproducible:
 //   python tools\pdbdump.py  PDB\tomb123.exe            -- name -> RVA
@@ -265,8 +266,8 @@ constexpr Layout kBuildStock = {
     drva::gWidth,      drva::gHeight,        drva::gTargetWidth, drva::gTargetHeight,
 };
 
-// The later Steam build: PE TimeDateStamp 0x6A4B7C52, SizeOfImage 0x0C972000,
-// PDB GUID b116f8a8-1f9e-f144-82a1-374ec673b733. Relinked with a newer
+// The current Aspyr retail build: PE TimeDateStamp 0x6A4B7C52, SizeOfImage
+// 0x0C972000, PDB GUID b116f8a8-1f9e-f144-82a1-374ec673b733. Relinked with a newer
 // toolchain (it gains a .fptable section and loses _RDATA) and shipped WITHOUT
 // PDBs, so nothing below came out of dbghelp. Every value was carried across
 // from the stock build by tools\port_build.py, which matches functions between
@@ -290,8 +291,15 @@ constexpr Layout kBuildStock = {
 // Struct layouts are NOT re-derived from types (there are none); they are
 // inferred unchanged because the functions that touch them use the same field
 // displacements in both builds.
-constexpr Layout kBuildPatch2 = {
-    "TR I-III Remastered (patched, PE 0x6A4B7C52, no PDB)", 0x6A4B7C52,
+//
+// The Tomb Raider Gold mod is an in-place byte patch of this same build, so it
+// has the same PE timestamp and matches this row too -- deliberately. Gold
+// changes 6 bytes of tomb123.exe, all in texDesc (1920x1080 -> 3840x2160), and
+// a handful of functions and data in the game DLLs; none of it overlaps a hook
+// window, a hooked function or a global the mod reads, and every check in
+// tools\verify_addresses.py passes against both retail\ and gold\.
+constexpr Layout kBuildAspyrRetail = {
+    "TR I-III Remastered (Aspyr retail or Tomb Raider Gold, PE 0x6A4B7C52, no PDB)", 0x6A4B7C52,
     /* vid_setPass         */ 0x0000ABA0,
     /* validate_draw       */ 0x0000EFE0,
     /* ogl_draw            */ 0x0000FBE0,

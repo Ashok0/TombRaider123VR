@@ -10,7 +10,7 @@ uint64_t      g_base   = 0;
 const Layout* g_layout = nullptr;
 
 // Every build there is an address table for.
-const Layout* const kBuilds[] = { &kBuildStock, &kBuildPatch2 };
+const Layout* const kBuilds[] = { &kBuildStock, &kBuildAspyrRetail };
 
 // Set by the ogl_setRenderTarget hook. Starts true because the engine's very
 // first frames render to the backbuffer before it ever calls setRenderTarget,
@@ -91,7 +91,7 @@ bool StructuralCheckPasses(uint64_t base, const Layout& b, uint32_t sizeOfImage)
 // This used to fall back to StructuralCheckPasses() against the stock table.
 // That check compares the table's own constants with each other and reads
 // nothing from the running image but shaders[], so it passed for EVERY
-// executable -- including the later patched build, where it would have let
+// executable -- including the Aspyr retail build, where it would have let
 // Hooks.cpp redirect FBO_default and the XInput slot at the stock addresses.
 // The prologue test in InlineHook::Install does not cover those writes, and
 // vid_setPass happens to keep the same RVA across the two builds, so it is not

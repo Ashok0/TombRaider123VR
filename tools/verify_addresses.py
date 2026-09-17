@@ -6,8 +6,9 @@
 # the game.
 #
 # Rows for builds shipped WITHOUT PDBs were carried across by port_build.py.
-# Name the directory holding each such build (default: update\, if present)
-# and its rows are checked against port_build.json and against the images
+# Name the directory holding each such build (default: retail\ and gold\,
+# whichever are present) and its rows are checked against port_build.json and
+# against the images
 # themselves -- prologues, structural relations, the APP vtable slots, the
 # consts bit tests and the view-matrix writes.
 #
@@ -312,8 +313,8 @@ try:
     import json
     from capstone.x86 import X86_OP_MEM, X86_REG_RIP
 
-    nopdb_dirs = sys.argv[1:] or ([os.path.join(ROOT, 'update')]
-                                  if os.path.isdir(os.path.join(ROOT, 'update')) else [])
+    nopdb_dirs = sys.argv[1:] or [os.path.join(ROOT, n) for n in ('retail', 'gold')
+                                  if os.path.isdir(os.path.join(ROOT, n))]
 
     EXE_LAYOUT = ['vid_setPass', 'validate_draw', 'ogl_draw', 'ogl_present',
                   'fmvShow', 'ogl_setRenderTarget', 'gGame', '_XInputGetState',
