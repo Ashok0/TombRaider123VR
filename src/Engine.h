@@ -7,6 +7,10 @@
 //
 //   tomb123.exe  (Tomb Raider I-III Remastered, PE timestamp checked at runtime)
 //
+// A later Steam build shipped without PDBs; its row (kBuildPatch2, below) was
+// carried across from this one by tools\port_build.py. The rva/drva constants
+// in this file describe the stock build only.
+//
 // The tools that produced it are in tools\ and are reproducible:
 //   python tools\pdbdump.py  PDB\tomb123.exe            -- name -> RVA
 //   python tools\typedump.py PDB\tomb123.exe RenderState -- struct layouts
@@ -206,13 +210,13 @@ constexpr uint32_t level       = 832;
 // TR4-6: between builds .text and .data do not move by the same amount, or even
 // by a constant within a section.
 //
-// Only one build is listed because only one has been read. To add another:
-//   1. Copy its tomb123.exe AND tomb123.pdb into PDB\.
-//   2. python tools\pdbdump.py PDB\tomb123.exe > syms.txt
-//   3. Pull the same names out of syms.txt and add a Layout row.
-//   4. python tools\prologue.py PDB\tomb123.exe vid_setPass validate_draw \
-//        ogl_draw ogl_present fmvShow ogl_setRenderTarget
-//      and confirm the stolen-byte windows in Hooks.cpp still match.
+// To add another build:
+//   * If it ships a PDB: copy its tomb123.exe AND tomb123.pdb into PDB\, run
+//     python tools\pdbdump.py PDB\tomb123.exe, and pull the same names out.
+//   * If it does not: copy the exe and the three game DLLs into a directory and
+//     run python tools\port_build.py <dir>, which carries the symbols across
+//     from the PDB build and prints both tables ready to paste.
+//   Either way, python tools\verify_addresses.py must then pass.
 // An unknown build is REFUSED rather than patched with someone else's numbers.
 struct Layout {
     const char* name;
@@ -250,11 +254,7 @@ struct Layout {
 // between the PDB drop in PDB\ and the retail Steam install, so these addresses
 // are exact on the shipping executable and not merely on a debug copy.
 //
-// A build whose timestamp does not match is NOT refused outright -- it is put
-// through the structural self-check in IdentifyBuild() and accepted only if the
-// relationships between these addresses still hold in the running image. That
-// keeps a patch which happens to move nothing from needing a rebuild, while
-// still rejecting one that moved things.
+// A build whose timestamp matches no row is refused -- see IdentifyBuild().
 constexpr Layout kBuildStock = {
     "TR I-III Remastered (retail, PE 0x6A4B4928)", 0x6A4B4928,
     rva::vid_setPass, rva::validate_draw, rva::ogl_draw,
@@ -263,6 +263,56 @@ constexpr Layout kBuildStock = {
     drva::mProj,       drva::mView_packed,   drva::shaders,     drva::ogl_textures,
     drva::FBO_custom,  drva::FBO_default,    drva::app,
     drva::gWidth,      drva::gHeight,        drva::gTargetWidth, drva::gTargetHeight,
+};
+
+// The later Steam build: PE TimeDateStamp 0x6A4B7C52, SizeOfImage 0x0C972000,
+// PDB GUID b116f8a8-1f9e-f144-82a1-374ec673b733. Relinked with a newer
+// toolchain (it gains a .fptable section and loses _RDATA) and shipped WITHOUT
+// PDBs, so nothing below came out of dbghelp. Every value was carried across
+// from the stock build by tools\port_build.py, which matches functions between
+// the two images by normalised disassembly and maps globals through the
+// RIP-relative references inside matched pairs. It was then cross-checked
+// independently of that matching:
+//
+//   * the APP vtable: vidInit/init_ogl install vid_setPass, ogl_draw,
+//     ogl_present and ogl_setRenderTarget at app+560/368/280/352 in both
+//     builds, and appInit installs fmvShow at app+712 in both;
+//   * all six prologue windows are byte-identical to the stock ones, end on an
+//     instruction boundary and are RIP-free (tools\verify_addresses.py);
+//   * validate_draw forces 0x3F001F and tests the consts bits in the same order
+//     against the same uid[] slots, so ConstBits is unchanged;
+//   * ogl_setRenderTarget still branches on `test edi, edi`, now at 0x0001046A;
+//   * vid_setViewMatrix writes vid_state+80 and vid_state+400..+444 exactly as
+//     before, which is what fixes mView_packed;
+//   * every structural relationship StructuralCheckPasses() asserts holds, and
+//     all 191 mapped references into APP keep their field offset.
+//
+// Struct layouts are NOT re-derived from types (there are none); they are
+// inferred unchanged because the functions that touch them use the same field
+// displacements in both builds.
+constexpr Layout kBuildPatch2 = {
+    "TR I-III Remastered (patched, PE 0x6A4B7C52, no PDB)", 0x6A4B7C52,
+    /* vid_setPass         */ 0x0000ABA0,
+    /* validate_draw       */ 0x0000EFE0,
+    /* ogl_draw            */ 0x0000FBE0,
+    /* ogl_present         */ 0x0000F680,
+    /* fmvShow             */ 0x0000E630,
+    /* ogl_setRenderTarget */ 0x000103A0,
+    /* gGame               */ 0x000EF438,
+    /* XInputGetState      */ 0x004183B0,
+    /* vid_state           */ 0x0C6A24C0,
+    /* vid_state_prev      */ 0x0C6A2560,
+    /* mProj               */ 0x0C6A2270,
+    /* mView_packed        */ 0x0C6A2650,
+    /* shaders             */ 0x0C94D9C0,
+    /* ogl_textures        */ 0x0C94D950,
+    /* FBO_custom          */ 0x0C6AA948,
+    /* FBO_default         */ 0x0C94D99C,
+    /* app                 */ 0x0038E400,
+    /* gWidth              */ 0x0041E1D0,
+    /* gHeight             */ 0x0041E1CC,
+    /* gTargetWidth        */ 0x0269E220,
+    /* gTargetHeight       */ 0x0041E1EC,
 };
 
 // ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@ uint64_t      g_base   = 0;
 const Layout* g_layout = nullptr;
 
 // Every build there is an address table for.
-const Layout* const kBuilds[] = { &kBuildStock };
+const Layout* const kBuilds[] = { &kBuildStock, &kBuildPatch2 };
 
 // Set by the ogl_setRenderTarget hook. Starts true because the engine's very
 // first frames render to the backbuffer before it ever calls setRenderTarget,
@@ -18,11 +18,13 @@ const Layout* const kBuilds[] = { &kBuildStock };
 // frames LazyInit is trying to validate.
 bool g_backbuffer = true;
 
-// Does the running image actually look like the build these RVAs describe?
+// Is this table row internally consistent?
 //
-// The point of this is to catch a MOVED layout, not to be a checksum. Each test
-// below is a relationship that the compiler's own output fixes and that a
-// relaid-out build would break, so it is cheap and it is falsifiable:
+// Only ever run on the row the PE timestamp already selected, so what it
+// catches is a typo in a row -- most usefully in one carried across without a
+// PDB -- not a different build. Apart from the final shaders[] read it inspects
+// the table, not the image. Each test is a relationship the compiler's own
+// output fixes, and that held in both builds read so far:
 //
 //   * vid_state_prev sits exactly 160 bytes above vid_state. That is
 //     sizeof(RenderState) rounded up to the next 32 -- an allocation artefact
@@ -35,9 +37,8 @@ bool g_backbuffer = true;
 //   * Every RVA has to be inside SizeOfImage, or we would be writing into
 //     unmapped memory.
 //
-// A build that passes all of this and is still wrong is possible in principle.
-// It is far less likely than a build that fails one of them, which is the case
-// worth defending against.
+// A row that passes all of this and is still wrong is possible in principle;
+// tools\verify_addresses.py is the real check.
 bool StructuralCheckPasses(uint64_t base, const Layout& b, uint32_t sizeOfImage) {
     struct Test { const char* what; bool ok; };
     const Test tests[] = {
@@ -85,10 +86,16 @@ bool StructuralCheckPasses(uint64_t base, const Layout& b, uint32_t sizeOfImage)
 // Identify the host binary and pick its address table.
 //
 // Matching on the PE TimeDateStamp rather than a file name means a renamed or
-// copied exe is still recognised. Unlike the TR4-6 mod this does NOT refuse an
-// unknown stamp outright -- it falls back to the structural check, because
-// there is only one address table here and a Steam patch that relinks without
-// moving anything is a likely and harmless case.
+// copied exe is still recognised. An unknown stamp is REFUSED.
+//
+// This used to fall back to StructuralCheckPasses() against the stock table.
+// That check compares the table's own constants with each other and reads
+// nothing from the running image but shaders[], so it passed for EVERY
+// executable -- including the later patched build, where it would have let
+// Hooks.cpp redirect FBO_default and the XInput slot at the stock addresses.
+// The prologue test in InlineHook::Install does not cover those writes, and
+// vid_setPass happens to keep the same RVA across the two builds, so it is not
+// a reliable tripwire either.
 const Layout* IdentifyBuild(uint64_t base) {
     auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
     if (dos->e_magic != IMAGE_DOS_SIGNATURE) return nullptr;
@@ -111,17 +118,10 @@ const Layout* IdentifyBuild(uint64_t base) {
          "Known builds:", stamp, size);
     for (const Layout* b : kBuilds)
         LogF("engine:   0x%08X  %s", b->timestamp, b->name);
-    Log("engine: falling back to the structural self-check against the stock table");
-
-    if (!StructuralCheckPasses(base, kBuildStock, size)) {
-        Log("engine: the structural check did not pass, so the stock addresses do "
-            "NOT describe this executable. Refusing to patch.");
-        Log("engine: to add this build, drop its tomb123.exe and tomb123.pdb into "
-            "PDB\\ and re-run tools\\pdbdump.py -- see Engine.h.");
-        return nullptr;
-    }
-    Log("engine: structural check passed; proceeding with the stock addresses");
-    return &kBuildStock;
+    Log("engine: refusing to patch an executable no address table describes. "
+        "To add this build, see Engine.h (tools\\pdbdump.py if it ships a PDB, "
+        "tools\\port_build.py if it does not).");
+    return nullptr;
 }
 
 } // namespace

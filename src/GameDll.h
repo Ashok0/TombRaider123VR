@@ -31,7 +31,9 @@
 
 namespace tr {
 
-// One row per game DLL. Every RVA came out of that DLL's own PDB by name; a
+// One row per game DLL per build, selected by the DLL's PE timestamp. Every
+// RVA came out of that DLL's own PDB by name (or, for a build shipped without
+// PDBs, was carried across by tools\port_build.py); a
 // zero means "this build does not have that symbol", which is a real case --
 // TR1 has no `outside` machinery at all, TR2 and TR3 do.
 struct GameDllLayout {

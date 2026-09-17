@@ -12,10 +12,12 @@ information.
 
 ## AI Usage
 
-Written with Claude Code (Opus 5). Every address, struct offset and function
-signature in `src/Engine.h` and `src/GameDll.cpp` was extracted from the shipped
-PDBs by the tools in `tools\`, and `tools\verify_addresses.py` re-derives all
-262 of them and fails if any disagrees.
+Written with Claude Code (Opus 5). For the original build, every address,
+struct offset and function signature in `src/Engine.h` and `src/GameDll.cpp` was
+extracted from the shipped PDBs by the tools in `tools\`. The later patched build
+shipped without PDBs, so its addresses were carried across by
+`tools\port_build.py`. `tools\verify_addresses.py` checks both, 431 checks in
+all, and fails if any disagrees.
 
 ## VR Mod Features
 
@@ -63,6 +65,13 @@ the TR4-6 attempt, and how to read its log lines.
 
 The sky fix hooks `DrawSkyHD` in the live game DLL. `SkyAtInfinity=0` returns
 the stock finite-dome stereo. See "Sky at infinity" below.
+
+Two game builds are supported: the original retail build (exe PE timestamp
+`0x6A4B4928`), and the later Steam patch (`0x6A4B7C52`), which shipped without
+PDBs. The mod picks the address table for each module by its PE timestamp and
+refuses to patch anything it does not recognise. The patched build's addresses
+are verified statically against the binaries but have **not** yet been tested
+in play; see "Supporting the patched build" below.
 
 ---
 
@@ -485,6 +494,89 @@ All in `[VR]`, documented in `TombRaiderVR.ini`.
 |---|---|---|
 | `SkyAtInfinity` | `1` | the whole feature; `0` is stock finite-dome stereo |
 
+### Supporting the patched build (no PDBs)
+
+A later Steam update replaced `tomb123.exe` and all three game DLLs. Every image
+has a new PDB GUID. It was relinked with a newer toolchain: `.fptable` appears,
+`_RDATA` is gone, and constants are now loaded with `mov r, imm` where the old
+compiler used `lea r, [reg+k]`. It shipped **without PDBs**, and the game's
+`pdb\` folder is empty. Almost every address the mod uses moved, and nothing
+could be read out of dbghelp this time.
+
+**How the addresses were recovered.** `tools\port_build.py <dir>` carries the
+symbols across from the PDB build in `PDB\` to the build in `<dir>` (here
+`update\`):
+
+1. `.pdata` gives every non-leaf function's exact extent in both images.
+2. Each function is reduced to one token per instruction. RIP-relative
+   displacements and branch targets are masked. Struct displacements and
+   immediates are kept.
+3. Functions pair up by unique exact hash, then by unique mnemonic-only hash.
+   Pairs propagate along call edges, and what remains is matched by sequence
+   similarity (≥ 0.75).
+4. Inside every matched pair, aligned RIP-relative references vote for
+   old global → new global. The winner of the vote is the new address.
+
+All 75 values the mod needs resolved. Every one was unanimous except tomb2
+`room`, at 152 of 154 votes. `mView_packed` has no RIP-relative reference
+anywhere, so it is inferred from its neighbours, which both shift by +3920. The
+tool labels it as inferred.
+
+**How they were checked, independently of the matching.** A match is not proof,
+so `verify_addresses.py` re-checks what the mod depends on directly against the
+new images:
+
+| check | what it establishes |
+|---|---|
+| all 15 hook prologues byte-identical, instruction-aligned, RIP-free | the stolen-byte windows are still safe |
+| `vidInit`/`init_ogl`/`appInit` install each hooked function at the same `APP` slot in both builds (+560, +368, +280, +352, +712) | the five exe hook targets are the functions the game DLLs actually call |
+| `validate_draw` forces `0x3F001F` and runs the same 11 bit tests in the same order | `ConstBits` is unchanged |
+| `vid_setViewMatrix` writes the same 25 offsets relative to `vid_state` | `mView_packed` really is `vid_state + 400` |
+| every structural relationship `Engine.cpp` asserts holds on the new row | no typo in the row |
+| every value in `Engine.h`/`GameDll.cpp` equals `update\port_build.json` | the source says what the tool derived |
+
+Also checked while porting: all 191 mapped references into `APP` keep their
+field offset. `ogl_setRenderTarget` still branches on `test edi, edi` (now at
+`0x0001046A`).
+
+**What is inferred rather than proven.** There are no type records, so the
+struct layouts (`RenderState`, `ROOM_INFO`, `lara_info`, `camera_info`) are
+assumed unchanged. The evidence is that the functions touching the fields the mod
+uses (`validate_draw`, `PrintRooms`, `SetRoomBounds`, `CalculateCamera`,
+`S_GetObjectBounds`) use the same displacements in both builds. TR1's
+`SetRoomBounds` now inlines a helper and touches more fields, but at the same
+offsets.
+
+**Where it lives.**
+
+| file | what changed |
+|---|---|
+| `src\Engine.h` | `kBuildPatch2`, the exe row, as hex literals with the evidence in the comment |
+| `src\Engine.cpp` | `kBuilds` lists both builds |
+| `src\GameDll.cpp` | `kDlls` is now `[build][gGame]`, selected by the DLL's own PE timestamp |
+| `tools\port_build.py` | the matcher; prints paste-ready rows and writes `port_build.json` |
+| `tools\verify_addresses.py` | checks rows for PDB-less builds (default dir `update\`) |
+
+**Two safety bugs fixed along the way.** Both had let a mismatched build through:
+
+- `IdentifyBuild` used to fall back to `StructuralCheckPasses` against the stock
+  table for an unknown exe. That check compares the table's constants with each
+  other and reads nothing from the image except `shaders[]`, so it passed for
+  *every* exe. On the patched exe it would have redirected `FBO_default` and the
+  XInput slot at stale addresses. The prologue check doesn't cover those writes,
+  and `vid_setPass` happens to keep RVA `0xABA0`, so it could not be relied on
+  either. An unknown exe is now refused.
+- `GameDllUpdate` accepted a DLL with an unexpected timestamp, on the grounds
+  that nothing is written through that table. That stopped being true when
+  `PortalCull` began writing `draw_rooms` and the room clip rects. An unknown DLL
+  is now left unbound, and every consumer already treats that as "stand down".
+
+The consequence is deliberate: after a future patch the mod does nothing until
+a row is added. The log names the unrecognised timestamp. To add one, copy the
+four new binaries into a directory, run `python tools\port_build.py <dir>`,
+paste the rows, and make `python tools\verify_addresses.py <dir>` pass. If the
+patch ships PDBs, use `pdbdump.py` as before.
+
 ### Ghidra / re-mcp
 
 Everything except the culling was written without a decompiler, because the PDBs
@@ -552,15 +644,18 @@ installed.
 ### Verification
 
 ```powershell
-python tools\verify_addresses.py     # 262 checks against the PDBs
+python tools\port_build.py update    # only after a PDB-less patch: derive rows
+python tools\verify_addresses.py     # 431 checks: the PDB build, plus update\
 tests\build_selftest.cmd             # matrix maths, consts bits, portal frustum,
                                      # hook mechanism
 ```
 
 `verify_addresses.py` re-derives every address, struct offset, structural
 relationship and hook prologue from the PDBs and diffs them against the source.
-Run it after any game patch: if it passes, the addresses are still right; if it
-fails, it names what moved.
+For each build without PDBs (the directories named on the command line, default
+`update\`), it checks that build's rows against `port_build.json` and against
+the images themselves. Run it after any game patch: if it passes, the addresses
+are still right; if it fails, it names what moved.
 
 ## Repository layout
 
@@ -574,9 +669,10 @@ src\             the mod
   Sky.cpp          DrawSkyHD hook: sky draws at optical infinity
   StereoMath.h     matrix maths against this engine's conventions
   proxy\           the winmm shim
-tools\           PDB extraction, disassembly, verification
+tools\           PDB extraction, cross-build porting, disassembly, verification
 tests\           self-test
-PDB\             tomb123.exe + tomb1/2/3.dll and their PDBs
+PDB\             tomb123.exe + tomb1/2/3.dll and their PDBs (original build)
+update\          the patched build's binaries (no PDBs) + port_build.json
 third_party\     OpenVR headers
 ```
 

@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\dev\TR_GROK\TombRaider123VR\build\x64\Release\TombRaiderVR.dll</FullPath>
+      <FullPath>C:\dev\TombRaider123VR\build\x64\Release\TombRaiderVR.dll</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

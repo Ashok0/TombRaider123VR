@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <cstdint>
 #include <cmath>
+#include <cwchar>
 
 namespace tr {
 namespace {
@@ -34,65 +35,135 @@ constexpr uint32_t room_maxceiling = 56;   // int32, the ceiling's Y
 //
 //   python tools\pdbdump.py PDB\tomb1.dll draw_rooms w2v_matrix PrintRoomsList
 //
-// Column order matches GameDllLayout in the header. The five `outside*` entries
+// One block per build, three rows per block, indexed [build][gGame]. Column
+// order matches GameDllLayout in the header. The five `outside*` entries
 // are zero for TR1 because TR1's renderer has no such state: TR2 and TR3 track
 // a separate screen rect for the sky, TR1 does not.
-constexpr GameDllLayout kDlls[] = {
-    { L"tomb1.dll", "Tomb Raider I",   0x6A4B48FF,
-      /* lara            */ 0x0033BC00,
-      /* camera          */ 0x0041DF60,
-      /* room            */ 0x0041E088,
-      /* number_rooms    */ 0x0041DF50,
-      /* draw_rooms      */ 0x0041DDC0,
-      /* number_draw_..  */ 0x0041DF54,
-      /* w2v_matrix      */ 0x002C8C40,
-      /* phd_mxptr       */ 0x0010E928,
-      /* phd_winxmax     */ 0x002C8C04,
-      /* phd_winymax     */ 0x002C8C00,
-      /* outside         */ 0, 0, 0, 0, 0,
-      /* PrintRoomsList  */ 0x0006E950,
-      /* S_GetObjectB..  */ 0x00063DF0,
-      /* DrawSkyHD       */ 0x0006E480 },
+constexpr GameDllLayout kDlls[][3] = {
+    // Stock build -- read out of the PDBs in PDB\.
+    {
+        { L"tomb1.dll", "Tomb Raider I",   0x6A4B48FF,
+          /* lara            */ 0x0033BC00,
+          /* camera          */ 0x0041DF60,
+          /* room            */ 0x0041E088,
+          /* number_rooms    */ 0x0041DF50,
+          /* draw_rooms      */ 0x0041DDC0,
+          /* number_draw_..  */ 0x0041DF54,
+          /* w2v_matrix      */ 0x002C8C40,
+          /* phd_mxptr       */ 0x0010E928,
+          /* phd_winxmax     */ 0x002C8C04,
+          /* phd_winymax     */ 0x002C8C00,
+          /* outside         */ 0, 0, 0, 0, 0,
+          /* PrintRoomsList  */ 0x0006E950,
+          /* S_GetObjectB..  */ 0x00063DF0,
+          /* DrawSkyHD       */ 0x0006E480 },
 
-    { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
-      /* lara            */ 0x0037AD40,
-      /* camera          */ 0x00433160,
-      /* room            */ 0x0045D220,
-      /* number_rooms    */ 0x00433070,
-      /* draw_rooms      */ 0x00432EE0,
-      /* number_draw_..  */ 0x0043307C,
-      /* w2v_matrix      */ 0x00307D60,
-      /* phd_mxptr       */ 0x001490F8,
-      /* phd_winxmax     */ 0x00307DA0,
-      /* phd_winymax     */ 0x00307D9C,
-      /* outside         */ 0x0042CE94,
-      /* outside_left    */ 0x00538070,
-      /* outside_right   */ 0x00538060,
-      /* outside_top     */ 0x00538068,
-      /* outside_bottom  */ 0x00538064,
-      /* PrintRoomsList  */ 0x000A0C30,
-      /* S_GetObjectB..  */ 0x00095740,
-      /* DrawSkyHD       */ 0x000A0760 },
+        { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
+          /* lara            */ 0x0037AD40,
+          /* camera          */ 0x00433160,
+          /* room            */ 0x0045D220,
+          /* number_rooms    */ 0x00433070,
+          /* draw_rooms      */ 0x00432EE0,
+          /* number_draw_..  */ 0x0043307C,
+          /* w2v_matrix      */ 0x00307D60,
+          /* phd_mxptr       */ 0x001490F8,
+          /* phd_winxmax     */ 0x00307DA0,
+          /* phd_winymax     */ 0x00307D9C,
+          /* outside         */ 0x0042CE94,
+          /* outside_left    */ 0x00538070,
+          /* outside_right   */ 0x00538060,
+          /* outside_top     */ 0x00538068,
+          /* outside_bottom  */ 0x00538064,
+          /* PrintRoomsList  */ 0x000A0C30,
+          /* S_GetObjectB..  */ 0x00095740,
+          /* DrawSkyHD       */ 0x000A0760 },
 
-    { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
-      /* lara            */ 0x003D1C40,
-      /* camera          */ 0x00491FA0,
-      /* room            */ 0x00492020,
-      /* number_rooms    */ 0x00491150,
-      /* draw_rooms      */ 0x00490FC0,
-      /* number_draw_..  */ 0x00491154,
-      /* w2v_matrix      */ 0x0035EC80,
-      /* phd_mxptr       */ 0x0019DA98,
-      /* phd_winxmax     */ 0x0035EC30,
-      /* phd_winymax     */ 0x0035EC2C,
-      /* outside         */ 0x0048B708,
-      /* outside_left    */ 0x005977B0,
-      /* outside_right   */ 0x005977A0,
-      /* outside_top     */ 0x005977A8,
-      /* outside_bottom  */ 0x005977A4,
-      /* PrintRoomsList  */ 0x000EAF50,
-      /* S_GetObjectB..  */ 0x000DFB70,
-      /* DrawSkyHD       */ 0x000EAA80 },
+        { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
+          /* lara            */ 0x003D1C40,
+          /* camera          */ 0x00491FA0,
+          /* room            */ 0x00492020,
+          /* number_rooms    */ 0x00491150,
+          /* draw_rooms      */ 0x00490FC0,
+          /* number_draw_..  */ 0x00491154,
+          /* w2v_matrix      */ 0x0035EC80,
+          /* phd_mxptr       */ 0x0019DA98,
+          /* phd_winxmax     */ 0x0035EC30,
+          /* phd_winymax     */ 0x0035EC2C,
+          /* outside         */ 0x0048B708,
+          /* outside_left    */ 0x005977B0,
+          /* outside_right   */ 0x005977A0,
+          /* outside_top     */ 0x005977A8,
+          /* outside_bottom  */ 0x005977A4,
+          /* PrintRoomsList  */ 0x000EAF50,
+          /* S_GetObjectB..  */ 0x000DFB70,
+          /* DrawSkyHD       */ 0x000EAA80 },
+    },
+
+    // Patched build, shipped without PDBs (exe row: kBuildPatch2 in Engine.h).
+    // Carried across by tools\port_build.py, which maps each global through the
+    // RIP-relative references to it in functions matched between the builds.
+    // Every global won its vote unanimously except tomb2 `room`, at 152 of 154,
+    // and all three hook prologues are byte-identical to the stock ones.
+    // Struct layouts are unchanged: the functions reading the fields below
+    // (PrintRooms, SetRoomBounds, CalculateCamera, S_GetObjectBounds...) use the
+    // same displacements in both builds.
+    {
+        { L"tomb1.dll", "Tomb Raider I", 0x6A4B7C28,
+          /* lara            */ 0x0033CB40,
+          /* camera          */ 0x0041EEA0,
+          /* room            */ 0x0041EFC8,
+          /* number_rooms    */ 0x0041EE90,
+          /* draw_rooms      */ 0x0041ED00,
+          /* number_draw_..  */ 0x0041EE94,
+          /* w2v_matrix      */ 0x002C9B80,
+          /* phd_mxptr       */ 0x0010F928,
+          /* phd_winxmax     */ 0x002C9B44,
+          /* phd_winymax     */ 0x002C9B40,
+          /* outside         */ 0, 0, 0, 0, 0,
+          /* PrintRoomsList  */ 0x0006ED60,
+          /* S_GetObjectB..  */ 0x00063E30,
+          /* DrawSkyHD       */ 0x0006E890 },
+
+        { L"tomb2.dll", "Tomb Raider II", 0x6A4B7C3F,
+          /* lara            */ 0x0037AC80,
+          /* camera          */ 0x004330A0,
+          /* room            */ 0x0045D160,
+          /* number_rooms    */ 0x00432FB0,
+          /* draw_rooms      */ 0x00432E20,
+          /* number_draw_..  */ 0x00432FBC,
+          /* w2v_matrix      */ 0x00307CA0,
+          /* phd_mxptr       */ 0x001490F8,
+          /* phd_winxmax     */ 0x00307CE0,
+          /* phd_winymax     */ 0x00307CDC,
+          /* outside         */ 0x0042CDD4,
+          /* outside_left    */ 0x00537FB0,
+          /* outside_right   */ 0x00537FA0,
+          /* outside_top     */ 0x00537FA8,
+          /* outside_bottom  */ 0x00537FA4,
+          /* PrintRoomsList  */ 0x000A0AF0,
+          /* S_GetObjectB..  */ 0x00095230,
+          /* DrawSkyHD       */ 0x000A0620 },
+
+        { L"tomb3.dll", "Tomb Raider III", 0x6A4B7C37,
+          /* lara            */ 0x003D4B80,
+          /* camera          */ 0x00494EE0,
+          /* room            */ 0x00494F60,
+          /* number_rooms    */ 0x00494090,
+          /* draw_rooms      */ 0x00493F00,
+          /* number_draw_..  */ 0x00494094,
+          /* w2v_matrix      */ 0x00361BC0,
+          /* phd_mxptr       */ 0x001A0A98,
+          /* phd_winxmax     */ 0x00361B70,
+          /* phd_winymax     */ 0x00361B6C,
+          /* outside         */ 0x0048E648,
+          /* outside_left    */ 0x0059A6F0,
+          /* outside_right   */ 0x0059A6E0,
+          /* outside_top     */ 0x0059A6E8,
+          /* outside_bottom  */ 0x0059A6E4,
+          /* PrintRoomsList  */ 0x000ECC60,
+          /* S_GetObjectB..  */ 0x000E14C0,
+          /* DrawSkyHD       */ 0x000EC790 },
+    },
 };
 
 const GameDllLayout* g_dll  = nullptr;
@@ -134,7 +205,7 @@ bool GameDllUpdate() {
     // call [rax + rsi + 0x41d218]` at 0x00007BF2), so 0/1/2 map to TR1/TR2/TR3
     // by the engine's own definition rather than by our assumption.
     const int game = CurrentGame();
-    if (game < 0 || game >= static_cast<int>(sizeof(kDlls) / sizeof(kDlls[0]))) {
+    if (game < 0 || game >= 3) {
         // Before a game is chosen, or mid-transition. Report unbound rather than
         // guess: both callers treat that as "unknown" and fail safe.
         g_dll  = nullptr;
@@ -142,37 +213,50 @@ bool GameDllUpdate() {
         return false;
     }
 
-    // Already bound to the right one, and it has not moved.
-    if (g_dll == &kDlls[game] &&
-        GetModuleHandleW(g_dll->module) == reinterpret_cast<HMODULE>(g_base))
+    // Already bound to the right one, and it has not moved. Every build's row
+    // for a given game names the same module, so kDlls[0] stands in for all.
+    const wchar_t* module = kDlls[0][game].module;
+    if (g_dll && std::wcscmp(g_dll->module, module) == 0 &&
+        GetModuleHandleW(module) == reinterpret_cast<HMODULE>(g_base))
         return true;
 
     g_dll  = nullptr;
     g_base = 0;
 
-    const GameDllLayout& d = kDlls[game];
-    HMODULE h = GetModuleHandleW(d.module);
+    HMODULE h = GetModuleHandleW(module);
     if (!h) return false;
 
     const uint64_t base = reinterpret_cast<uint64_t>(h);
 
-    // Confirm the build before trusting any address in it. A mismatched stamp is
-    // reported once and then accepted: unlike the exe, nothing here is WRITTEN --
-    // both reads are into a struct whose layout is identical across all three
-    // DLLs -- so the downside of a stale address is a bad number that the sanity
-    // checks in CameraHeadroom reject, not a corrupted process.
+    // Pick the row by the DLL's own PE timestamp, and refuse a DLL no row
+    // describes. This used to accept a mismatch on the grounds that nothing
+    // here is WRITTEN -- true of the two readers in this file, but PortalCull
+    // writes draw_rooms, number_draw_rooms and every listed room's clip rect
+    // through this same row, and Sky hooks through it. Unbound is the safe
+    // answer: every consumer already treats it as "stand down".
     auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
     if (dos->e_magic != IMAGE_DOS_SIGNATURE) return false;
     auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(base + dos->e_lfanew);
     if (nt->Signature != IMAGE_NT_SIGNATURE) return false;
 
     const uint32_t stamp = nt->FileHeader.TimeDateStamp;
-    if (stamp != d.timestamp && !g_loggedStamp) {
-        g_loggedStamp = true;
-        LogF("gamedll: %S has PE timestamp 0x%08X, expected 0x%08X. Ceiling "
-             "clamp and water-state detection may be reading the wrong "
-             "globals; both fail safe if so.", d.module, stamp, d.timestamp);
+    const GameDllLayout* row = nullptr;
+    for (const auto& build : kDlls) {
+        if (build[game].timestamp == stamp) {
+            row = &build[game];
+            break;
+        }
     }
+    if (!row) {
+        if (!g_loggedStamp) {
+            g_loggedStamp = true;
+            LogF("gamedll: %S has PE timestamp 0x%08X, which no address table "
+                 "describes. Not binding: ceiling clamp, water-state detection, "
+                 "culling fix and sky fix stand down for this DLL.", module, stamp);
+        }
+        return false;
+    }
+    const GameDllLayout& d = *row;
 
     g_dll  = &d;
     g_base = base;

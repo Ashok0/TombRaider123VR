@@ -1,10 +1,17 @@
 # verify_addresses.py -- prove src/Engine.h and src/GameDll.cpp agree with the PDBs.
 #
-# Every constant in those files was produced by pdbdump.py/typedump.py. This
-# re-derives them from the PDBs and diffs, so a typo, a stale edit, or a game
-# patch is caught here rather than by a crash in the game.
+# Every constant in those files for the build in PDB\ was produced by
+# pdbdump.py/typedump.py. This re-derives them from the PDBs and diffs, so a
+# typo, a stale edit, or a game patch is caught here rather than by a crash in
+# the game.
 #
-#   python tools\verify_addresses.py
+# Rows for builds shipped WITHOUT PDBs were carried across by port_build.py.
+# Name the directory holding each such build (default: update\, if present)
+# and its rows are checked against port_build.json and against the images
+# themselves -- prologues, structural relations, the APP vtable slots, the
+# consts bit tests and the view-matrix writes.
+#
+#   python tools\verify_addresses.py [nopdb-build-dir ...]
 #
 # Exit code 0 = everything matches. Non-zero = at least one mismatch.
 import os, re, subprocess, sys
@@ -147,14 +154,24 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'outside_bottom',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD']
 
-rows = []
+def pe_stamp(path):
+    with open(path, 'rb') as f:
+        d = f.read(4096)
+    pe = int.from_bytes(d[0x3C:0x40], 'little')
+    return int.from_bytes(d[pe + 8:pe + 12], 'little')
+
+all_rows = []
 for m in re.finditer(r'\{\s*L"(tomb[123]\.dll)",\s*"[^"]*",\s*(0x[0-9A-Fa-f]+),(.*?)\}', gd, re.S):
     body = re.sub(r'/\*.*?\*/', '', m.group(3), flags=re.S)
     vals = [int(v, 0) for v in re.findall(r'0x[0-9A-Fa-f]+|\b\d+\b', body)]
-    rows.append((m.group(1), m.group(2), vals))
+    all_rows.append((m.group(1), int(m.group(2), 16), vals))
 
+# The table carries one row per DLL per build. Only the rows for the build in
+# PDB\ can be checked against a PDB; the others are checked further down,
+# against the images they describe.
+rows = [r for r in all_rows if r[1] == pe_stamp(os.path.join(PDB, r[0]))]
 if len(rows) != 3:
-    fails.append('GameDll.cpp: expected 3 DLL rows, parsed %d' % len(rows))
+    fails.append('GameDll.cpp: expected 3 DLL rows for the PDB build, parsed %d' % len(rows))
     checks += 1
 
 for dll, stamp, vals in rows:
@@ -235,15 +252,15 @@ try:
                   for m in re.finditer(r'(\d+),\s*k(\w+)Prologue,', txt)}
         return arrays, stolen
 
-    def check_prologues(image, src, targets):
+    def check_prologues(image, src, targets, image_dir=PDB, table=None, tag=''):
         global checks
         arrays, stolen = prologues(src)
-        pe = pefile.PE(os.path.join(PDB, image), fast_load=True)
+        pe = pefile.PE(os.path.join(image_dir, image), fast_load=True)
         data = pe.get_memory_mapped_image()
         base = pe.OPTIONAL_HEADER.ImageBase
-        table = syms(image)
+        table = syms(image) if table is None else table
         for key, fn in targets.items():
-            label = '%s!%s' % (image, fn)
+            label = '%s%s!%s' % (tag, image, fn)
             if key not in arrays:
                 fails.append('%-46s no kPrologue array in %s' % (label, src))
                 checks += 1
@@ -253,7 +270,7 @@ try:
                 checks += 1
                 continue
             want = bytes(arrays[key])
-            rva  = table[fn][0]
+            rva  = table[fn][0] if isinstance(table[fn], tuple) else table[fn]
             got  = data[rva:rva + len(want)]
             # check(what, <what the source says>, <what the binary says>)
             check('%s prologue bytes' % label, want.hex(), got.hex())
@@ -290,6 +307,163 @@ try:
                          'ObjectBounds': 'S_GetObjectBounds'})
         check_prologues(dll, 'Sky.cpp',
                         {'DrawSkyHD': 'DrawSkyHD'})
+
+    # ------------------------------------------------ builds without PDBs
+    import json
+    from capstone.x86 import X86_OP_MEM, X86_REG_RIP
+
+    nopdb_dirs = sys.argv[1:] or ([os.path.join(ROOT, 'update')]
+                                  if os.path.isdir(os.path.join(ROOT, 'update')) else [])
+
+    EXE_LAYOUT = ['vid_setPass', 'validate_draw', 'ogl_draw', 'ogl_present',
+                  'fmvShow', 'ogl_setRenderTarget', 'gGame', '_XInputGetState',
+                  'vid_state', 'vid_state_prev', 'mProj', 'mView_packed', 'shaders',
+                  'ogl_textures', 'FBO_custom', 'FBO_default', 'app', 'gWidth',
+                  'gHeight', 'gTargetWidth', 'gTargetHeight']
+
+    # Engine.h rows written as hex literals -- i.e. not the stock row, which is
+    # spelled with the rva::/drva:: names checked above.
+    eh = open(os.path.join(ROOT, 'src', 'Engine.h'), encoding='utf-8').read()
+    exe_rows = {}
+    for m in re.finditer(r'constexpr Layout (\w+) = \{(.*?)\};', eh, re.S):
+        body = re.sub(r'/\*.*?\*/', '', m.group(2), flags=re.S)
+        body = re.sub(r'"[^"]*"', '', body)
+        toks = [t.strip() for t in body.split(',') if t.strip()]
+        if all(re.fullmatch(r'0x[0-9A-Fa-f]+', t) for t in toks):
+            exe_rows[int(toks[0], 16)] = (m.group(1), [int(t, 16) for t in toks[1:]])
+
+    def load(path):
+        pe = pefile.PE(path)
+        ends = {e.struct.BeginAddress: e.struct.EndAddress
+                for e in pe.DIRECTORY_ENTRY_EXCEPTION}
+        return pe.get_memory_mapped_image(), pe.OPTIONAL_HEADER.ImageBase, ends
+
+    def insns(img, rva):
+        data, base, ends = img
+        return list(md.disasm(data[rva:ends[rva]], base + rva))
+
+    def rip_target(ins, base, dest_only=False):
+        for op in (ins.operands[:1] if dest_only else ins.operands):
+            if op.type == X86_OP_MEM and op.mem.base == X86_REG_RIP:
+                return ins.address + ins.size + op.mem.disp - base
+        return None
+
+    def app_slots(img, fns, app):
+        """APP offset -> function RVA, from `lea rax, [fn]; mov [app+off], rax`."""
+        slots = {}
+        for f in fns:
+            lea = None
+            for ins in insns(img, f):
+                if ins.mnemonic == 'lea':
+                    lea = rip_target(ins, img[1])
+                elif ins.mnemonic == 'mov' and lea is not None:
+                    t = rip_target(ins, img[1], dest_only=True)
+                    if t is not None and app <= t < app + 2800:
+                        slots[t - app] = lea
+                    lea = None
+        return slots
+
+    for d in nopdb_dirs:
+        tag = '[%s] ' % os.path.basename(os.path.normpath(d))
+        print('=== build without PDBs: %s ===' % d)
+        jpath = os.path.join(d, 'port_build.json')
+        if not os.path.exists(jpath):
+            fails.append('%sno port_build.json -- run tools\\port_build.py %s' % (tag, d))
+            checks += 1
+            continue
+        pj = json.load(open(jpath))
+        P = {img: {n: e['new'] for n, e in pj[img]['symbols'].items()} for img in pj}
+
+        # 1. The Engine.h row matches port_build.json.
+        stamp = pe_stamp(os.path.join(d, 'tomb123.exe'))
+        check(tag + 'tomb123.exe stamp == port_build.json', stamp,
+              pj['tomb123.exe']['timestamp'])
+        if stamp not in exe_rows:
+            fails.append('%sEngine.h has no Layout row for PE 0x%08X' % (tag, stamp))
+            checks += 1
+            continue
+        row_name, vals = exe_rows[stamp]
+        check('%s%s field count' % (tag, row_name), len(vals), len(EXE_LAYOUT))
+        R = dict(zip(EXE_LAYOUT, vals))
+        for n in EXE_LAYOUT:
+            check('%s%s %s' % (tag, row_name, n), R.get(n), P['tomb123.exe'][n])
+
+        # 2. The relationships Engine.cpp asserts at runtime, on this row.
+        for what, a, b in (
+                ('vid_state_prev == vid_state + 160', R['vid_state_prev'], R['vid_state'] + 160),
+                ('mView_packed == vid_state + 400',   R['mView_packed'],   R['vid_state'] + 400),
+                ('mProj + 592 == vid_state',          R['mProj'] + 592,    R['vid_state']),
+                ('gWidth == gHeight + 4',             R['gWidth'],         R['gHeight'] + 4),
+                ('gTargetHeight == gHeight + 32',     R['gTargetHeight'],  R['gHeight'] + 32),
+                ('ogl_textures + 76 == FBO_default',  R['ogl_textures'] + 76, R['FBO_default'])):
+            check(tag + what, a, b)
+
+        # 3. Hook windows, against this image.
+        check_prologues('tomb123.exe', 'Hooks.cpp',
+                        {'SetPass': 'vid_setPass', 'Validate': 'validate_draw',
+                         'Draw': 'ogl_draw', 'Present': 'ogl_present',
+                         'FmvShow': 'fmvShow', 'SetRt': 'ogl_setRenderTarget'},
+                        image_dir=d, table=R, tag=tag)
+
+        # 4. Independent of the matching: the engine installs every hooked
+        #    function into the same APP slot in both builds.
+        s_old = syms('tomb123.exe')
+        old_img = load(os.path.join(PDB, 'tomb123.exe'))
+        new_img = load(os.path.join(d, 'tomb123.exe'))
+        installers = ('vidInit', 'init_ogl', 'appInit')
+        so = app_slots(old_img, [s_old[n][0] for n in installers], s_old['app'][0])
+        sn = app_slots(new_img, [P['tomb123.exe'][n] for n in installers], R['app'])
+        for fn in ('vid_setPass', 'ogl_draw', 'ogl_present', 'fmvShow', 'ogl_setRenderTarget'):
+            want = sorted(o for o, f in so.items() if f == s_old[fn][0])
+            got  = sorted(o for o, f in sn.items() if f == R[fn])
+            check('%s%s APP slot' % (tag, fn), got if want else 'no slot in the PDB build', want)
+
+        # 5. validate_draw: same forced mask, same bit tests in the same order,
+        #    so ConstBits in Engine.h still holds.
+        def bit_tests(img, rva):
+            return ['%s %s' % (i.mnemonic, i.op_str) for i in insns(img, rva)
+                    if (i.mnemonic == 'mov' and i.op_str.endswith('0x3f001f'))
+                    or (i.mnemonic in ('test', 'bt')
+                        and re.search(r'\b(bl|ebx), (0x)?[0-9a-f]+$', i.op_str))]
+        check(tag + 'validate_draw consts bit tests',
+              bit_tests(new_img, R['validate_draw']),
+              bit_tests(old_img, s_old['validate_draw'][0]))
+
+        # 6. vid_setViewMatrix writes the same offsets from vid_state. The only
+        #    direct evidence for mView_packed, which nothing references
+        #    RIP-relatively.
+        def view_writes(img, rva, vs):
+            out = set()
+            for i in insns(img, rva):
+                t = rip_target(i, img[1], dest_only=True)
+                if i.mnemonic in ('mov', 'movss') and t is not None and abs(t - vs) < 4096:
+                    out.add(t - vs)
+            return sorted(out)
+        vw_new = view_writes(new_img, P['tomb123.exe']['vid_setViewMatrix'], R['vid_state'])
+        check(tag + 'vid_setViewMatrix writes relative to vid_state', vw_new,
+              view_writes(old_img, s_old['vid_setViewMatrix'][0], s_old['vid_state'][0]))
+        check(tag + 'vid_setViewMatrix fills mView_packed[0..11]',
+              all(R['mView_packed'] - R['vid_state'] + 4 * k in vw_new for k in range(12)), True)
+
+        # 7. GameDll.cpp rows for these DLLs match port_build.json; their hooks.
+        for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
+            dstamp = pe_stamp(os.path.join(d, dll))
+            mine = [r for r in all_rows if r[0] == dll and r[1] == dstamp]
+            if len(mine) != 1:
+                fails.append('%sGameDll.cpp has %d rows for %s PE 0x%08X'
+                             % (tag, len(mine), dll, dstamp))
+                checks += 1
+                continue
+            check('%s%s row length' % (tag, dll), len(mine[0][2]), len(LAYOUT))
+            DR = dict(zip(LAYOUT, mine[0][2]))
+            for n in LAYOUT:
+                check('%s%s %s' % (tag, dll, n), DR.get(n), P[dll][n])
+            check_prologues(dll, 'PortalCull.cpp',
+                            {'PrintRoomsList': 'PrintRoomsList',
+                             'ObjectBounds': 'S_GetObjectBounds'},
+                            image_dir=d, table=DR, tag=tag)
+            check_prologues(dll, 'Sky.cpp', {'DrawSkyHD': 'DrawSkyHD'},
+                            image_dir=d, table=DR, tag=tag)
 
 except ImportError:
     print('  SKIPPED -- pip install pefile capstone to run this section')
