@@ -35,7 +35,8 @@ PDB-less builds (Aspyr retail and Tomb Raider Gold), and fails if any disagrees.
 - Sky at optical infinity, so the HD dome does not sit a few metres away in
   stereo or paint over distant geometry.
 - First person: the camera rides Lara's animated head instead of the chase
-  camera, interpolated so it does not judder against the world.
+  camera, interpolated so it does not judder against the world, with her head
+  hidden and the rest of her body still visible.
 - Live IPD and world-scale tuning on the numpad.
 
 ## Installation
@@ -69,9 +70,10 @@ The sky fix hooks `DrawSkyHD` in the live game DLL. `SkyAtInfinity=0` returns
 the stock finite-dome stereo. See "Sky at infinity" below.
 
 First person is confirmed working in the headset on TR1: the camera rides Lara's
-animated head rather than the chase camera. It is off by default (`FirstPerson=1`
-turns it on), her head is still drawn, and her animations move your head for you.
-See "First person" below.
+animated head rather than the chase camera, with her head, face, sunglasses and
+braid hidden and the rest of her body still drawn. It is off by default
+(`FirstPerson=1` turns it on), and her animations move your head for you. See
+"First person" below.
 
 Supported builds:
 
@@ -216,6 +218,8 @@ Six inline hooks in `tomb123.exe`:
 | `S_GetObjectBounds` | second-guess "this item is off screen" from the head |
 | `DrawSkyHD` | mark every sky draw so stereo can put the dome at optical infinity |
 | `phd_GenerateW2V` | first person: put the scene camera in Lara's head before the view matrix is built |
+| `DrawCreatureHD` | first person: hide the head mesh through `mesh_bits`, and skip the face and sunglasses draws |
+| `DrawHair` | first person: skip the braid |
 
 The culling pair and `DrawSkyHD` are each the same function in all three DLLs,
 with the same 5-byte position-independent prologue, so one table serves all of
@@ -619,6 +623,78 @@ ill.
 `PortalCull.cpp` culls from the same point under the same rule, so what is
 culled agrees with what is rendered.
 
+#### Hiding the head, three different ways
+
+With the camera inside her skull, what saves the view is only the near clip
+plane: her head is still drawn, and pieces of it cross the view as she moves.
+Hiding it turned out to need three separate mechanisms, because the engine draws
+the head in three different ways. This was worked out by decompiling `DrawLara`,
+`DrawLaraHD` and `DrawCreatureHD` -- 2771 bytes of the middle one, which is where
+Ghidra earned its place over reading assembly.
+
+**The head mesh: the engine's own switch.** Every one of Lara's 15 meshes has a
+bit in `ITEM_INFO::mesh_bits`. The classic renderer's draw loop in `DrawLara`
+tests that bit per mesh and skips it; the HD renderer reaches the same result one
+step further in, with `DrawCreatureHD` zeroing the joint matrix of any mesh whose
+bit is clear so its triangles collapse to a point. `DrawLaraHD` uses this itself
+-- `0x600` to draw only the right hand, `0x3000` for the left. So hiding the head
+is clearing bit 14, and one mechanism covers both renderers.
+
+The only catch is that `DrawCreatureHD` honours `mesh_bits` only when its second
+argument is non-zero, and the body draw passes zero. The hook passes one instead.
+
+This is worth stating plainly because the other TR1-3 attempt did it the hard
+way: caching index buffers and removing every triangle weighted to the head bone.
+That works, but the engine already had a switch for it.
+
+**The face and the sunglasses: skip the draw.** Neither is part of the body mesh,
+so no `mesh_bits` bit reaches them. `DrawLaraHD` copies a separate `GEOM_INFO`
+into `objects[Lara].geom` immediately before each call -- `gLaraHead[0]` for the
+animated face, `gLaraHead[1]` for the sunglasses, `gActorHead` for the cutscene
+head. The hook compares that mesh pointer against those arrays and drops the
+draw. Comparing the geometry rather than counting calls means it does not depend
+on the order of the draws, or on which of them a given outfit produces.
+
+**The braid: its own hook.** Drawn outside the skeleton entirely by `DrawHair`,
+so neither of the above can see it -- and from inside her head it sweeps through
+the view. It gets a third hook, which does nothing but decline to draw.
+
+Her body stays drawn throughout: look down and she is there. The bit is OR'd back
+and every skip stops the moment first person stands down -- a cutscene, the
+inventory, `FirstPerson=0`, an unhook -- so nothing outside this mode ever sees a
+headless Lara. The unhook line counts what was dropped:
+
+```
+firstperson: unhooking tomb1.dll (anchored 41233 frames, stood down 120,
+             41233 mesh_bits draws, 82466 face/glasses skipped, 41233 braid skipped)
+```
+
+#### A hook window that is not position independent
+
+`DrawHair` is the first hook in this mod whose stolen bytes cannot simply be
+copied:
+
+```
+48 83 EC 28              sub rsp, 0x28
+48 8B 05 <disp32>        mov rax, [rip + disp32]     <- RIP-relative
+```
+
+Eleven bytes, because five would end inside that second instruction, and the
+displacement means the copy in the trampoline would resolve to the wrong address.
+`InlineHook` already supports displacement fixups, so the source declares the
+disp32 at offset 7 and it is rewritten when the window is copied. Only the first
+seven bytes are compared, because the displacement itself differs per DLL.
+
+`verify_addresses.py` was extended to match: a RIP-relative operand inside a hook
+window is no longer simply forbidden, it is allowed exactly where the source
+declares a fixup for it, and the declared offsets are checked against the real
+instruction encoding. Planting a wrong offset fails all three DLLs, which is the
+test that says the check is real.
+
+Hooking `DrawLara` itself was considered and rejected: its prologue differs in
+every one of the three DLLs, where `DrawCreatureHD`'s and `DrawHair`'s are
+identical across all of them. Going through `mesh_bits` avoids needing it.
+
 #### Settings
 
 | key | default | what it is for |
@@ -628,14 +704,12 @@ culled agrees with what is rendered.
 | `FirstPersonAnchorX/Y/Z` | `0,-32,16` | where in the skull the viewpoint sits; -Y is up, +Z towards her face |
 | `FirstPersonYawFromLara` | `0` | `1` takes her body yaw instead of the camera's, for tank controls |
 | `FirstPersonHeadTranslation` | `0` | `1` lets your own leaning move the viewpoint as well |
+| `FirstPersonHideHead` | `1` | hide the head mesh, the face, the sunglasses and the braid |
 
 #### Not done yet
 
-Her head is still drawn, so it is possible to see the inside of it. Hiding it
-means skipping the head mesh in the classic renderer and filtering the triangles
-weighted to the head bone out of the HD renderer's index buffers, which is the
-next piece of work. Arms that follow the motion controllers -- the VRIK part --
-would come after that, and the lever for it is already identified:
+Arms that follow the motion controllers -- the VRIK part -- are the next piece of
+work, and the lever for it is already identified:
 `GetJoints(ITEM_INFO*, float*)` builds the matrices the renderer consumes, and
 `lara_info` carries the real aim state (`left_arm`/`right_arm` angles, `torso_*`,
 `head_*`, `target`) that `AimWeapon` and `FireWeapon` work from.
