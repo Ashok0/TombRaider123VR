@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 33334 bytes, 688 lines.
+// Source: TombRaiderVR.ini, 34197 bytes, 705 lines.
 #pragma once
 
 namespace tr {
@@ -327,9 +327,26 @@ FirstPersonYawFromLara=0
 ; recentred where you actually sit.
 FirstPersonHeadTranslation=0
 
-; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
+; Hide Lara's head while first person is anchoring.
+;
+; The camera sits inside her skull, so what you would otherwise see is the
 )INI"
-           R"INI(; eyes, so the only remaining difference is the frustum shear -- a constant
+           R"INI(; inside of her head: mostly back faces and near-clipped triangles, with her
+; hair and face crossing the view as she moves.
+;
+; This is not a mod trick -- it is the engine's own mechanism. Every mesh of
+; Lara has a bit in ITEM_INFO::mesh_bits, and DrawLaraHD itself uses those bits
+; to draw a single hand or holster. Clearing bit 14 makes the classic renderer
+; skip the head mesh outright, and makes the HD renderer collapse the head
+; bone's matrix so its triangles have nowhere to be.
+;
+; Her BODY is still drawn: look down and she is there. The bit is put back the
+; moment first person stands down -- a cutscene, the inventory, FirstPerson=0 --
+; so nothing outside this mode ever sees a headless Lara.
+FirstPersonHideHead=1
+
+; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
+; eyes, so the only remaining difference is the frustum shear -- a constant
 ; sideways shift that carries no depth. Diagnostic only.
 PerEyeView=1
 
@@ -604,7 +621,8 @@ DecoupledPitchChord=1
 ; move a menu selection twice.
 DpadShift=1
 
-; Hold Y + LT for this many seconds to send the Xbox Menu button (XInput START).
+)INI"
+           R"INI(; Hold Y + LT for this many seconds to send the Xbox Menu button (XInput START).
 ;
 ; Touch has no Start or Back of its own, so both have to come from somewhere.
 ; The System button on the left hand's lower face sends one of them (see
@@ -617,8 +635,7 @@ DpadShift=1
 ; It sends a PRESS, not a latch -- Menu toggles the pause screen itself, and a
 ; held START would never look like a clean press to the game. It fires once per
 ; hold; release and re-hold to send another. Y and LT are suppressed from the
-)INI"
-           R"INI(; moment it fires until you let go, so it does not keep grabbing afterwards.
+; moment it fires until you let go, so it does not keep grabbing afterwards.
 ;
 ; 0 disables the chord entirely.
 MenuChordSeconds=1.0

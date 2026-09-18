@@ -188,6 +188,8 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonYawFromLara, ini);
     g_cfg.firstPersonHeadTranslation = GetBool(L"FirstPersonHeadTranslation",
                                                 g_cfg.firstPersonHeadTranslation, ini);
+    g_cfg.firstPersonHideHead        = GetBool(L"FirstPersonHideHead",
+                                                g_cfg.firstPersonHideHead, ini);
     g_cfg.worldUnitsPerMetre  = GetFloat(L"WorldUnitsPerMetre", g_cfg.worldUnitsPerMetre, ini);
     g_cfg.ipdScale            = GetFloat(L"IpdScale",           g_cfg.ipdScale,           ini);
     g_cfg.scaleUpKey          = GetIntAuto(L"ScaleUpKey",       g_cfg.scaleUpKey,         ini);
@@ -281,14 +283,15 @@ void LoadConfig(const wchar_t* ini) {
          g_cfg.cullFovMarginDegrees, g_cfg.cullMaxDepth, g_cfg.cullMaxPortals,
          g_cfg.cullFarUnits, g_cfg.cullWidenBounds, g_cfg.cullObjects,
          g_cfg.skyAtInfinity ? "infinity" : "ENGINE (finite dome)");
-    if (g_cfg.firstPerson)
+    if (g_cfg.firstPerson) {
         LogF("config: camera=FIRST PERSON, joint %d offset (%d,%d,%d), yaw from %s, "
-             "head translation %s",
+             "head translation %s, head %s",
              g_cfg.firstPersonJoint, g_cfg.firstPersonAnchorX,
              g_cfg.firstPersonAnchorY, g_cfg.firstPersonAnchorZ,
              g_cfg.firstPersonYawFromLara ? "Lara's body" : "the game camera",
-             g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)");
-    else
+             g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)",
+             g_cfg.firstPersonHideHead ? "hidden (mesh_bits bit 14)" : "DRAWN");
+    } else
         Log("config: camera=third person (the engine's own)");
     if (g_cfg.traceFrames > 0) {
         LogF("config: frame-graph trace armed -- %d frame(s), hotkey vk=0x%02X",

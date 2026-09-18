@@ -80,6 +80,23 @@ struct GameDllLayout {
                                    // the previous simulation tick and the current
                                    // one. What DrawLara itself interpolates with.
     uint32_t laraItem;             // ITEM_INFO** -- null until a level is loaded
+
+    // void DrawCreatureHD(ITEM_INFO*, int useMeshBits). The HD renderer's
+    // per-part draw: DrawLaraHD calls it once for the body, once per hand,
+    // holster, the face and the sunglasses. With useMeshBits non-zero it zeroes
+    // the joint matrix of every mesh whose ITEM_INFO::mesh_bits bit is clear --
+    // the engine's own way of hiding a body part, which is what first person
+    // borrows to hide the head.
+    uint32_t drawCreatureHD;
+
+    // The rest of Lara's head, which is NOT part of her body mesh and so is not
+    // covered by mesh_bits: the animated face and the sunglasses are separate
+    // GEOM_INFOs drawn by their own DrawCreatureHD calls (gLaraHead[0] and [1],
+    // gActorHead in cutscenes), and the braid is drawn by DrawHair.
+    uint32_t drawHair;          // void DrawHair(int32)
+    uint32_t gLaraHead;         // GEOM_INFO[2]: face, sunglasses
+    uint32_t gActorHead;        // GEOM_INFO[3]: the cutscene actor's head
+    uint32_t objects;           // object_info[]; .geom is the geometry in use
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

@@ -166,6 +166,11 @@ struct Config {
     // is always tracked; this is only the translation.
     bool  firstPersonHeadTranslation = false;
 
+    // Hide Lara's head while first person is anchoring, by clearing its
+    // mesh_bits bit -- the same mechanism the engine uses to hide a body part.
+    // Her body stays drawn, so looking down still shows her.
+    bool  firstPersonHideHead = true;
+
     // Rotation-only head tracking. The safest possible first test: the camera
     // can pivot but can never be displaced into geometry, so a wrong world
     // scale cannot put you inside a wall. Turn positional on once looking

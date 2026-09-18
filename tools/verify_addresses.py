@@ -154,7 +154,8 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'outside', 'outside_left', 'outside_right', 'outside_top',
           'outside_bottom',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
-          'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item']
+          'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
+          'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -227,6 +228,27 @@ for dll, stamp, vals in rows:
                       ('top', 84), ('bottom', 86), ('flags', 102)):
         check('%s ROOM_INFO::%s' % (dll, fld), want, f.get(fld))
 
+    # The layouts FirstPerson.cpp reads: Lara's pose and joints, and the
+    # geometry pointer that identifies the face and sunglasses draws.
+    size, f = udt(dll, 'ITEM_INFO')
+    check('%s ITEM_INFO::mesh_bits' % dll, 12, f.get('mesh_bits'))
+    check('%s ITEM_INFO::object_number' % dll, 16, f.get('object_number'))
+    check('%s ITEM_INFO::pos' % dll, 88, f.get('pos'))
+    check('%s ITEM_INFO::pos_prev' % dll, 108, f.get('pos_prev'))
+
+    size, f = udt(dll, 'object_info')
+    check('%s sizeof(object_info)' % dll, 2304, size)
+    check('%s object_info::geom' % dll, 88, f.get('geom'))
+
+    size, f = udt(dll, 'GEOM_INFO')
+    check('%s sizeof(GEOM_INFO)' % dll, 104, size)
+    check('%s GEOM_INFO::mesh' % dll, 16, f.get('mesh'))
+
+    # gLaraHead is the face and the sunglasses; gActorHead the cutscene head.
+    # FirstPerson.cpp walks both arrays, so their lengths are load-bearing.
+    check('%s gLaraHead is GEOM_INFO[2]' % dll, ds['gLaraHead'][2], 208)
+    check('%s gActorHead is GEOM_INFO[3]' % dll, ds['gActorHead'][2], 312)
+
     size, f = udt(dll, 'game_vector')
     check('%s sizeof(game_vector)' % dll, 16, size)
     check('%s game_vector::y' % dll, 4, f.get('y'))
@@ -260,7 +282,11 @@ try:
                   for m in re.finditer(r'const uint8_t k(\w+)Prologue\[\]\s*=\s*\{([^}]*)\}', txt)}
         stolen = {m.group(2): int(m.group(1))
                   for m in re.finditer(r'(\d+),\s*k(\w+)Prologue,', txt)}
-        return arrays, stolen
+        # `const int kNameRipFixups[] = { 7 };` -- byte offsets of the disp32
+        # fields InlineHook rewrites when it copies the window.
+        fixups = {m.group(1): sorted(int(x) for x in re.findall(r'\d+', m.group(2)))
+                  for m in re.finditer(r'const int k(\w+)RipFixups\[\]\s*=\s*\{([^}]*)\}', txt)}
+        return arrays, stolen, fixups
 
     def check_call_site(image, image_dir, table, tag=''):
         """The 5 bytes before w2v_scene_return must call phd_GenerateW2V."""
@@ -281,7 +307,7 @@ try:
 
     def check_prologues(image, src, targets, image_dir=PDB, table=None, tag=''):
         global checks
-        arrays, stolen = prologues(src)
+        arrays, stolen, fixups = prologues(src)
         pe = pefile.PE(os.path.join(image_dir, image), fast_load=True)
         data = pe.get_memory_mapped_image()
         base = pe.OPTIONAL_HEADER.ImageBase
@@ -317,11 +343,20 @@ try:
                 if total >= n:
                     break
                 if 'rip' in ins.op_str:
-                    riprel.append('%s %s' % (ins.mnemonic, ins.op_str))
+                    # Where the disp32 field sits inside the stolen window.
+                    try:
+                        off = total + ins.encoding.disp_offset
+                    except AttributeError:
+                        off = total + ins.size - 4
+                    riprel.append(off)
                 total += ins.size
             check('%s window ends on an instruction boundary' % label, n, total)
-            check('%s window is free of RIP-relative operands' % label,
-                  riprel if riprel else 'none', 'none')
+            # A RIP-relative operand is allowed only where the source declares a
+            # fixup for it: InlineHook rewrites exactly those displacements, and
+            # one it does not know about would send the trampoline to the wrong
+            # address.
+            check('%s RIP displacements are all declared as fixups' % label,
+                  sorted(riprel), fixups.get(key, []))
 
     check_prologues('tomb123.exe', 'Hooks.cpp',
                     {'SetPass': 'vid_setPass', 'Validate': 'validate_draw',
@@ -335,7 +370,9 @@ try:
         check_prologues(dll, 'Sky.cpp',
                         {'DrawSkyHD': 'DrawSkyHD'})
         check_prologues(dll, 'FirstPerson.cpp',
-                        {'GenerateW2V': 'phd_GenerateW2V'})
+                        {'GenerateW2V': 'phd_GenerateW2V',
+                         'DrawCreatureHD': 'DrawCreatureHD',
+                         'DrawHair': 'DrawHair'})
         row = [r for r in rows if r[0] == dll]
         if row:
             t = dict(zip(LAYOUT, row[0][2]))
@@ -499,7 +536,9 @@ try:
             check_prologues(dll, 'Sky.cpp', {'DrawSkyHD': 'DrawSkyHD'},
                             image_dir=d, table=DR, tag=tag)
             check_prologues(dll, 'FirstPerson.cpp',
-                            {'GenerateW2V': 'phd_GenerateW2V'},
+                            {'GenerateW2V': 'phd_GenerateW2V',
+                             'DrawCreatureHD': 'DrawCreatureHD',
+                             'DrawHair': 'DrawHair'},
                             image_dir=d, table=DR, tag=tag)
             check_call_site(dll, d, DR, tag)
 
