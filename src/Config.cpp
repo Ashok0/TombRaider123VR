@@ -179,6 +179,15 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.cullObjects         = GetBool (L"CullObjects",        g_cfg.cullObjects,        ini);
     g_cfg.cullDumpKey         = GetIntAuto(L"CullDumpKey",      g_cfg.cullDumpKey,        ini);
     g_cfg.skyAtInfinity       = GetBool (L"SkyAtInfinity",      g_cfg.skyAtInfinity,      ini);
+    g_cfg.firstPerson         = GetBool (L"FirstPerson",        g_cfg.firstPerson,        ini);
+    g_cfg.firstPersonJoint    = GetInt  (L"FirstPersonJoint",   g_cfg.firstPersonJoint,   ini);
+    g_cfg.firstPersonAnchorX  = GetInt  (L"FirstPersonAnchorX", g_cfg.firstPersonAnchorX, ini);
+    g_cfg.firstPersonAnchorY  = GetInt  (L"FirstPersonAnchorY", g_cfg.firstPersonAnchorY, ini);
+    g_cfg.firstPersonAnchorZ  = GetInt  (L"FirstPersonAnchorZ", g_cfg.firstPersonAnchorZ, ini);
+    g_cfg.firstPersonYawFromLara     = GetBool(L"FirstPersonYawFromLara",
+                                                g_cfg.firstPersonYawFromLara, ini);
+    g_cfg.firstPersonHeadTranslation = GetBool(L"FirstPersonHeadTranslation",
+                                                g_cfg.firstPersonHeadTranslation, ini);
     g_cfg.worldUnitsPerMetre  = GetFloat(L"WorldUnitsPerMetre", g_cfg.worldUnitsPerMetre, ini);
     g_cfg.ipdScale            = GetFloat(L"IpdScale",           g_cfg.ipdScale,           ini);
     g_cfg.scaleUpKey          = GetIntAuto(L"ScaleUpKey",       g_cfg.scaleUpKey,         ini);
@@ -272,6 +281,15 @@ void LoadConfig(const wchar_t* ini) {
          g_cfg.cullFovMarginDegrees, g_cfg.cullMaxDepth, g_cfg.cullMaxPortals,
          g_cfg.cullFarUnits, g_cfg.cullWidenBounds, g_cfg.cullObjects,
          g_cfg.skyAtInfinity ? "infinity" : "ENGINE (finite dome)");
+    if (g_cfg.firstPerson)
+        LogF("config: camera=FIRST PERSON, joint %d offset (%d,%d,%d), yaw from %s, "
+             "head translation %s",
+             g_cfg.firstPersonJoint, g_cfg.firstPersonAnchorX,
+             g_cfg.firstPersonAnchorY, g_cfg.firstPersonAnchorZ,
+             g_cfg.firstPersonYawFromLara ? "Lara's body" : "the game camera",
+             g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)");
+    else
+        Log("config: camera=third person (the engine's own)");
     if (g_cfg.traceFrames > 0) {
         LogF("config: frame-graph trace armed -- %d frame(s), hotkey vk=0x%02X",
              g_cfg.traceFrames, g_cfg.traceKey);

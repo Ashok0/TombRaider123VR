@@ -66,6 +66,20 @@ struct GameDllLayout {
     uint32_t printRoomsList;    // void PrintRoomsList(void)
     uint32_t sGetObjectBounds;  // int  S_GetObjectBounds(int16* bounds)
     uint32_t drawSkyHD;         // void DrawSkyHD(void) -- HD sky/horizon
+
+    // --- first person ------------------------------------------------------
+    // phd_GenerateW2V(PHD_3DPOS*) turns a camera pose into w2v_matrix. It has
+    // seven callers -- inventory, pickup spin, shadows, photo mode, the muzzle
+    // flash -- and only ONE of them is the scene camera, so the hook rewrites
+    // the pose only when it returns to w2vSceneReturn: the instruction after
+    // the call inside S_InitialisePolyList. A wrong value there means first
+    // person never engages, which is the safe direction.
+    uint32_t phdGenerateW2V;
+    uint32_t w2vSceneReturn;
+    uint32_t frameFrac;            // int32, 0..256: how far this frame is between
+                                   // the previous simulation tick and the current
+                                   // one. What DrawLara itself interpolates with.
+    uint32_t laraItem;             // ITEM_INFO** -- null until a level is loaded
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

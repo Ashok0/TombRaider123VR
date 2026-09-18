@@ -153,7 +153,14 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'phd_winxmax', 'phd_winymax',
           'outside', 'outside_left', 'outside_right', 'outside_top',
           'outside_bottom',
-          'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD']
+          'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
+          'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item']
+
+# Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
+# disassembling the five bytes before it, which must be the E8 rel32 call to
+# phd_GenerateW2V inside S_InitialisePolyList -- the same property at runtime
+# that makes the gate exact.
+DERIVED = {'w2v_scene_return': ('S_InitialisePolyList', 'phd_GenerateW2V')}
 
 def pe_stamp(path):
     with open(path, 'rb') as f:
@@ -185,6 +192,8 @@ for dll, stamp, vals in rows:
         continue
 
     for name, got in zip(LAYOUT, vals):
+        if name in DERIVED:
+            continue          # checked against the image further down
         if name in ds:
             check('%s %s' % (dll, name), got, ds[name][0])
         else:
@@ -253,6 +262,23 @@ try:
                   for m in re.finditer(r'(\d+),\s*k(\w+)Prologue,', txt)}
         return arrays, stolen
 
+    def check_call_site(image, image_dir, table, tag=''):
+        """The 5 bytes before w2v_scene_return must call phd_GenerateW2V."""
+        global checks
+        ret = table.get('w2v_scene_return')
+        target = table.get('phd_GenerateW2V')
+        label = '%s%s!w2v_scene_return' % (tag, image)
+        if not ret or not target:
+            fails.append('%-46s missing from the row' % label); checks += 1; return
+        pe = pefile.PE(os.path.join(image_dir, image), fast_load=True)
+        data = pe.get_memory_mapped_image()
+        site = ret - 5
+        if data[site] != 0xE8:
+            check('%s is preceded by E8 rel32' % label, hex(data[site]), '0xe8')
+            return
+        rel = int.from_bytes(data[site + 1:site + 5], 'little', signed=True)
+        check('%s calls phd_GenerateW2V' % label, hex(ret + rel), hex(target))
+
     def check_prologues(image, src, targets, image_dir=PDB, table=None, tag=''):
         global checks
         arrays, stolen = prologues(src)
@@ -308,6 +334,13 @@ try:
                          'ObjectBounds': 'S_GetObjectBounds'})
         check_prologues(dll, 'Sky.cpp',
                         {'DrawSkyHD': 'DrawSkyHD'})
+        check_prologues(dll, 'FirstPerson.cpp',
+                        {'GenerateW2V': 'phd_GenerateW2V'})
+        row = [r for r in rows if r[0] == dll]
+        if row:
+            t = dict(zip(LAYOUT, row[0][2]))
+            t['phd_GenerateW2V'] = syms(dll)['phd_GenerateW2V'][0]
+            check_call_site(dll, PDB, t)
 
     # ------------------------------------------------ builds without PDBs
     import json
@@ -465,6 +498,10 @@ try:
                             image_dir=d, table=DR, tag=tag)
             check_prologues(dll, 'Sky.cpp', {'DrawSkyHD': 'DrawSkyHD'},
                             image_dir=d, table=DR, tag=tag)
+            check_prologues(dll, 'FirstPerson.cpp',
+                            {'GenerateW2V': 'phd_GenerateW2V'},
+                            image_dir=d, table=DR, tag=tag)
+            check_call_site(dll, d, DR, tag)
 
 except ImportError:
     print('  SKIPPED -- pip install pefile capstone to run this section')

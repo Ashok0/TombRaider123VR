@@ -273,14 +273,14 @@ void VRSystem::BeginFrame() {
     }
 }
 
-Affine VRSystem::HeadView() const {
+Affine VRSystem::HeadView(bool headTranslation) const {
     const auto& c = Cfg();
 
     // Head pose, with positional dropped when only rotation is wanted. This is
     // honoured in stereo as well as mono -- it used to apply only to mono, which
     // made PositionalTracking=0 silently do nothing once stereo was on.
     Affine head = m_headFromTracking;
-    if (!c.positionalTracking) {
+    if (!c.positionalTracking || !headTranslation) {
         head.r[0][3] = head.r[1][3] = head.r[2][3] = 0.0f;
     }
     return ToEngineSpace(head, LiveWorldUnitsPerMetre(), c.flipViewY);
@@ -307,7 +307,7 @@ bool VRSystem::CullTangents(float& tanX, float& tanY) const {
     return true;
 }
 
-Affine VRSystem::EyeView(Eye eye) const {
+Affine VRSystem::EyeView(Eye eye, bool headTranslation) const {
     const auto& c = Cfg();
 
     const float scale = LiveWorldUnitsPerMetre();
@@ -315,11 +315,11 @@ Affine VRSystem::EyeView(Eye eye) const {
     // Mono: the centred head view, with no per-eye offset. There is only one
     // image, so applying half an IPD to it would just shift the whole picture.
     if (c.monoTracking) {
-        return HeadView();
+        return HeadView(headTranslation);
     }
 
     Affine head = m_headFromTracking;
-    if (!c.positionalTracking) {
+    if (!c.positionalTracking || !headTranslation) {
         head.r[0][3] = head.r[1][3] = head.r[2][3] = 0.0f;
     }
 

@@ -96,6 +96,7 @@
 #include "GameDll.h"
 #include "PortalCull.h"
 #include "Sky.h"
+#include "FirstPerson.h"
 #include "VRSystem.h"
 
 #include <cstring>
@@ -879,7 +880,10 @@ void __cdecl Detour_validate_draw() {
     const Eye eye = (g_currentEye == 0) ? Eye::Left : Eye::Right;
     const bool skyInfinity = SkyInfinity();
 
-    Affine eyeXform = VR().EyeView(eye);
+    // First person puts the camera in Lara's head, so the tracked head
+    // translation is hers, not the player's -- see Config.h.
+    Affine eyeXform = VR().EyeView(
+        eye, !FirstPersonActive() || Cfg().firstPersonHeadTranslation);
     if (skyInfinity) {
         // Rotation only. IPD and head translation are what give the dome a
         // finite stereo depth; looking around is the rotation, and that stays.
@@ -1329,6 +1333,7 @@ void __cdecl Detour_ogl_present() {
     // it hooks INSIDE the game DLL, so it needs to know which one is live.
     PortalCullUpdate();
     SkyUpdate();
+    FirstPersonUpdate();
 
     // Periodic health report, in deltas. A one-shot report at a fixed frame only
     // ever samples the menus, where almost everything legitimately is 2D.
@@ -1560,6 +1565,7 @@ bool InstallHooks() {
 
 void RemoveHooks() {
     GamepadShutdown();
+    FirstPersonShutdown();
     SkyShutdown();
     PortalCullShutdown();
     GameDllShutdown();

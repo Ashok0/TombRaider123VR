@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 30692 bytes, 620 lines.
+// Source: TombRaiderVR.ini, 33334 bytes, 688 lines.
 #pragma once
 
 namespace tr {
@@ -259,8 +259,77 @@ EyeOffsetMode=3
 ; stereo, for A/B.
 SkyAtInfinity=1
 
+; ---------------------------------------------------------------------------
+; FIRST PERSON
+; ---------------------------------------------------------------------------
+;
+; Put the camera in Lara's head instead of behind her shoulder.
+;
+; This is not simply a closer camera. Tomb Raider animates Lara's whole body
+; through every roll, swan dive and grab, and in first person those animations
+; move YOUR head -- which the game was never designed to do. Treat it as a
+; different way to play rather than a better camera, and stop early the first
+; time it does not agree with you.
+;
+; How it works: the scene camera's pose is replaced with the world position of
+; Lara's animated head joint just before the view matrix is built. Everything
+; else follows from that -- stereo, the head-frustum culling, item visibility,
+; both renderers. Gameplay is untouched: the engine's own camera still runs and
+; still collides, and fixed and cinematic cameras keep their framing, because
+; those shots are placed deliberately by the level.
+;
+; Turning comes from Lara's BODY yaw; looking and leaning come from the
+; headset. Her head's own animated pitch and roll are discarded on purpose, so
+; an animation that tilts her head cannot tilt your horizon.
+;
+; Known for now: her head is still drawn, so expect to see the inside of it.
+; Mesh hiding is the next piece of work.
+FirstPerson=0
+
+; Which joint is the head, and where inside it the viewpoint sits.
+;
+; Joint 14 is the head in all three games. The offset is in world units in the
+; joint's own frame, relative to its neck pivot: -Y is up, +Z is forward, so
+; the default sits slightly above and ahead of the pivot -- about where her
+; eyes are. Raise -Y if you feel too low in the skull; increase +Z to move the
+; viewpoint forward towards the face.
+;
+; A joint index that is not the head is caught: if the resolved point lands
+; more than four sectors from Lara the frame falls back to the game camera and
+; the log says so.
+FirstPersonJoint=14
+FirstPersonAnchorX=0
+FirstPersonAnchorY=-32
+FirstPersonAnchorZ=16
+
+; Where the view's heading comes from.
+;
+; 0 (default) keeps the engine's own camera yaw -- the one the right stick
+; steers. Under the remaster's modern controls the right stick orbits the
+; camera and only turns Lara when she moves, so taking her body yaw instead
+; makes the stick look broken. It also means the view settles in behind her the
+; way the chase camera does, rather than snapping with her hips.
+;
+; 1 takes Lara's body yaw: rigidly her heading, which suits tank controls.
+;
+; Her head's animated pitch and roll are discarded either way. The headset owns
+; those, and an animation that tilts your horizon is how VR makes people ill.
+FirstPersonYawFromLara=0
+
+; Let the headset's tracked POSITION move the viewpoint, on top of Lara's head.
+;
+; Off by default. The viewpoint is already hers, so this adds YOUR head's offset
+; from the tracking origin to it -- and if that origin is stale or sits at floor
+; level, you float above her head. Rotation is always tracked; this is only the
+; translation, i.e. leaning and ducking in your own room.
+;
+; Turn it on once PositionalTracking=1 behaves in third person and you have
+; recentred where you actually sit.
+FirstPersonHeadTranslation=0
+
 ; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
-; eyes, so the only remaining difference is the frustum shear -- a constant
+)INI"
+           R"INI(; eyes, so the only remaining difference is the frustum shear -- a constant
 ; sideways shift that carries no depth. Diagnostic only.
 PerEyeView=1
 
@@ -328,8 +397,7 @@ HudFlipY=1
 ; Carry the engine's own projection OFFSET through the per-eye substitution.
 ;
 ; e02/e12 are the two shear terms of the projection. A shear of s shifts the
-)INI"
-           R"INI(; image by -s at every depth, so it is a way for an engine to place a draw on
+; image by -s at every depth, so it is a way for an engine to place a draw on
 ; screen without moving its geometry.
 ;
 ; ON TR1-3 THIS IS EXPECTED TO DO NOTHING AT ALL, and you can leave it alone.
@@ -549,7 +617,8 @@ DpadShift=1
 ; It sends a PRESS, not a latch -- Menu toggles the pause screen itself, and a
 ; held START would never look like a clean press to the game. It fires once per
 ; hold; release and re-hold to send another. Y and LT are suppressed from the
-; moment it fires until you let go, so it does not keep grabbing afterwards.
+)INI"
+           R"INI(; moment it fires until you let go, so it does not keep grabbing afterwards.
 ;
 ; 0 disables the chord entirely.
 MenuChordSeconds=1.0
@@ -632,8 +701,7 @@ TraceStartFrame=0
 ; Per-draw state dump: which matrix carries the difference between one drawn
 ; element and the next -- projection, view, or model. Get the screen in
 ; question up, then press DumpKey. One line per draw, logged before any of our
-)INI"
-           R"INI(; substitutions, so what appears is what the ENGINE set. 0 = disabled.
+; substitutions, so what appears is what the ENGINE set. 0 = disabled.
 DumpDraws=0
 
 ; Virtual-key code that arms the dump. 0x78 = F9.

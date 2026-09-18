@@ -1,6 +1,7 @@
 #include "PortalCull.h"
 #include "PortalGeom.h"
 #include "GameDll.h"
+#include "FirstPerson.h"
 #include "Engine.h"
 #include "Config.h"
 #include "InlineHook.h"
@@ -397,7 +398,11 @@ void CullTangents(float& tanX, float& tanY) {
 void BuildTransform(WorldToEye& out, float& tanX, float& tanY) {
     const int32_t* w2v = Ptr<int32_t>(g_boundDll->w2vMatrix);
 
-    const Affine head = VR().HeadView();
+    // The same head translation rule the stereo path uses, so the frustum this
+    // culls with starts where the eyes really are. In first person that is
+    // Lara's head, not the player's offset from the tracking origin.
+    const Affine head = VR().HeadView(
+        !FirstPersonActive() || Cfg().firstPersonHeadTranslation);
 
     // N * R: the world -> phd-view rotation with its third row negated.
     float nr[3][3];

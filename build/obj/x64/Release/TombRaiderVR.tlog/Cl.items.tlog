@@ -8,6 +8,7 @@ C:\dev\TombRaider123VR\src\Gamepad.cpp;C:\dev\TombRaider123VR\build\obj\x64\Rele
 C:\dev\TombRaider123VR\src\Hooks.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Hooks.obj
 C:\dev\TombRaider123VR\src\InlineHook.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\InlineHook.obj
 C:\dev\TombRaider123VR\src\Log.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Log.obj
+C:\dev\TombRaider123VR\src\FirstPerson.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\FirstPerson.obj
 C:\dev\TombRaider123VR\src\PortalCull.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\PortalCull.obj
 C:\dev\TombRaider123VR\src\Sky.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Sky.obj
 C:\dev\TombRaider123VR\src\StereoRenderer.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\StereoRenderer.obj

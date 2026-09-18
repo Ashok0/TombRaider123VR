@@ -32,13 +32,20 @@ public:
 
     // Eye transform in ENGINE view space, ready to be composed onto the game's
     // view matrix:   finalView = EyeView(eye) * gameView
-    Affine EyeView(Eye eye) const;
+    Affine EyeView(Eye eye) const { return EyeView(eye, true); }
+
+    // `headTranslation = false` keeps the head's ROTATION and the IPD baseline
+    // but drops the tracked head position. First person uses it: there the
+    // viewpoint is Lara's head, and adding the player's own offset from the
+    // tracking origin on top of it floats the camera above her.
+    Affine EyeView(Eye eye, bool headTranslation) const;
 
     // The same transform WITHOUT the per-eye offset: head centre rather than
     // either pupil. This is what the room culling wants -- one frustum that
     // covers both eyes, rather than two traversals that would agree about
     // everything except a 64 mm baseline. In mono, EyeView IS this.
-    Affine HeadView() const;
+    Affine HeadView() const { return HeadView(true); }
+    Affine HeadView(bool headTranslation) const;
 
     // Half-angle tangents of a SYMMETRIC frustum that contains both eyes'
     // asymmetric ones: the largest |l|,|r| and |t|,|b| across the pair.

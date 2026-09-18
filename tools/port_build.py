@@ -51,7 +51,13 @@ DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
               'number_draw_rooms', 'w2v_matrix', 'phd_mxptr', 'phd_winxmax',
               'phd_winymax', 'outside', 'outside_left', 'outside_right',
               'outside_top', 'outside_bottom', 'PrintRoomsList',
-              'S_GetObjectBounds', 'DrawSkyHD']
+              'S_GetObjectBounds', 'DrawSkyHD', 'S_InitialisePolyList',
+              'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item']
+# Not a symbol: the return address of the ONE phd_GenerateW2V call that builds
+# the main scene view, inside S_InitialisePolyList. FirstPerson.cpp gates on it
+# so it rewrites the scene camera and nothing else (inventory, shadows, pickup
+# spin, photo mode all call the same function).
+DERIVED = {'w2v_scene_return': ('S_InitialisePolyList', 'phd_GenerateW2V')}
 # Referenced from the self-checks in verify_addresses.py.
 EXE_EXTRA = ['vidInit', 'init_ogl', 'appInit', 'vid_setViewMatrix', 'WinMain',
              '_XInputSetState', 'mShadow']
@@ -66,7 +72,7 @@ def pe_stamp(path):
 
 
 def old_symbols(image):
-    """name -> (rva, kind) from pdbdump.py, preferring real symbols over publics."""
+    """name -> (rva, kind, size) from pdbdump.py, preferring real symbols over publics."""
     import subprocess
     out = subprocess.run([sys.executable, os.path.join(HERE, 'pdbdump.py'),
                           os.path.join(PDB, image)],
@@ -80,7 +86,7 @@ def old_symbols(image):
             continue
         name = p[3].strip()
         if name not in d or (d[name][1] == 'public' and p[1] != 'public'):
-            d[name] = (int(p[0], 16), p[1])
+            d[name] = (int(p[0], 16), p[1], int(p[2]))
     return d
 
 
@@ -229,6 +235,8 @@ def resolve(image, newdir):
     want = EXE_LAYOUT + EXE_EXTRA if image.endswith('.exe') else DLL_LAYOUT
     out = {}
     for name in want:
+        if name in DERIVED:
+            continue
         if name not in syms:
             out[name] = dict(new=0, how='absent from the PDB')
             continue
@@ -249,7 +257,7 @@ def resolve(image, newdir):
     # amount, it moved by that amount too. Labelled as inferred, and only
     # accepted when both neighbours agree.
     resolved = sorted((r, dvotes[r].most_common(1)[0][0] - r, n)
-                      for n, (r, kind) in syms.items()
+                      for n, (r, kind, _sz) in syms.items()
                       if kind == 'data' and r in dvotes)
     for name, e in out.items():
         if e['new'] is not None:
@@ -259,6 +267,44 @@ def resolve(image, newdir):
         if lo and hi and lo[-1][1] == hi[0][1]:
             e['new'] = e['old'] + lo[-1][1]
             e['how'] = 'inferred: %s and %s both shift %+d' % (lo[-1][2], hi[0][2], lo[-1][1])
+    # Derived call sites.
+    #
+    # MSVC splits these functions across several .pdata chunks, so the call is
+    # usually not in the chunk that carries the symbol. The old call site is
+    # found by scanning the old image inside the symbol's full extent; the new
+    # one is then read off the instruction alignment of whichever matched chunk
+    # pair contains it.
+    for name, (caller, callee) in DERIVED.items():
+        if name not in want:
+            continue          # not part of this image's table (the exe has none)
+        if caller not in syms or callee not in syms:
+            out[name] = dict(new=None, how='UNRESOLVED (no %s symbol)' % caller)
+            continue
+        lo, size = syms[caller][0], syms[caller][2]
+        target = syms[callee][0]
+        sites = [(c, i) for c in old.funcs
+                 for i in old.funcs[c]['ins']
+                 if i[2] == target and lo <= i[0] < lo + size]
+        if len(sites) != 1:
+            out[name] = dict(new=None, how='UNRESOLVED (%d call sites in %s)' % (len(sites), caller))
+            continue
+        chunk, ins = sites[0]
+        if chunk not in fmap:
+            out[name] = dict(new=None, how='UNRESOLVED (chunk 0x%X unmatched)' % chunk)
+            continue
+        a, b = old.funcs[chunk]['ins'], new.funcs[fmap[chunk]]['ins']
+        sm = difflib.SequenceMatcher(None, [i[1] for i in a], [i[1] for i in b], autojunk=False)
+        k = a.index(ins)
+        hit = None
+        for tag, a0, a1, b0, b1 in sm.get_opcodes():
+            if tag == 'equal' and a0 <= k < a1:
+                hit = b[b0 + (k - a0)]
+        if hit is None or hit[2] != out[callee]['new']:
+            out[name] = dict(new=None, how='UNRESOLVED (no aligned call in the new chunk)')
+            continue
+        out[name] = dict(old=ins[0] + 5, new=hit[0] + 5,
+                         how='return address of the %s call in %s' % (callee, caller))
+
     print('  %s: %d/%d functions paired, %d globals voted'
           % (image, len(fmap), len(old.funcs), len(dvotes)), file=sys.stderr)
     return dict(timestamp=new.stamp, size_of_image=new.size, symbols=out)

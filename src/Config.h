@@ -135,6 +135,37 @@ struct Config {
     // finite-dome stereo, for A/B.
     bool  skyAtInfinity         = true;
 
+    // --- first person -------------------------------------------------------
+    // Anchor the scene camera to Lara's animated head instead of the chase
+    // camera. Off by default: it is a different game, not a better camera, and
+    // it has the comfort profile of a game that was never designed for it --
+    // her animations move your head for you.
+    bool  firstPerson           = false;
+
+    // Which joint to anchor to, and where inside it. Joint 14 is Lara's head
+    // in all three games. The offset is relative to the joint's neck pivot, in
+    // world units, in the joint's own frame: -Y is up, +Z is forward, so the
+    // default sits a little above and in front of the pivot -- roughly where
+    // her eyes are rather than in her throat.
+    int   firstPersonJoint      = 14;
+    int   firstPersonAnchorX    = 0;
+    int   firstPersonAnchorY    = -32;
+    int   firstPersonAnchorZ    = 16;
+
+    // Where the view's heading comes from. Off (default) keeps the engine's own
+    // render camera yaw, which is what the right stick steers -- so the stick
+    // keeps working and the view settles behind Lara as the chase camera does.
+    // On takes Lara's body yaw instead: rigidly her heading, but under modern
+    // controls the right stick only orbits the camera, so it would appear dead.
+    bool  firstPersonYawFromLara = false;
+
+    // Let the headset's tracked POSITION move the first-person viewpoint, on top
+    // of Lara's head. Off by default, because it adds your real head's offset
+    // from the tracking origin to hers -- if that origin is stale or at floor
+    // level you float above her, which is exactly what it looks like. Rotation
+    // is always tracked; this is only the translation.
+    bool  firstPersonHeadTranslation = false;
+
     // Rotation-only head tracking. The safest possible first test: the camera
     // can pivot but can never be displaced into geometry, so a wrong world
     // scale cannot put you inside a wall. Turn positional on once looking
