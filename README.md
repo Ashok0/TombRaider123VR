@@ -17,8 +17,7 @@ struct offset and function signature in `src/Engine.h` and `src/GameDll.cpp` was
 extracted from the shipped PDBs by the tools in `tools\`. The current Aspyr
 retail build shipped without PDBs, so its addresses were carried across by
 `tools\port_build.py`. `tools\verify_addresses.py` checks the PDB build and both
-PDB-less builds (Aspyr retail and Tomb Raider Gold), 600 checks in all, and fails
-if any disagrees.
+PDB-less builds (Aspyr retail and Tomb Raider Gold), and fails if any disagrees.
 
 ## VR Mod Features
 
@@ -35,6 +34,8 @@ if any disagrees.
   through the ceiling.
 - Sky at optical infinity, so the HD dome does not sit a few metres away in
   stereo or paint over distant geometry.
+- First person: the camera rides Lara's animated head instead of the chase
+  camera, interpolated so it does not judder against the world.
 - Live IPD and world-scale tuning on the numpad.
 
 ## Installation
@@ -66,6 +67,11 @@ the TR4-6 attempt, and how to read its log lines.
 
 The sky fix hooks `DrawSkyHD` in the live game DLL. `SkyAtInfinity=0` returns
 the stock finite-dome stereo. See "Sky at infinity" below.
+
+First person is confirmed working in the headset on TR1: the camera rides Lara's
+animated head rather than the chase camera. It is off by default (`FirstPerson=1`
+turns it on), her head is still drawn, and her animations move your head for you.
+See "First person" below.
 
 Supported builds:
 
@@ -209,6 +215,7 @@ Six inline hooks in `tomb123.exe`:
 | `PrintRoomsList` | expand the draw list along the head's frustum before it is drawn |
 | `S_GetObjectBounds` | second-guess "this item is off screen" from the head |
 | `DrawSkyHD` | mark every sky draw so stereo can put the dome at optical infinity |
+| `phd_GenerateW2V` | first person: put the scene camera in Lara's head before the view matrix is built |
 
 The culling pair and `DrawSkyHD` are each the same function in all three DLLs,
 with the same 5-byte position-independent prologue, so one table serves all of
@@ -529,6 +536,119 @@ All in `[VR]`, documented in `TombRaiderVR.ini`.
 |---|---|---|
 | `SkyAtInfinity` | `1` | the whole feature; `0` is stock finite-dome stereo |
 
+### First person
+
+**Confirmed working in the headset** on Aspyr retail / Gold, TR1. TR2 and TR3
+use the same hook and the same table and should work, but have not been played.
+Off by default: `FirstPerson=1` in `[VR]`.
+
+The camera rides Lara's animated head. Her animations then move your head for
+you -- through every roll, swan dive and grab -- which is not something the game
+was ever designed to do, so treat it as a different way to play rather than a
+better camera.
+
+#### One hook, and why the camera is the only thing touched
+
+The stereo layer already computes `finalView = eyeView * gameView`, so it never
+needs to know where the game camera is. Move the GAME's camera and everything
+downstream follows on its own: the stereo view, the head-frustum culling, item
+visibility, both renderers. Nothing in `Hooks.cpp` knows this feature exists.
+
+So `src\FirstPerson.cpp` hooks exactly one function, `phd_GenerateW2V`, which
+turns a camera pose into `w2v_matrix`, and rewrites the pose it is handed.
+Gameplay is untouched: the engine's own chase camera still runs, still collides
+and still decides which room the camera is in. Only the pose used to build one
+frame's view matrix is replaced.
+
+**Only the scene call.** `phd_GenerateW2V` has seven callers -- the inventory,
+the pickup spin, shadows, photo mode, the muzzle flash -- and every one of them
+must keep its own camera. The scene call is the one inside
+`S_InitialisePolyList`, and the hook recognises it by the exact address it
+returns to (`w2vSceneReturn` in the table). That is why a new column exists for
+what is not a symbol at all: `verify_addresses.py` checks that the five bytes
+before it really are an `E8 rel32` to `phd_GenerateW2V`, in all three DLLs and
+both builds, which is the same property the runtime gate depends on. A wrong
+value there means first person never engages -- the safe direction.
+
+Fixed and cinematic cameras (`camera.type` 1 and 4+) are left alone, because
+those framings are placed deliberately by the level.
+
+#### The anchor, and why it is not GetJointAbsPosition
+
+The engine has `GetJointAbsPosition(ITEM_INFO*, PHD_VECTOR*, int32)`, which is
+exactly "where is joint N in the world". The first version called it. It was
+wrong twice over: it walks the engine's matrix stack, which is not something to
+be doing from inside the camera hook, and it answers for the CURRENT simulation
+tick -- while frames are drawn *between* ticks. The camera stepped at tick rate
+while the world moved smoothly, which reads as the camera lurching every time
+Lara moves.
+
+Reading that function's disassembly gave the better answer. It takes the joint
+straight out of `ITEM_INFO`: one 3x4 `int32` matrix per joint, 48 bytes apart,
+rotation in 1/16384 fixed point, in TWO copies -- `+0x1F0` for the previous tick
+and `+0x820` for the current one. The mod interpolates between them with the
+engine's own `frame_frac` (0..256), which is the same value `DrawLara` uses to
+draw the body, and adds Lara's world position interpolated from `pos_prev` to
+`pos`. The result is smooth by construction and touches no engine state at all.
+
+The offset `(0, -32, 16)` is a point inside the skull relative to the joint's
+neck pivot, so the viewpoint sits behind the eyes rather than in her throat.
+
+A sanity check rejects an anchor further than four sectors from Lara: a wrong
+joint index then falls back to the game camera and says so in the log, rather
+than putting the player inside the world.
+
+#### What testing changed
+
+Three things were wrong on the first run in the headset, and all three are worth
+recording because none of them were visible from the code.
+
+| symptom | cause |
+|---|---|
+| the camera floated above her head | `PositionalTracking=1`. The viewpoint is already Lara's head, so the tracked head position added the PLAYER's offset from the tracking origin on top of it |
+| the right stick no longer turned | the view took its yaw from Lara's body. Under modern controls the right stick orbits the CAMERA and only turns Lara when she moves, so binding the view to her hips made the stick look dead |
+| moving forward was erratic | the uninterpolated anchor above |
+
+So the view keeps the engine's own camera yaw, which is what the stick steers
+and which settles in behind her as the chase camera does, and tracked head
+translation is off in first person by default. Head ROTATION is always tracked --
+that is the whole point -- and her head's animated pitch and roll are always
+discarded, because an animation that tilts your horizon is how VR makes people
+ill.
+
+`PortalCull.cpp` culls from the same point under the same rule, so what is
+culled agrees with what is rendered.
+
+#### Settings
+
+| key | default | what it is for |
+|---|---|---|
+| `FirstPerson` | `0` | the whole feature |
+| `FirstPersonJoint` | `14` | Lara's head joint, the same in all three games |
+| `FirstPersonAnchorX/Y/Z` | `0,-32,16` | where in the skull the viewpoint sits; -Y is up, +Z towards her face |
+| `FirstPersonYawFromLara` | `0` | `1` takes her body yaw instead of the camera's, for tank controls |
+| `FirstPersonHeadTranslation` | `0` | `1` lets your own leaning move the viewpoint as well |
+
+#### Not done yet
+
+Her head is still drawn, so it is possible to see the inside of it. Hiding it
+means skipping the head mesh in the classic renderer and filtering the triangles
+weighted to the head bone out of the HD renderer's index buffers, which is the
+next piece of work. Arms that follow the motion controllers -- the VRIK part --
+would come after that, and the lever for it is already identified:
+`GetJoints(ITEM_INFO*, float*)` builds the matrices the renderer consumes, and
+`lara_info` carries the real aim state (`left_arm`/`right_arm` angles, `torso_*`,
+`head_*`, `target`) that `AimWeapon` and `FireWeapon` work from.
+
+#### Prior art
+
+The head-anchored camera, the `(0,-32,16)` offset and joint 14 all come from an
+independent TR1-3 Remastered attempt (`tomb123-vr-dev-source`), which got there
+without symbols by matching instruction streams. The arm IK design that stage 3
+would follow is BeefRaiderXR's, which can do it the easy way: it is built on
+OpenLara, an open-source re-implementation, so it edits the skeleton in its own
+source rather than someone else's binary. OpenLara is BSD-2-licensed.
+
 ### Supporting the Aspyr retail and Tomb Raider Gold builds (no PDBs)
 
 The current Aspyr retail build differs from the build in `PDB\` in
@@ -710,7 +830,8 @@ installed.
 
 ```powershell
 python tools\port_build.py retail    # only for a new PDB-less build: derive rows
-python tools\verify_addresses.py     # 600 checks: the PDB build, retail\, gold\
+python tools\verify_addresses.py     # 289 checks against the PDBs, plus ~200
+                                     # more for each PDB-less build directory
 tests\build_selftest.cmd             # matrix maths, consts bits, portal frustum,
                                      # hook mechanism
 ```
@@ -732,6 +853,7 @@ src\             the mod
   PortalCull.cpp   head-driven room culling, hooked into the game DLL
   PortalGeom.h     the frustum maths behind it, tested by tests\
   Sky.cpp          DrawSkyHD hook: sky draws at optical infinity
+  FirstPerson.cpp  phd_GenerateW2V hook: the camera rides Lara's head
   StereoMath.h     matrix maths against this engine's conventions
   proxy\           the winmm shim
 tools\           PDB extraction, cross-build porting, disassembly, verification
