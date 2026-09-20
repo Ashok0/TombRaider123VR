@@ -2,6 +2,7 @@
 #include "Engine.h"
 #include "GameDll.h"
 #include "Config.h"
+#include "FirstPerson.h"
 #include "VRSystem.h"
 #include "Log.h"
 
@@ -97,7 +98,7 @@ uint64_t g_menuChordSince = 0;   // when the chord was first seen held, 0 = not
 uint64_t g_menuPressUntil = 0;   // synthesised START is held until this tick
 bool     g_menuChordFired = false;
 
-void BuildState(XState& out) {
+void BuildState(XState& out, bool& shifted) {
     VRSystem::HandState h[2];
     VR().ReadControllers(h);
 
@@ -202,9 +203,11 @@ void BuildState(XState& out) {
     out.Gamepad.bLeftTrigger  = suppressLeftTrigger ? 0
                                                     : Trig(L.trigger);  // Equip
     out.Gamepad.bRightTrigger = Trig(R.trigger);   // Shoot
-    const bool shifted        = (Cfg().dpadShift && R.stickClick);
-    out.Gamepad.sThumbLX      = shifted ? 0 : Axis(L.stickX);
-    out.Gamepad.sThumbLY      = shifted ? 0 : Axis(L.stickY);
+    shifted = (Cfg().dpadShift && R.stickClick);
+    float lx = L.stickX, ly = L.stickY;
+
+    out.Gamepad.sThumbLX      = shifted ? 0 : Axis(lx);
+    out.Gamepad.sThumbLY      = shifted ? 0 : Axis(ly);
     out.Gamepad.sThumbRX      = Axis(R.stickX);
     out.Gamepad.sThumbRY      = Axis(R.stickY);
 
@@ -240,7 +243,8 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     }
 
     XState mine{};
-    BuildState(mine);
+    bool shifted = false;
+    BuildState(mine, shifted);
 
     // Merge a physical pad if one is plugged in, so it keeps working.
     if (g_original) {
@@ -262,6 +266,17 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
                 mine.Gamepad.sThumbRY = real.Gamepad.sThumbRY;
         }
     }
+
+    // Transform the MERGED state so a physical Xbox pad has the same heading
+    // and cannot reintroduce the engine's right-stick camera orbit.
+    float lx = mine.Gamepad.sThumbLX / 32767.0f;
+    float ly = mine.Gamepad.sThumbLY / 32767.0f;
+    float rx = mine.Gamepad.sThumbRX / 32767.0f;
+    if (FirstPersonInput(lx, ly, rx, shifted))
+        mine.Gamepad.wButtons |= XB_X; // tank sidestep; RB would trigger Photo with duck
+    mine.Gamepad.sThumbLX = Axis(lx);
+    mine.Gamepad.sThumbLY = Axis(ly);
+    mine.Gamepad.sThumbRX = Axis(rx);
 
     // Hold RT + RB to decouple pitch for as long as both are held. Read off the
     // MERGED state for the same reason the suppression below is applied here: a

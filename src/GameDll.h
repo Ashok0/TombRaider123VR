@@ -97,6 +97,7 @@ struct GameDllLayout {
     uint32_t gLaraHead;         // GEOM_INFO[2]: face, sunglasses
     uint32_t gActorHead;        // GEOM_INFO[3]: the cutscene actor's head
     uint32_t objects;           // object_info[]; .geom is the geometry in use
+    uint32_t analogInput;       // ANALOG_INPUT_INFO; camTurn at +4
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

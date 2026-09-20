@@ -155,7 +155,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'outside_bottom',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
           'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
-          'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects']
+          'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -216,6 +216,10 @@ for dll, stamp, vals in rows:
     size, f = udt(dll, 'camera_info')
     check('%s sizeof(camera_info)' % dll, 128, size)
     check('%s camera_info::pos' % dll, 0, f.get('pos'))
+
+    size, f = udt(dll, 'ANALOG_INPUT_INFO')
+    check('%s sizeof(ANALOG_INPUT_INFO)' % dll, 52, size)
+    check('%s ANALOG_INPUT_INFO::camTurn' % dll, 4, f.get('camTurn'))
 
     size, f = udt(dll, 'ROOM_INFO')
     check('%s sizeof(ROOM_INFO)' % dll, 168, size)

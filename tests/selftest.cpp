@@ -22,6 +22,7 @@
 #include "PortalGeom.h"
 #include "InlineHook.h"
 #include "Log.h"
+#include "LocomotionMath.h"
 
 #include <windows.h>
 #include <cstdio>
@@ -482,6 +483,78 @@ static void TestPortalGeometry() {
     Check(!tr::portal::BoxVisible(behind, root, nRoot), "a box wholly behind the head is culled");
 }
 
+static void TestLocomotion() {
+    using namespace tr;
+    using namespace tr::locomotion;
+    printf("\nFirst-person locomotion\n");
+    Heading heading;
+    heading.Align(0.4f, -0.7f);
+    CheckNear(heading.World(-0.7f), 0.4f, "entry aligns current HMD to Lara");
+    heading.Turn(Pi / 2);
+    CheckNear(Wrap(heading.World(-0.7f) - 0.4f), Pi / 2, "right stick turns world heading right");
+    CheckNear(Wrap(heading.World(-0.7f + Pi / 2) - 0.4f - Pi), 0, "physical and artificial turns compose");
+
+    // Regression for the circular walk: vary the engine movement camera while
+    // holding the HMD fixed. Undoing the engine frame must give a constant
+    // world direction, including wraparound and rear-facing movement.
+    bool stable = true, renderMatches = true;
+    for (float physical : {-Pi, -Pi / 2, 0.0f, Pi / 2, Pi - 0.001f}) {
+        for (float artificial : {-Pi, -Pi / 2, 0.0f, Pi / 2}) {
+            heading.Align(0, 0);
+            heading.Turn(artificial);
+            const float world = heading.World(physical);
+            const Vec expected{std::sin(world), std::cos(world)};
+            for (int frame = 0; frame < 360; ++frame) {
+                const float engineYaw = frame * Pi / 180;
+                const Vec pad = Rotate(Rotate({0, 1}, world), -engineYaw);
+                const Vec moved = Rotate(pad, engineYaw);
+                stable &= Length(moved - expected) < 1e-5f;
+            }
+            // Actual render composition is HeadView * N * engineW2V. N flips
+            // TR's +Z view to GL's -Z. Test independently against that matrix.
+            const float c = std::cos(heading.base), s = std::sin(heading.base);
+            Affine game = Affine::Identity();
+            game.r[0][0] = c; game.r[0][2] = -s;
+            game.r[2][0] = -s; game.r[2][2] = -c;
+            const Affine view = Mul(RotY(physical * 180 / Pi), game);
+            const Vec visibleForward{-view.r[2][0], -view.r[2][2]};
+            renderMatches &= Length(visibleForward - expected) < 1e-5f;
+        }
+    }
+    Check(stable, "physical/stick turns + orbiting chase camera never curve forward");
+    Check(renderMatches, "rendered HMD forward equals world locomotion forward");
+
+    Affine pitch = Affine::Identity();
+    const float p = 0.8f;
+    pitch.r[1][1] = pitch.r[2][2] = std::cos(p);
+    pitch.r[1][2] = -std::sin(p); pitch.r[2][1] = std::sin(p);
+    Affine roll = Affine::Identity();
+    roll.r[0][0] = roll.r[1][1] = std::cos(0.6f);
+    roll.r[0][1] = -std::sin(0.6f); roll.r[1][0] = std::sin(0.6f);
+    const Affine pose = Mul(RotY(-45), Mul(pitch, roll));
+    CheckNear(TrackingYaw(InvertRigid(pose)), Pi / 4, "pitch and roll cannot change the HMD heading");
+
+    const Vec offset{0.3f, 0.2f};
+    const Vec turned = Rotate(offset, -Pi / 2);
+    CheckNear(Length(Rotate(turned, Pi / 2) - offset), 0, "stick turn pivots around the current head");
+    CheckNear(RoomInput({0, 0.05f}, 0.12f, 0.45f).z, 0, "standing sway causes no roomscale input");
+    Check(RoomInput({0, 0.3f}, 0.12f, 0.45f).z > 0, "OpenVR negative Z step is forward");
+    Check(RoomInput({-0.3f, 0}, 0.12f, 0.45f).x < 0, "left step stays left");
+    CheckNear(Length(Consumed(offset, {}, 1)), 0, "a wall cannot consume a blocked physical step");
+    CheckNear(Length(Consumed(offset, offset * -1, 1)), 0, "opposite travel cannot consume a step");
+    CheckNear(Length(Consumed(offset, offset * 5, 1) - offset), 0, "engine overshoot cannot consume beyond pending step");
+    CheckNear(Consumed({0, 1}, {0, 0.2f}, 0.5f).z, 0.1f, "manual movement share is excluded from consumption");
+    CheckNear(Length(Limit({1, 1})), 1, "combined diagonal input uses radial limiting");
+
+    for (int rate : {30, 60, 90, 120, 360}) {
+        float yaw = 0;
+        for (int i = 0; i < rate; ++i) yaw += StickTurn(1, 0.25f, 120, 1.0f / rate);
+        CheckNear(yaw * 180 / Pi, 120, "one-second turn independent of input polling rate", 1e-4f);
+    }
+    CheckNear(StickTurn(0.1f, 0.25f, 120, 0.01f), 0, "stick drift cannot turn view");
+    CheckNear(StickTurn(1, 0.25f, 120, 20) * 180 / Pi, 6, "pause cannot queue a large turn");
+}
+
 int main() {
     printf("TombRaiderVR self-test\n======================\n");
 
@@ -494,6 +567,7 @@ int main() {
     TestPackedView();
     TestEngineConstBits();
     TestPortalGeometry();
+    TestLocomotion();
     TestInlineHook();
 
     printf("\n%s (%d failure%s)\n",

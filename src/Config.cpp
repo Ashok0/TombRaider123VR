@@ -190,6 +190,29 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonHeadTranslation, ini);
     g_cfg.firstPersonHideHead        = GetBool(L"FirstPersonHideHead",
                                                 g_cfg.firstPersonHideHead, ini);
+    g_cfg.firstPersonRecenterKey     = GetIntAuto(L"FirstPersonRecenterKey",
+                                                g_cfg.firstPersonRecenterKey, ini);
+    g_cfg.firstPersonBodyFollowsHead = GetBool (L"FirstPersonBodyFollowsHead",
+                                                g_cfg.firstPersonBodyFollowsHead, ini);
+    g_cfg.firstPersonBodyDeadzoneDegrees = GetFloat(L"FirstPersonBodyDeadzoneDegrees",
+                                                g_cfg.firstPersonBodyDeadzoneDegrees, ini);
+    g_cfg.firstPersonBodyTurnDegreesPerFrame = GetFloat(L"FirstPersonBodyTurnDegreesPerFrame",
+                                                g_cfg.firstPersonBodyTurnDegreesPerFrame, ini);
+    g_cfg.firstPersonTurnDegreesPerSecond = GetFloat(L"FirstPersonTurnDegreesPerSecond",
+                                                g_cfg.firstPersonTurnDegreesPerSecond, ini);
+    g_cfg.firstPersonTurnDeadzone = GetFloat(L"FirstPersonTurnDeadzone",
+                                                g_cfg.firstPersonTurnDeadzone, ini);
+    g_cfg.firstPersonDriftLog = GetBool(L"FirstPersonDriftLog", g_cfg.firstPersonDriftLog, ini);
+    g_cfg.firstPersonRoomscaleMove   = GetBool (L"FirstPersonRoomscaleMove",
+                                                g_cfg.firstPersonRoomscaleMove, ini);
+    g_cfg.firstPersonRoomscaleDeadzoneMetres = GetFloat(L"FirstPersonRoomscaleDeadzoneMetres",
+                                                g_cfg.firstPersonRoomscaleDeadzoneMetres, ini);
+    g_cfg.firstPersonRoomscaleFullMetres = GetFloat(L"FirstPersonRoomscaleFullMetres",
+                                                g_cfg.firstPersonRoomscaleFullMetres, ini);
+    g_cfg.firstPersonRoomscaleDriftMetres = GetFloat(L"FirstPersonRoomscaleDriftMetres",
+                                                g_cfg.firstPersonRoomscaleDriftMetres, ini);
+    g_cfg.firstPersonMoveWithHead    = GetBool (L"FirstPersonMoveWithHead",
+                                                g_cfg.firstPersonMoveWithHead, ini);
     g_cfg.worldUnitsPerMetre  = GetFloat(L"WorldUnitsPerMetre", g_cfg.worldUnitsPerMetre, ini);
     g_cfg.ipdScale            = GetFloat(L"IpdScale",           g_cfg.ipdScale,           ini);
     g_cfg.scaleUpKey          = GetIntAuto(L"ScaleUpKey",       g_cfg.scaleUpKey,         ini);
@@ -288,9 +311,21 @@ void LoadConfig(const wchar_t* ini) {
              "head translation %s, head %s",
              g_cfg.firstPersonJoint, g_cfg.firstPersonAnchorX,
              g_cfg.firstPersonAnchorY, g_cfg.firstPersonAnchorZ,
-             g_cfg.firstPersonYawFromLara ? "Lara's body" : "the game camera",
+             "stable VR heading",
              g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)",
              g_cfg.firstPersonHideHead ? "hidden (mesh_bits bit 14)" : "DRAWN");
+        LogF("config: first person body-follows-head=%s (dead zone %.0f deg, "
+             "%.1f deg/frame), move-with-head=%s",
+             g_cfg.firstPersonBodyFollowsHead ? "on" : "OFF",
+             g_cfg.firstPersonBodyDeadzoneDegrees,
+             g_cfg.firstPersonBodyTurnDegreesPerFrame,
+             g_cfg.firstPersonMoveWithHead ? "on (camera-relative controls only)" : "OFF");
+        LogF("config: first person roomscale=%s (dead zone %.2f m, full %.2f m, "
+             "actual travel consumption; turn %.0f deg/sec)",
+             g_cfg.firstPersonRoomscaleMove ? "on" : "OFF",
+             g_cfg.firstPersonRoomscaleDeadzoneMetres,
+             g_cfg.firstPersonRoomscaleFullMetres,
+             g_cfg.firstPersonTurnDegreesPerSecond);
     } else
         Log("config: camera=third person (the engine's own)");
     if (g_cfg.traceFrames > 0) {

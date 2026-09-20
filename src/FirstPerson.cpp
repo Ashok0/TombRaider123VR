@@ -5,6 +5,7 @@
 #include "InlineHook.h"
 #include "VRSystem.h"
 #include "Log.h"
+#include "LocomotionMath.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -29,7 +30,9 @@ namespace off {
 // ITEM_INFO, 3664 bytes
 constexpr uint32_t item_mesh_bits   = 12;    // uint32, one bit per mesh
 constexpr uint32_t item_object_number = 16;  // int16
+constexpr uint32_t item_anim_state    = 18;  // int16
 constexpr uint32_t item_room_number = 28;    // int16
+constexpr uint32_t item_hit_points    = 38;  // int16
 constexpr uint32_t item_pos         = 88;    // PHD_3DPOS, this tick
 constexpr uint32_t item_pos_prev    = 108;   // PHD_3DPOS, the previous tick
 // The animated skeleton, as GetJointAbsPosition reads it: one 3x4 matrix of
@@ -112,9 +115,44 @@ unsigned g_headDraws   = 0;       // Lara draws routed through the mesh_bits pat
 unsigned g_headSkips   = 0;       // face / sunglasses draws dropped
 unsigned g_hairSkips   = 0;       // braid draws dropped
 bool     g_loggedFirst = false;
+bool     g_neutralTaken = false;   // the neutral is taken once first person is live
 bool     g_loggedLost  = false;
 unsigned g_anchored    = 0;
 unsigned g_skipped     = 0;
+
+locomotion::Heading g_heading;
+bool g_haveHeading = false;
+uint8_t* g_headingItem = nullptr;
+locomotion::Vec g_previousBody;
+locomotion::Vec g_roomRequest;
+float g_roomAllocation = 0;
+float g_lastHeadWorld = 0;
+LARGE_INTEGER g_inputTime{}, g_bodyTime{};
+
+float Elapsed(LARGE_INTEGER& last) {
+    LARGE_INTEGER now{}, freq{};
+    QueryPerformanceCounter(&now);
+    QueryPerformanceFrequency(&freq);
+    const float seconds = last.QuadPart && freq.QuadPart
+        ? static_cast<float>(double(now.QuadPart - last.QuadPart) / freq.QuadPart) : 0;
+    last = now;
+    return std::clamp(seconds, 0.0f, 0.05f); // never catch up a pause with a turn
+}
+
+bool CanWalk(const uint8_t* item) {
+    if (*reinterpret_cast<const int16_t*>(item + off::item_hit_points) <= 0 ||
+        LaraWaterStatus() != 0)
+        return false;
+    // Ground locomotion only. Do not turn Lara away from a ladder, lever,
+    // pickup, airborne state or scripted animation that owns her orientation.
+    // These are the shared classic Lara states: walk, run, stop, fast-back,
+    // turn right/left, back, fast-turn and step right/left.
+    switch (*reinterpret_cast<const int16_t*>(item + off::item_anim_state)) {
+    case 0: case 1: case 2: case 5: case 6: case 7:
+    case 16: case 20: case 21: case 22: return true;
+    default: return false;
+    }
+}
 
 template <typename T>
 T* Ptr(uint32_t rva) { return reinterpret_cast<T*>(g_boundBase + rva); }
@@ -136,7 +174,7 @@ bool Gate() {
     if (!Cfg().enabled || !Cfg().firstPerson)      return false;
     if (!VR().active() || !VR().poseValid())       return false;
     // The inventory ring and the title screen draw a scene of their own.
-    if (InInventory() || InTitle())                return false;
+    if (InInventory() || InTitle() || InCutscene()) return false;
 
     const int32_t type = *Ptr<int32_t>(g_boundDll->camera + off::camera_type);
     if (type == kCamFixed || type >= kCamCinematic) return false;
@@ -220,17 +258,8 @@ bool Anchor(PHD_3DPOS& pose) {
     pose.y_pos = head[1];
     pose.z_pos = head[2];
 
-    // ORIENTATION. The incoming pose is the engine's render camera, already
-    // interpolated, and its yaw is what the right stick steers -- so keeping it
-    // is what keeps the stick working, and it follows Lara round as the chase
-    // camera settles behind her. Taking Lara's body yaw instead makes the stick
-    // appear dead under modern controls, because there the stick orbits the
-    // camera and only turns Lara when she moves.
-    //
-    // Pitch and roll are always dropped: the headset owns those, and letting an
-    // animation tilt the horizon is the classic way to make someone ill.
-    if (Cfg().firstPersonYawFromLara)
-        pose.y_rot = reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos)->y_rot;
+    // The scene hook supplies the stable tracking-to-world yaw below. The
+    // headset supplies pitch/roll exactly once through the stereo layer.
     pose.x_rot = 0;
     pose.z_rot = 0;
 
@@ -328,6 +357,65 @@ void __cdecl Detour_DrawHair(int32_t arg) {
     g_hDrawHair.Original<Fn_DrawHair>()(arg);
 }
 
+void TurnBodyToHead(uint8_t* item, float dt) {
+    if (!Cfg().firstPersonBodyFollowsHead || !CanWalk(item)) return;
+    using namespace locomotion;
+    auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
+    const float delta = Wrap(g_heading.World(VR().HeadYawRadians()) - Radians(pos.y_rot));
+    const float dead = std::clamp(Cfg().firstPersonBodyDeadzoneDegrees, 0.0f, 90.0f) * Pi / 180;
+    const float move = std::copysign(std::max(0.0f, std::fabs(delta) - dead), delta);
+    const float limit = std::max(0.0f, Cfg().firstPersonBodyTurnDegreesPerFrame) * 60 * dt * Pi / 180;
+    pos.y_rot = Angle(Radians(pos.y_rot) + std::clamp(move, -limit, limit));
+}
+
+void UpdateLocomotion(PHD_3DPOS& pose) {
+    using namespace locomotion;
+    auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
+    const auto& pos = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos);
+    const auto& prev = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos_prev);
+    const int frac = std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac), 0, 256);
+    const Vec body{static_cast<float>(Lerp(prev.x_pos, pos.x_pos, frac)),
+                   static_cast<float>(Lerp(prev.z_pos, pos.z_pos, frac))};
+    const float scale = LiveWorldUnitsPerMetre();
+    const bool relocated = Length(body - g_previousBody) > std::max(1024.0f, scale * 2);
+    if (!g_haveHeading || g_headingItem != item || relocated) {
+        const float facing = g_headingItem == item && !relocated
+            ? g_lastHeadWorld : Radians(pos.y_rot);
+        g_heading.Align(facing, VR().HeadYawRadians());
+        g_haveHeading = true;
+        g_headingItem = item;
+        g_roomAllocation = 0;
+        g_inputTime = g_bodyTime = {};
+        VR().RecenterHead();
+        LogF("locomotion: aligned base=%.1f body=%.1f controls=%s",
+             g_heading.base * 180 / Pi, Radians(pos.y_rot) * 180 / Pi,
+             NewControls() ? "modern" : "tank");
+    } else if (scale > 1 && g_roomAllocation > 0 && CanWalk(item)) {
+        Vec pending;
+        VR().HeadFloorOffset(pending.x, pending.z);
+        const Vec travel = (body - g_previousBody) * (1 / scale);
+        // Bound consumption by both the outstanding step and the last input
+        // request. Moving the head back cancels a step, even mid-animation.
+        const Vec worldPending = Rotate(pending, g_heading.base);
+        if (Dot(worldPending, g_roomRequest) > 0) {
+            const Vec used = Rotate(Consumed(worldPending, travel, g_roomAllocation), -g_heading.base);
+            VR().ConsumeHeadFloorOffset(used.x, used.z);
+        }
+    }
+    g_previousBody = body;
+    if (!CanWalk(item)) {
+        // Physical movement during an interaction must not queue a walk when
+        // the animation releases control. Height remains tracked.
+        Vec pending;
+        VR().HeadFloorOffset(pending.x, pending.z);
+        VR().ConsumeHeadFloorOffset(pending.x, pending.z);
+        g_roomAllocation = 0;
+    }
+    TurnBodyToHead(item, Elapsed(g_bodyTime));
+    pose.y_rot = Angle(g_heading.base);
+    g_lastHeadWorld = g_heading.World(VR().HeadYawRadians());
+}
+
 void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
     if (pose && IsSceneCall(_ReturnAddress())) {
         if (Gate() && Anchor(*pose)) {
@@ -337,7 +425,28 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_active = false;
             ++g_skipped;
         }
+        // WHEN THE NEUTRAL IS TAKEN.
+        //
+        // Not at the first pose the runtime produces -- that is usually while
+        // the headset is on a desk or before the player has straightened up,
+        // and everything positional is measured from it, so standing up
+        // afterwards floats the camera above Lara's head. Taken when first
+        // person actually engages, the player is in position and looking at the
+        // game. The recenter key re-takes it whenever they like.
+        if (g_active && !g_neutralTaken) {
+            g_neutralTaken = true;
+            VR().RecenterHead();
+            Log("firstperson: taking the neutral head position now that first "
+                "person is live -- press the recenter key to set it again");
+        }
+
         // Once per frame, before anything is drawn.
+        if (g_active) UpdateLocomotion(*pose);
+        else {
+            g_haveHeading = false;
+            g_roomAllocation = 0;
+            g_neutralTaken = false;
+        }
         SetHeadHidden(g_active && Cfg().firstPersonHideHead);
     }
     g_hGenerateW2V.Original<Fn_GenerateW2V>()(pose);
@@ -345,7 +454,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
 
 bool Install(const GameDllLayout& d, uint64_t base) {
     if (d.phdGenerateW2V == 0 || d.w2vSceneReturn == 0 ||
-        d.frameFrac == 0 || d.laraItem == 0)
+        d.frameFrac == 0 || d.laraItem == 0 || d.analogInput == 0)
         return false;
     if (!g_hGenerateW2V.Install(
             reinterpret_cast<void*>(base + d.phdGenerateW2V),
@@ -383,6 +492,10 @@ void Remove() {
     g_hDrawCreatureHD.Remove();
     g_hGenerateW2V.Remove();
     g_active     = false;
+    g_haveHeading = false;
+    g_headingItem = nullptr;
+    g_roomAllocation = 0;
+    g_neutralTaken = false;
     g_boundDll   = nullptr;
     g_boundBase  = 0;
 }
@@ -390,6 +503,19 @@ void Remove() {
 } // namespace
 
 void FirstPersonUpdate() {
+    // Re-take the neutral head position on request. Edge triggered: held down,
+    // it would re-capture every frame while the head drifts.
+    if (Cfg().firstPersonRecenterKey) {
+        static bool held = false;
+        const bool down = (GetAsyncKeyState(Cfg().firstPersonRecenterKey) & 0x8000) != 0;
+        if (down && !held) {
+            VR().RecenterHead();
+            g_roomAllocation = 0;
+            Log("firstperson: head position recentered; world heading preserved");
+        }
+        held = down;
+    }
+
     const GameDllLayout* d = GameDllBound();
     const uint64_t base = GameDllBase();
 
@@ -417,8 +543,8 @@ void FirstPersonUpdate() {
         return;
     }
     LogF("firstperson: hooked %S (%s) -- scene camera anchors to Lara's head "
-         "(joint %d). Her body yaw turns the view; the headset supplies look "
-         "and lean. Fixed and cinematic cameras keep their own framing.",
+         "(joint %d). Stable VR heading owns view/body/input; fixed and "
+         "cinematic cameras keep their own framing.",
          d->module, d->name, Cfg().firstPersonJoint);
 }
 
@@ -426,6 +552,7 @@ void FirstPersonShutdown() {
     if (g_boundDll) Remove();
     g_loggedFirst = false;
     g_loggedLost  = false;
+    g_neutralTaken = false;
     g_failedBase  = 0;
     g_anchored    = 0;
     g_skipped     = 0;
@@ -435,5 +562,111 @@ void FirstPersonShutdown() {
 }
 
 bool FirstPersonActive() { return g_active; }
+
+bool FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted) {
+    using namespace locomotion;
+    if (!g_active || !g_haveHeading || !Gate()) {
+        g_roomAllocation = 0;
+        g_inputTime = {};
+        return false;
+    }
+    auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
+    if (!item || item != g_headingItem) {
+        g_roomAllocation = 0;
+        return false;
+    }
+    const float dt = Elapsed(g_inputTime);
+    const float change = StickTurn(rightX, Cfg().firstPersonTurnDeadzone,
+                                  Cfg().firstPersonTurnDegreesPerSecond, dt);
+    g_heading.Turn(change);
+    VR().PivotHeadFloorOffset(change);
+
+    const float headWorld = g_heading.World(VR().HeadYawRadians());
+    g_lastHeadWorld = headWorld;
+    const bool canWalk = CanWalk(item);
+    if (!canWalk) {
+        // Keep native input during swimming, climbing and interactions. The
+        // same stick still turns the VR world, while the engine receives it to
+        // preserve state-specific steering. Ground locomotion consumes it to
+        // prevent the chase-camera feedback loop.
+        g_roomAllocation = 0;
+        return false;
+    }
+    rightX = 0;
+
+    const float inputYaw = Radians(*Ptr<int16_t>(g_boundDll->analogInput + 4));
+    const bool modern = NewControls();
+    Vec manual{leftX, leftY};
+    if (Length(manual) < 0.20f || shifted) manual = {};
+    Vec room;
+    if (Cfg().firstPersonRoomscaleMove && Cfg().positionalTracking
+        && Cfg().firstPersonHeadTranslation && canWalk && !shifted) {
+        Vec pending;
+        VR().HeadFloorOffset(pending.x, pending.z);
+        room = RoomInput(pending, Cfg().firstPersonRoomscaleDeadzoneMetres,
+                         Cfg().firstPersonRoomscaleFullMetres);
+        const float n = Length(room);
+        // XInput deadzone is applied again by the game. Cross it for a real
+        // step, otherwise small displacements remain permanently unconsumed.
+        if (n > 0) room = room * ((0.35f + 0.65f * n) / n);
+        room = Rotate(room, g_heading.base);
+    }
+
+    bool walkModifier = false;
+    Vec result = manual;
+    if (modern) {
+        const Vec manualWorld = Rotate(manual, Cfg().firstPersonMoveWithHead ? headWorld : inputYaw);
+        const Vec combined = manualWorld + room;
+        result = Limit(Rotate(combined, -inputYaw));
+        // Attribution only when both contributions help, never consume steps
+        // using an opposing manual command or collision motion.
+        g_roomAllocation = Dot(combined, room) > 0
+            ? Length(room) / std::max(0.0001f, Length(room) + Length(manualWorld)) : 0;
+    } else {
+        // Tank axes are actions, not a direction. Room-only sideways movement
+        // uses the game's walk+left/right sidestep rather than turning Lara.
+        auto& body = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
+        if (canWalk && Cfg().firstPersonBodyFollowsHead && Length(manual) > 0)
+            body.y_rot = Angle(headWorld);
+        const float bodyYaw = Radians(body.y_rot);
+        const Vec bodyRoom = Rotate(room, -bodyYaw);
+        g_roomAllocation = 0;
+        if (Length(manual) == 0 && Length(room) > 0) {
+            if (std::fabs(bodyRoom.x) > std::fabs(bodyRoom.z)) {
+                result = {bodyRoom.x, 0};
+                walkModifier = true;
+            } else result = {0, bodyRoom.z};
+            g_roomAllocation = 1;
+        }
+    }
+    g_roomRequest = room;
+    if (shifted) {
+        // A D-pad/menu gesture must neither walk Lara nor consume a step. Keep
+        // the outstanding displacement so it resumes when the shift releases.
+        g_roomAllocation = 0;
+        result = {};
+    }
+    leftX = result.x;
+    leftY = result.z;
+
+    if (Cfg().firstPersonDriftLog) {
+        static uint64_t last = 0;
+        const uint64_t now = GetTickCount64();
+        if (now - last >= 1000) {
+            last = now;
+            Vec pending;
+            VR().HeadFloorOffset(pending.x, pending.z);
+            const float bodyYaw = Radians(reinterpret_cast<PHD_3DPOS*>(item + off::item_pos)->y_rot);
+            LogF("locomotion: base=%+.1f headWorld=%+.1f body=%+.1f inputYaw=%+.1f "
+                 "pending=(%+.3f,%+.3f)m room=(%+.2f,%+.2f) pad=(%+.2f,%+.2f) "
+                 "share=%.2f walk=%d rooms=%d",
+                 g_heading.base * 180 / Pi, headWorld * 180 / Pi,
+                 bodyYaw * 180 / Pi, inputYaw * 180 / Pi,
+                 pending.x, pending.z, room.x, room.z, leftX, leftY,
+                 g_roomAllocation, canWalk, *Ptr<int32_t>(g_boundDll->numberDrawRooms));
+        }
+    }
+    return walkModifier;
+}
 
 } // namespace tr

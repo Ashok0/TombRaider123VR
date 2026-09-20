@@ -152,11 +152,8 @@ struct Config {
     int   firstPersonAnchorY    = -32;
     int   firstPersonAnchorZ    = 16;
 
-    // Where the view's heading comes from. Off (default) keeps the engine's own
-    // render camera yaw, which is what the right stick steers -- so the stick
-    // keeps working and the view settles behind Lara as the chase camera does.
-    // On takes Lara's body yaw instead: rigidly her heading, but under modern
-    // controls the right stick only orbits the camera, so it would appear dead.
+    // Legacy setting, retained for old ini files. First person now always uses
+    // a stable tracking-to-world yaw, independent of the chase camera/body.
     bool  firstPersonYawFromLara = false;
 
     // Let the headset's tracked POSITION move the first-person viewpoint, on top
@@ -164,7 +161,43 @@ struct Config {
     // from the tracking origin to hers -- if that origin is stale or at floor
     // level you float above her, which is exactly what it looks like. Rotation
     // is always tracked; this is only the translation.
-    bool  firstPersonHeadTranslation = false;
+    // Let the headset's tracked POSITION move the first-person viewpoint, on
+    // top of Lara's head: leaning, ducking, shifting in your seat.
+    //
+    // On, now that it is measured as a displacement from a captured neutral
+    // rather than from the runtime's own origin. It was off while it meant the
+    // latter, because a standing-universe origin sits on the floor and lifted
+    // the camera a metre above her head.
+    bool  firstPersonHeadTranslation = true;
+
+    // Re-take that neutral: stand or sit the way you mean to play and press it.
+    int   firstPersonRecenterKey = 0x23;   // END
+
+    // Turn Lara's body to face where the player is facing -- both from the
+    // right stick, which swings the game's camera, and from the player
+    // physically turning round, which the game knows nothing about.
+    bool  firstPersonBodyFollowsHead = true;
+    float firstPersonBodyDeadzoneDegrees = 0.0f;
+    float firstPersonBodyTurnDegreesPerFrame = 4.0f;
+    float firstPersonTurnDegreesPerSecond = 120.0f;
+    float firstPersonTurnDeadzone = 0.25f;
+    bool  firstPersonDriftLog = false;
+
+    // Rotate the movement stick into the direction the player is looking, so
+    // forward means forward. Applied only under the game's camera-relative
+    // scheme, which the mod reads from the game rather than assuming: under
+    // tank controls the same axis is turning, and rotating it would stop Lara
+    // turning at all.
+    // Walking about the room walks Lara: the head's displacement from the
+    // neutral is offered to the game as movement-stick input, and the neutral
+    // drifts after the player so a step is a step rather than a treadmill.
+    bool  firstPersonRoomscaleMove = true;
+    float firstPersonRoomscaleDeadzoneMetres = 0.12f;   // before she moves at all
+    float firstPersonRoomscaleFullMetres = 0.45f;       // displacement for full speed
+    // Legacy value, ignored: consumption now follows actual engine movement.
+    float firstPersonRoomscaleDriftMetres = 0.004f;
+
+    bool  firstPersonMoveWithHead = true;
 
     // Hide Lara's head while first person is anchoring, by clearing its
     // mesh_bits bit -- the same mechanism the engine uses to hide a body part.

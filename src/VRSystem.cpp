@@ -3,6 +3,7 @@
 #include "Log.h"
 #include "GL.h"
 #include "GameDll.h"
+#include "LocomotionMath.h"
 
 #include <cstdio>
 #include <cmath>
@@ -189,6 +190,8 @@ void VRSystem::Shutdown() {
     if (m_system && g_shutdownInternal) g_shutdownInternal();
     m_system     = nullptr;
     m_compositor = nullptr;
+    m_poseValid = false;
+    m_haveNeutral = false;
     if (m_dll) { FreeLibrary(m_dll); m_dll = nullptr; }
 }
 
@@ -254,6 +257,38 @@ void VRSystem::BeginFrame() {
             }
         }
 
+        // WHERE "STILL" IS.
+        //
+        // A head position only means anything as a displacement from somewhere,
+        // and the runtime's own origin is not that somewhere: in a standing
+        // universe it sits on the floor, so the head arrives about 1.7 m up and,
+        // scaled into world units, lifts the camera several hundred units above
+        // the game's. That is what made positional tracking look broken in first
+        // person -- the player floating over Lara's head -- and why it had been
+        // switched off there.
+        //
+        // So a neutral is captured and everything is measured from it: leaning
+        // and ducking move the camera, while merely having a head does not.
+        // FirstPerson takes it when first person engages, rather than at the
+        // first pose the runtime produces, which is typically while the headset
+        // is still sitting on a desk.
+        m_headPosRaw[0] = pose.m[0][3];
+        m_headPosRaw[1] = pose.m[1][3];
+        m_headPosRaw[2] = pose.m[2][3];
+
+        if (!m_haveNeutral) {
+            m_headNeutral[0] = pose.m[0][3];
+            m_headNeutral[1] = pose.m[1][3];
+            m_headNeutral[2] = pose.m[2][3];
+            m_haveNeutral = true;
+            LogF("vr: head neutral set at (%+.2f, %+.2f, %+.2f) m -- tracked "
+                 "translation is measured from here", m_headNeutral[0],
+                 m_headNeutral[1], m_headNeutral[2]);
+        }
+        pose.m[0][3] -= m_headNeutral[0];
+        pose.m[1][3] -= m_headNeutral[1];
+        pose.m[2][3] -= m_headNeutral[2];
+
         // mDeviceToAbsoluteTracking is head->tracking; we want tracking->head.
         m_headFromTracking = InvertRigid(FromHmd(pose));
     }
@@ -271,6 +306,52 @@ void VRSystem::BeginFrame() {
                  t[0][3], t[1][3], t[2][3], -t[0][2], -t[1][2], -t[2][2]);
         }
     }
+}
+
+void VRSystem::HeadFloorOffset(float& right, float& forward) const {
+    right = forward = 0;
+    if (!m_poseValid || !m_haveNeutral) return;
+    right = m_headPosRaw[0] - m_headNeutral[0];
+    forward = -(m_headPosRaw[2] - m_headNeutral[2]);
+}
+
+void VRSystem::RefreshHeadTranslation() {
+    for (int i = 0; i < 3; ++i) {
+        m_headFromTracking.r[i][3] = 0;
+        for (int j = 0; j < 3; ++j)
+            m_headFromTracking.r[i][3] -= m_headFromTracking.r[i][j]
+                * (m_headPosRaw[j] - m_headNeutral[j]);
+    }
+}
+
+void VRSystem::ConsumeHeadFloorOffset(float right, float forward) {
+    if (!m_poseValid || !m_haveNeutral) return;
+    m_headNeutral[0] += right;
+    m_headNeutral[2] -= forward;
+    // Update THIS frame too, so culling and both eyes use the same origin.
+    RefreshHeadTranslation();
+}
+
+void VRSystem::PivotHeadFloorOffset(float yawDelta) {
+    locomotion::Vec before;
+    HeadFloorOffset(before.x, before.z);
+    const auto after = locomotion::Rotate(before, -yawDelta);
+    ConsumeHeadFloorOffset(before.x - after.x, before.z - after.z);
+}
+
+void VRSystem::RecenterHead() {
+    m_haveNeutral = m_poseValid;
+    if (m_poseValid) {
+        for (int i = 0; i < 3; ++i) m_headNeutral[i] = m_headPosRaw[i];
+        RefreshHeadTranslation();
+    }
+}
+
+float VRSystem::HeadYawRadians() const {
+    if (!m_system || !m_poseValid) return 0.0f;
+    // Inverse pose ROW 2 is the headset's back axis in tracking space.
+    // Project its negative onto the floor; roll cannot steer walking.
+    return TrackingYaw(m_headFromTracking);
 }
 
 Affine VRSystem::HeadView(bool headTranslation) const {

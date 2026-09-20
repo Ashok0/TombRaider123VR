@@ -86,6 +86,13 @@ inline Affine InvertRigid(const Affine& m) {
     return o;
 }
 
+// Pose forward projected onto the floor, read from an inverse OpenVR pose.
+// The view's third ROW is the pose's back axis; using its third column mixes
+// roll and pitch into the heading.
+inline float TrackingYaw(const Affine& view) {
+    return std::atan2(-view.r[2][0], view.r[2][2]);
+}
+
 // Conjugate by S = diag(1,-1,1) and rescale the translation.
 //
 // S*R*S negates exactly the rotation entries with one index equal to 1, and

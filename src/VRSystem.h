@@ -44,6 +44,21 @@ public:
     // either pupil. This is what the room culling wants -- one frustum that
     // covers both eyes, rather than two traversals that would agree about
     // everything except a 64 mm baseline. In mono, EyeView IS this.
+    // Absolute tracking-space yaw, positive right. NOT relative to game camera.
+    float HeadYawRadians() const;
+
+    // Forget where "still" is; the next valid pose becomes the new neutral.
+    // Head translation is applied as a displacement FROM that point, so it does
+    // not matter whether the runtime's origin is the floor, a seated zero, or
+    // something left over from the last session.
+    void RecenterHead();
+
+    // Horizontal offset in tracking metres (+x right, +z FORWARD).
+    void HeadFloorOffset(float& right, float& forward) const;
+    void ConsumeHeadFloorOffset(float right, float forward);
+    // Keep the current eye position fixed while turning the virtual world.
+    void PivotHeadFloorOffset(float yawDelta);
+
     Affine HeadView() const { return HeadView(true); }
     Affine HeadView(bool headTranslation) const;
 
@@ -106,11 +121,15 @@ public:
     bool m_loggedClamp = false;
 
 private:
+    void RefreshHeadTranslation();
     vr::IVRSystem*     m_system     = nullptr;
     vr::IVRCompositor* m_compositor = nullptr;
     HMODULE            m_dll        = nullptr;
 
     Affine m_headFromTracking = Affine::Identity();  // inverse(hmdPose)
+    float  m_headNeutral[3]   = { 0.0f, 0.0f, 0.0f };
+    float  m_headPosRaw[3]    = { 0.0f, 0.0f, 0.0f };   // before the neutral
+    bool   m_haveNeutral      = false;
     Affine m_eyeFromHead[2]   = { Affine::Identity(), Affine::Identity() };
     float  m_rawProj[2][4]    = {};                  // l, r, t, b per eye
     bool   m_poseValid        = false;

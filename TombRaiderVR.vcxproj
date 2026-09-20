@@ -153,6 +153,7 @@
     <ClInclude Include="src\PortalCull.h" />
     <ClInclude Include="src\PortalGeom.h" />
     <ClInclude Include="src\FirstPerson.h" />
+    <ClInclude Include="src\LocomotionMath.h" />
     <ClInclude Include="src\Sky.h" />
     <ClInclude Include="src\StereoMath.h" />
     <ClInclude Include="src\StereoRenderer.h" />

@@ -12,12 +12,21 @@ information.
 
 ## AI Usage
 
-Written with Claude Code (Opus 5). For the original build, every address,
-struct offset and function signature in `src/Engine.h` and `src/GameDll.cpp` was
-extracted from the shipped PDBs by the tools in `tools\`. The current Aspyr
-retail build shipped without PDBs, so its addresses were carried across by
-`tools\port_build.py`. `tools\verify_addresses.py` checks the PDB build and both
-PDB-less builds (Aspyr retail and Tomb Raider Gold), and fails if any disagrees.
+The original stereo, culling, first-person camera and initial roomscale work was
+written with Claude Code (Opus 5). The final roomscale/rotation rewrite was
+implemented with OpenAI Codex (GPT-6), using `README2.md` as the failure handoff
+and BeefRaider XR as reference for keeping artificial rotation separate from
+tracked HMD rotation. `README2.md` is retained as historical debugging context;
+its "where it stands" section describes the failed predecessor, not this tree.
+
+For the original build, every address, struct offset and function signature in
+`src/Engine.h` and `src/GameDll.cpp` was extracted from the shipped PDBs by the
+tools in `tools\`. The current Aspyr retail build shipped without PDBs, so its
+addresses were carried across by `tools\port_build.py`.
+`tools\verify_addresses.py` checks the PDB build and both PDB-less builds
+(Aspyr retail and Tomb Raider Gold), and fails if any disagrees. The locomotion
+rewrite also has independent maths tests and verifies its newly required
+`analogInput` address directly from the input-update instruction stream.
 
 ## VR Mod Features
 
@@ -37,6 +46,8 @@ PDB-less builds (Aspyr retail and Tomb Raider Gold), and fails if any disagrees.
 - First person: the camera rides Lara's animated head instead of the chase
   camera, interpolated so it does not judder against the world, with her head
   hidden and the rest of her body still visible.
+- Roomscale: leaning and ducking move the viewpoint, turning round turns Lara,
+  and walking about the room walks her through the engine's own collision.
 - Live IPD and world-scale tuning on the numpad.
 
 ## Installation
@@ -74,6 +85,13 @@ animated head rather than the chase camera, with her head, face, sunglasses and
 braid hidden and the rest of her body still drawn. It is off by default
 (`FirstPerson=1` turns it on), and her animations move your head for you. See
 "First person" below.
+
+Around it: positional tracking is measured from a captured neutral, physical and
+right-stick turning share a stable VR-world heading, HMD-relative stick movement
+stays aligned after either kind of turn, and walking about the room moves Lara
+through the engine's normal input and collision. The final rewrite has passed
+the automated and binary checks described below and is awaiting a headset run.
+See "Roomscale and rotation in first person".
 
 Supported builds:
 
@@ -558,11 +576,12 @@ needs to know where the game camera is. Move the GAME's camera and everything
 downstream follows on its own: the stereo view, the head-frustum culling, item
 visibility, both renderers. Nothing in `Hooks.cpp` knows this feature exists.
 
-So `src\FirstPerson.cpp` hooks exactly one function, `phd_GenerateW2V`, which
-turns a camera pose into `w2v_matrix`, and rewrites the pose it is handed.
-Gameplay is untouched: the engine's own chase camera still runs, still collides
-and still decides which room the camera is in. Only the pose used to build one
-frame's view matrix is replaced.
+So the camera portion of `src\FirstPerson.cpp` hooks exactly one function,
+`phd_GenerateW2V`, which turns a camera pose into `w2v_matrix`, and rewrites the
+pose it is handed. The engine's own chase camera still runs and still decides
+which room the camera is in. The separate locomotion portion deliberately writes
+Lara's facing during safe ground states and transforms XInput movement; those
+gameplay changes are documented under "Roomscale and rotation in first person".
 
 **Only the scene call.** `phd_GenerateW2V` has seven callers -- the inventory,
 the pickup spin, shadows, photo mode, the muzzle flash -- and every one of them
@@ -602,26 +621,26 @@ A sanity check rejects an anchor further than four sectors from Lara: a wrong
 joint index then falls back to the game camera and says so in the log, rather
 than putting the player inside the world.
 
-#### What testing changed
+#### What headset testing changed
 
-Three things were wrong on the first run in the headset, and all three are worth
-recording because none of them were visible from the code.
+The first implementation exposed three independent problems. The anchor needed
+simulation interpolation; tracked position needed a captured neutral rather than
+the runtime's floor/seated origin; and using Lara's body yaw directly made the
+right stick appear dead under modern controls. Those fixes made the basic
+first-person camera and positional tracking work in the headset.
 
-| symptom | cause |
-|---|---|
-| the camera floated above her head | `PositionalTracking=1`. The viewpoint is already Lara's head, so the tracked head position added the PLAYER's offset from the tracking origin on top of it |
-| the right stick no longer turned | the view took its yaw from Lara's body. Under modern controls the right stick orbits the CAMERA and only turns Lara when she moves, so binding the view to her hips made the stick look dead |
-| moving forward was erratic | the uninterpolated anchor above |
+The later locomotion tests found a fourth problem: adding the engine camera yaw
+to tracking-space HMD yaw forms a feedback loop. Lara turns, the chase camera
+follows, the changed camera yaw moves Lara's target again, and forward movement
+curves into a circle. The final implementation no longer uses the chase camera
+as a heading source. A stable tracking-to-world heading now drives rendering,
+body following and movement conversion together; its full design is below.
 
-So the view keeps the engine's own camera yaw, which is what the stick steers
-and which settles in behind her as the chase camera does, and tracked head
-translation is off in first person by default. Head ROTATION is always tracked --
-that is the whole point -- and her head's animated pitch and roll are always
-discarded, because an animation that tilts your horizon is how VR makes people
-ill.
-
-`PortalCull.cpp` culls from the same point under the same rule, so what is
-culled agrees with what is rendered.
+Head rotation is always tracked. Head translation is on by default in first
+person and measured from the captured neutral. Lara's animated head pitch and
+roll are discarded because an animation must not tilt the player's horizon.
+`PortalCull.cpp` uses the same final head transform, so culling agrees with both
+eyes.
 
 #### Hiding the head, three different ways
 
@@ -702,11 +721,11 @@ identical across all of them. Going through `mesh_bits` avoids needing it.
 | `FirstPerson` | `0` | the whole feature |
 | `FirstPersonJoint` | `14` | Lara's head joint, the same in all three games |
 | `FirstPersonAnchorX/Y/Z` | `0,-32,16` | where in the skull the viewpoint sits; -Y is up, +Z towards her face |
-| `FirstPersonYawFromLara` | `0` | `1` takes her body yaw instead of the camera's, for tank controls |
-| `FirstPersonHeadTranslation` | `0` | `1` lets your own leaning move the viewpoint as well |
+| `FirstPersonYawFromLara` | `0` | obsolete; stable VR heading now owns first-person yaw |
+| `FirstPersonHeadTranslation` | `1` | lets your own leaning move the viewpoint relative to neutral |
 | `FirstPersonHideHead` | `1` | hide the head mesh, the face, the sunglasses and the braid |
 
-#### Not done yet
+#### Still not implemented: controller-driven arms
 
 Arms that follow the motion controllers -- the VRIK part -- are the next piece of
 work, and the lever for it is already identified:
@@ -722,6 +741,241 @@ without symbols by matching instruction streams. The arm IK design that stage 3
 would follow is BeefRaiderXR's, which can do it the easy way: it is built on
 OpenLara, an open-source re-implementation, so it edits the skeleton in its own
 source rather than someone else's binary. OpenLara is BSD-2-licensed.
+
+### Roomscale and rotation in first person
+
+First person puts the camera in Lara's animated head. Roomscale gives the
+player's real movement a gameplay meaning: lean and duck move the viewpoint,
+turning physically turns the world and Lara, the right stick turns the same
+world heading, and physical steps request collision-aware movement from the
+game. The implementation never writes Lara's world position.
+
+#### Positional tracking and its neutral
+
+An OpenVR position is absolute within the tracking universe. In a standing
+universe its origin is normally on the floor, so applying it directly on top of
+Lara's already-correct head position lifts the camera by the player's entire
+height -- roughly 700 Tomb Raider units at the default scale.
+
+`VRSystem` therefore captures the current HMD position as a neutral and applies
+only displacement from it. The capture happens when first person becomes live,
+after a valid pose and Lara head anchor both exist. Leaning, ducking and stepping
+then move the viewpoint, while simply being 1.7 metres tall does not. Pressing
+END (`FirstPersonRecenterKey`) captures a new positional neutral without changing
+the world heading.
+
+The horizontal locomotion offset stays in tracking space as `(x, -z)`: positive
+X is right and OpenVR negative Z is forward. Height is excluded. The old version
+rotated this displacement into the head's current frame, which meant the same
+physical position changed meaning when the player looked around.
+
+#### One stable heading for the view, body and controls
+
+The final design has one persistent `trackingToWorldYaw`. On entry it is aligned
+without moving the view:
+
+```text
+trackingToWorldYaw = LaraYaw - HmdTrackingYaw
+HmdWorldYaw        = trackingToWorldYaw + HmdTrackingYaw
+```
+
+Physical turning changes `HmdTrackingYaw`. Right-stick turning changes
+`trackingToWorldYaw`. The scene camera receives `trackingToWorldYaw`, and the
+stereo layer composes the tracked HMD rotation on top exactly once. Movement and
+body following read the same `HmdWorldYaw`.
+
+The chase camera is deliberately absent from these equations. The failed design
+used `cameraYaw + HmdTrackingYaw`; Lara turned, the chase camera followed her,
+the changed camera yaw moved her target again, and forward movement curved into
+a circle. Keeping the tracking-to-world transform as independent state removes
+that feedback loop.
+
+HMD yaw is extracted from row 2 of the inverse OpenVR pose: that row is the
+headset's back axis in tracking space. Projecting it onto the floor gives yaw
+without letting pitch or roll steer Lara. This also avoids the pose-versus-view
+matrix sign errors encountered by earlier controller-yaw experiments.
+
+Right-stick turning is smooth by default, uses elapsed time rather than frames,
+has its own dead zone, and clamps a long pause to 50 ms of catch-up. A stick turn
+also rotates the positional neutral around the current HMD position. Without
+that pivot, turning while leaning away from neutral would orbit the camera around
+the old neutral. Translation is refreshed immediately so culling and both eyes
+use the same origin in that frame.
+
+When inventory, a fixed camera, a cinematic camera or a cutscene takes control,
+first person and locomotion stand down. Returning with the same Lara preserves
+the last world heading and captures a fresh positional neutral. A changed item
+or a relocation of more than two metres/1024 units realigns from Lara instead
+of trying to catch up stale state.
+
+#### Turning Lara without taking animation ownership
+
+During normal ground locomotion Lara's `ITEM_INFO::pos.y_rot` follows
+`HmdWorldYaw` using shortest-path 16-bit angle arithmetic. The configured
+degrees-per-frame value is treated as its original 60 Hz rate and scaled by real
+elapsed time, so rendering frame rate does not change her turn speed. A body
+dead zone is available, but defaults to zero because any remaining yaw error
+would make forward input depart from the HMD direction.
+
+Body following is limited to classic ground states: walk, run, stop, fast-back,
+turn left/right, back, fast-turn and step left/right. Death, jumping, falling,
+swimming, hanging, climbing, pickups, switches, levers and other scripted states
+keep engine ownership. The right stick still updates the VR-world heading in
+those states, but it is also passed through to the game so native state-specific
+steering continues to work.
+
+#### HMD-relative analog movement
+
+Modern controls interpret the left stick in an engine camera/input frame. Lara's
+body yaw does not decide where she walks, which is why body following and
+HMD-relative stick movement are complementary rather than redundant.
+
+The correct engine frame is `ANALOG_INPUT_INFO::camTurn` at offset `+4`, not the
+rendered scene-camera yaw. Each input poll performs this conversion:
+
+```text
+manualWorld = rotate(leftStick, HmdWorldYaw)
+roomWorld   = rotate(trackingFloorOffset, trackingToWorldYaw)
+gameStick   = rotate(limit(manualWorld + roomWorld), -camTurn)
+```
+
+The transform runs after Touch and physical Xbox-pad states are merged, so both
+controllers behave the same way. The right stick is consumed on the ground and
+cannot also orbit the chase camera; during non-ground states it is passed
+through as described above. Radial limiting preserves diagonal direction rather
+than independently clipping both axes.
+
+The game exposes the control mode at `app+0x854` bit 1, the same flag tested by
+`DrawLara`. Under tank controls, stick X means turn rather than strafe, so the
+modern vector transform cannot be used. A roomscale-only request instead chooses
+the dominant body-space axis: forward/back remains forward/back and left/right
+uses the game's Walk + direction sidestep. Manual and roomscale movement together,
+and full analog diagonals, require Modern controls.
+
+#### Turning a physical step into collision-aware movement
+
+Roomscale movement is synthesised XInput. The physical displacement first passes
+through a 12 cm radial dead zone to ignore standing sway. It ramps to full input
+at 45 cm and is raised above XInput's own dead zone before being handed to the
+game. The engine still selects animations, resolves floors and walls, fires
+triggers and determines how far Lara actually travels.
+
+The neutral is consumed from measured results rather than a fixed amount per
+input poll. Each rendered frame interpolates Lara's `pos_prev` and `pos` using
+the same `frame_frac` used by rendering. Her actual horizontal travel is
+projected along the outstanding physical request, and only the roomscale share
+of combined manual/physical input is subtracted from the neutral. Consequences:
+
+- a wall does not consume a blocked step;
+- collision slide in the opposite direction cannot consume it;
+- engine overshoot cannot consume more than the remaining displacement;
+- manual stick movement is not mistaken for physical travel;
+- stepping back toward the neutral cancels the request naturally.
+
+Horizontal displacement is cleared while Lara is in a non-ground state so a
+lean made during a jump, climb or interaction cannot queue a walk on landing.
+Using the R3 D-pad shift suppresses locomotion without consuming the pending
+step. Automatic tank sidestepping adds only the Walk button; it does not add the
+right shoulder button and therefore cannot accidentally form the Photo Mode
+chord while ducking.
+
+#### Why the earlier approaches failed
+
+| approach or symptom | actual problem | final answer |
+|---|---|---|
+| `cameraYaw + HeadYawRadians()` | chase-camera feedback: starts correctly, then curves | persistent tracking-to-world yaw independent of camera output |
+| turn Lara but stop rotating the modern movement stick | modern movement ignores body facing | body and movement both read the published HMD-world heading |
+| fixed neutral drift per input poll | frame-rate dependent and consumes blocked movement | consume measured Lara travel, attributed to roomscale input |
+| express physical displacement in the current head frame | looking around rotates an unchanged physical step | retain floor displacement in tracking space and transform with the stable base yaw |
+| read yaw from a convenient matrix column | pose/view inversion produced backward or mirrored directions | extract HMD yaw once from the inverse pose's floor-projected back axis |
+| let right-stick input reach both systems on the ground | engine camera orbit can re-enter steering | consume ground yaw after updating the VR heading; pass it through in native non-ground states |
+| clear a pending step for menu/D-pad input | a UI gesture silently changed room neutral | suppress locomotion while shifted and leave the step pending |
+
+#### Implementation and address verification
+
+The feature is deliberately split by ownership:
+
+| file | responsibility |
+|---|---|
+| `src/VRSystem.cpp` | raw tracked position, neutral, HMD yaw, step consumption and turn pivot |
+| `src/FirstPerson.cpp` | stable heading, safe body following, state transitions, movement conversion and diagnostics |
+| `src/Gamepad.cpp` | merge Touch/physical pads, then apply first-person input transformation |
+| `src/LocomotionMath.h` | tested frame-independent vector, angle, step and heading maths |
+| `src/StereoMath.h` | floor-projected yaw extraction from the inverse HMD pose |
+
+Locomotion adds `analogInput` to every `GameDllLayout` row. The checked RVAs are:
+
+| DLL | PDB build | Aspyr retail / Gold |
+|---|---:|---:|
+| `tomb1.dll` | `0x0041DFE0` | `0x0041EF20` |
+| `tomb2.dll` | `0x004330A0` | `0x00432FE0` |
+| `tomb3.dll` | `0x00491F40` | `0x00494E80` |
+
+`tools/verify_addresses.py` checks the PDB symbol, the 52-byte
+`ANALOG_INPUT_INFO` layout and `camTurn` offset. `tools/verify_locomotion.py`
+independently locates the unique `S_UpdateInput` instruction sequence that
+passes `&analogInput` to the application's input function, and verifies all six
+table values against the actual DLLs.
+
+With `FirstPersonDriftLog=1`, the mod writes one diagnostic line per second:
+
+```text
+locomotion: base=+90.0 headWorld=+135.0 body=+132.1 inputYaw=+40.0 pending=(+0.030,+0.180)m room=(+0.22,+0.48) pad=(+0.05,+0.61) share=1.00 walk=1 rooms=17
+```
+
+`base` is the tracking-to-world yaw, `headWorld` is the published HMD heading,
+`body` is Lara's current yaw and `inputYaw` is the engine movement frame.
+`pending` is unconsumed physical displacement, `room` its world-space input,
+`pad` the final left stick, and `share` the fraction of actual Lara travel that
+may consume the pending step. `walk=0` means the current state is engine-owned.
+The room count is included to catch any heading-related culling/performance
+regression during the same headset run.
+
+#### Settings
+
+| key | default | purpose |
+|---|---|---|
+| `FirstPerson` | `0` | enables the head anchor and this locomotion path |
+| `PositionalTracking` | `1` | required for leaning and physical-step movement |
+| `FirstPersonHeadTranslation` | `1` | track displacement from the captured neutral |
+| `FirstPersonRecenterKey` | `0x23` | END resets position without changing world heading |
+| `FirstPersonBodyFollowsHead` | `1` | follow HMD-world heading during safe ground states |
+| `FirstPersonBodyDeadzoneDegrees` | `0` | permitted body/head yaw difference |
+| `FirstPersonBodyTurnDegreesPerFrame` | `4` | 60 Hz legacy rate, scaled by elapsed time |
+| `FirstPersonTurnDegreesPerSecond` | `120` | smooth right-stick turning speed |
+| `FirstPersonTurnDeadzone` | `0.25` | right-stick turn dead zone |
+| `FirstPersonMoveWithHead` | `1` | Modern-control left-stick forward follows HMD heading |
+| `FirstPersonRoomscaleMove` | `1` | physical floor displacement requests game movement |
+| `FirstPersonRoomscaleDeadzoneMetres` | `0.12` | standing sway/lean allowance |
+| `FirstPersonRoomscaleFullMetres` | `0.45` | outstanding displacement producing maximum input |
+| `FirstPersonDriftLog` | `0` | once-per-second heading, step, input and room-count log |
+
+`FirstPersonYawFromLara` and `FirstPersonRoomscaleDriftMetres` remain readable for
+old INI files but are ignored by the new path. Old experimental moving-dead-zone,
+head-smoothing, controller-steering and fixed stick-drift settings are also
+ignored.
+
+#### Validation and current limits
+
+`tests/build_selftest.cmd` covers independent physical/stick turns, a chase
+camera rotating through 360 degrees without curving forward, agreement between
+rendered HMD forward and locomotion forward, pitch/roll isolation, neutral pivot,
+blocked and opposite travel, manual/physical attribution, radial limiting,
+stick dead zone, pause clamping and 30/60/90/120/360 Hz polling. The full suite
+passes.
+
+`tools/verify_addresses.py` passes all 373 PDB/address/layout checks, and
+`tools/verify_locomotion.py` passes against the PDB DLLs and the installed Aspyr
+TR1, TR2 and TR3 DLLs. A clean x64 Release build completes with zero warnings.
+The detailed headset sequence is in `docs/roomscale-testing.md`.
+
+The remaining validation is experiential: this final stable-heading revision
+still needs an in-headset gameplay run. Native animations determine gait and
+stopping distance, so physical displacement is collision-safe rather than an
+exact one-to-one character controller. Tracked camera leaning itself has no
+collision and can cross nearby geometry. Modern controls are required for full
+four-direction analog roomscale movement. TR2 and TR3 share the checked code and
+layouts but have not yet received the same headset play test as TR1.
 
 ### Supporting the Aspyr retail and Tomb Raider Gold builds (no PDBs)
 

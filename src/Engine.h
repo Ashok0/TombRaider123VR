@@ -199,6 +199,10 @@ constexpr uint32_t photo_mode  = 884;
 constexpr uint32_t dbg_vsync   = 2100;
 constexpr uint32_t dbg_no_ui   = 2092;
 constexpr uint32_t level       = 832;
+// APP_CONFIG's first bitfield word, at cfg (+2128) + 4. Bit 0 is `modern` (the
+// HD renderer), bit 1 is `new_controls` (the camera-relative control scheme).
+// DrawLara tests exactly this: `mov edx,[rax+0x854]; test dl,1; test dl,2`.
+constexpr uint32_t cfg_flags   = 2132;
 } // namespace app_off
 
 } // namespace drva
@@ -470,6 +474,14 @@ int32_t          AppFlag(uint32_t byteOffset);
 inline bool InInventory() { return AppFlag(drva::app_off::InInv)   != 0; }
 inline bool InCutscene()  { return AppFlag(drva::app_off::InCut)   != 0; }
 inline bool InTitle()     { return AppFlag(drva::app_off::InTitle) != 0; }
+
+// The camera-relative control scheme, as the game itself has it.
+//
+// Worth reading rather than assuming. The two schemes give the movement stick
+// completely different meanings -- a direction in one, turn-and-walk in the
+// other -- so code that rotates the stick into the player's look direction is
+// right under the first and stops Lara turning at all under the second.
+inline bool NewControls() { return (AppFlag(drva::app_off::cfg_flags) & 2) != 0; }
 
 // True when vid_state.proj points at mProj[1] -- i.e. the pass currently being
 // configured is world-space 3D rather than the 2D/UI ortho layer.

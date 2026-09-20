@@ -65,7 +65,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* DrawHair        */ 0x00055430,
           /* gLaraHead       */ 0x003E1460,
           /* gActorHead      */ 0x003E7040,
-          /* objects         */ 0x0041E0C0 },
+          /* objects         */ 0x0041E0C0,
+          /* analogInput     */ 0x0041DFE0 },
 
         { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
           /* lara            */ 0x0037AD40,
@@ -94,7 +95,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* DrawHair        */ 0x00087BE0,
           /* gLaraHead       */ 0x00422900,
           /* gActorHead      */ 0x004284C0,
-          /* objects         */ 0x0045D240 },
+          /* objects         */ 0x0045D240,
+          /* analogInput     */ 0x004330A0 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
           /* lara            */ 0x003D1C40,
@@ -123,7 +125,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* DrawHair        */ 0x000CEBA0,
           /* gLaraHead       */ 0x00476880,
           /* gActorHead      */ 0x0047A040,
-          /* objects         */ 0x004BC060 },
+          /* objects         */ 0x004BC060,
+          /* analogInput     */ 0x00491F40 },
     },
 
     // Aspyr retail build, shipped without PDBs (exe row: kBuildAspyrRetail in
@@ -160,7 +163,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* DrawHair        */ 0x000553E0,
           /* gLaraHead       */ 0x003E23A0,
           /* gActorHead      */ 0x003E7F80,
-          /* objects         */ 0x0041F000 },
+          /* objects         */ 0x0041F000,
+          /* analogInput     */ 0x0041EF20 },
 
         { L"tomb2.dll", "Tomb Raider II", 0x6A4B7C3F,
           /* lara            */ 0x0037AC80,
@@ -189,7 +193,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* DrawHair        */ 0x00087650,
           /* gLaraHead       */ 0x00422840,
           /* gActorHead      */ 0x00428400,
-          /* objects         */ 0x0045D180 },
+          /* objects         */ 0x0045D180,
+          /* analogInput     */ 0x00432FE0 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B7C37,
           /* lara            */ 0x003D4B80,
@@ -218,7 +223,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* DrawHair        */ 0x000D04D0,
           /* gLaraHead       */ 0x004797C0,
           /* gActorHead      */ 0x0047CF80,
-          /* objects         */ 0x004BEFA0 },
+          /* objects         */ 0x004BEFA0,
+          /* analogInput     */ 0x00494E80 },
     },
 };
 

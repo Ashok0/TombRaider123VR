@@ -6,10 +6,8 @@
 // bounds, both renderers. That is what this does, by rewriting the camera pose
 // the engine hands to phd_GenerateW2V for the scene render.
 //
-// It changes nothing about gameplay. The engine's own chase camera still runs,
-// still collides, still decides which room the camera is in; only the pose used
-// to build the view matrix for the frame is replaced, and only for the one call
-// that builds the scene view.
+// A stable tracking-to-world heading drives rendering and locomotion. The
+// engine still owns position, collision, animation and movement triggers.
 #pragma once
 
 namespace tr {
@@ -26,5 +24,9 @@ void FirstPersonShutdown();
 // inventory, during fixed and cinematic cameras, and whenever the anchor could
 // not be resolved.
 bool FirstPersonActive();
+
+// Called after merging physical and VR pads. Returns true when a tank-control
+// roomscale sidestep needs the game's walk modifier. UI input is left alone.
+bool FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted);
 
 } // namespace tr

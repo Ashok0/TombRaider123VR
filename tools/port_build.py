@@ -53,7 +53,7 @@ DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
               'outside_top', 'outside_bottom', 'PrintRoomsList',
               'S_GetObjectBounds', 'DrawSkyHD', 'S_InitialisePolyList',
               'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
-              'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects']
+              'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput']
 # Not a symbol: the return address of the ONE phd_GenerateW2V call that builds
 # the main scene view, inside S_InitialisePolyList. FirstPerson.cpp gates on it
 # so it rewrites the scene camera and nothing else (inventory, shadows, pickup
