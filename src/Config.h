@@ -188,12 +188,12 @@ struct Config {
     // scheme, which the mod reads from the game rather than assuming: under
     // tank controls the same axis is turning, and rotating it would stop Lara
     // turning at all.
-    // Walking about the room walks Lara: the head's displacement from the
-    // neutral is offered to the game as movement-stick input, and the neutral
-    // drifts after the player so a step is a step rather than a treadmill.
+    // Physical translation directly drags Lara through native collision
+    // queries; accepted displacement consumes the tracked neutral.
     bool  firstPersonRoomscaleMove = true;
-    float firstPersonRoomscaleDeadzoneMetres = 0.12f;   // before she moves at all
-    float firstPersonRoomscaleFullMetres = 0.45f;       // displacement for full speed
+    float firstPersonRoomscaleDeadzoneMetres = 0.02f;   // small lean allowance before body drag
+    float firstPersonRoomscaleFullMetres = 0.45f;       // legacy stick ramp, ignored
+    float firstPersonRoomscaleNeckMetres = 0.15f;       // horizontal neck-to-HMD pivot
     // Legacy value, ignored: consumption now follows actual engine movement.
     float firstPersonRoomscaleDriftMetres = 0.004f;
 

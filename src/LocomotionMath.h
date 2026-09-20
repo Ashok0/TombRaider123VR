@@ -30,20 +30,29 @@ inline float StickTurn(float axis, float dead, float degreesPerSecond, float sec
     return std::copysign(strength, axis) * std::clamp(degreesPerSecond, 0.0f, 720.0f)
            * Pi / 180 * std::clamp(seconds, 0.0f, 0.05f);
 }
-inline Vec RoomInput(Vec offset, float dead, float full) {
-    const float n = Length(offset);
-    dead = std::max(0.0f, dead);
-    if (n <= dead || n < 0.0001f) return {};
-    const float strength = std::clamp((n - dead) / std::max(0.01f, full - dead), 0.0f, 1.0f);
-    return offset * (strength / n);
+inline Vec NeckToHead(float yaw, float metres) {
+    return Rotate({0, metres}, yaw);
 }
-// Only consume travel along the requested step, never collision slide in the
-// opposite direction. Allocation excludes the manual stick's share of travel.
-inline Vec Consumed(Vec pending, Vec travel, float allocation) {
+inline bool IsJumpSteeringState(int state) { return state == 15 || state == 3; }
+inline Vec SimulationStick(Vec world, float frameYaw, float decodedMagnitude) {
+    const float n = Length(world);
+    return n > 0.0001f ? Rotate(world, -frameYaw) * (decodedMagnitude / n) : Vec{};
+}
+constexpr uint32_t Forward = 1, Back = 2, Left = 4, Right = 8;
+constexpr uint32_t Walk = 0x80, StepLeft = 0x400, StepRight = 0x800;
+constexpr uint32_t Directions = Forward | Back | Left | Right | StepLeft | StepRight;
+inline Vec DragRequest(Vec pending, float dead) {
     const float n = Length(pending);
-    if (n < 0.0001f) return {};
-    const Vec direction = pending * (1 / n);
-    return direction * std::clamp(Dot(travel, direction) * allocation, 0.0f, n);
+    return n > std::max(0.0f, dead) && n > 0.0001f
+        ? pending * ((n - std::max(0.0f, dead)) / n) : Vec{};
+}
+// Modern controls turn Lara toward the requested movement vector. Body-follow
+// must stand down while that happens or a lateral request is forced back to
+// the HMD facing and becomes forward travel. Tank controls still need the VR
+// heading to own her facing because their axes are actions rather than a
+// camera-relative direction.
+inline bool EngineOwnsMovingFacing(bool modern, Vec manual) {
+    return modern && Length(manual) > 0.0001f;
 }
 struct Heading {
     float base = 0; // tracking forward -> world; never follows the chase camera

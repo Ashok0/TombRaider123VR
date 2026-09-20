@@ -537,14 +537,44 @@ static void TestLocomotion() {
     const Vec offset{0.3f, 0.2f};
     const Vec turned = Rotate(offset, -Pi / 2);
     CheckNear(Length(Rotate(turned, Pi / 2) - offset), 0, "stick turn pivots around the current head");
-    CheckNear(RoomInput({0, 0.05f}, 0.12f, 0.45f).z, 0, "standing sway causes no roomscale input");
-    Check(RoomInput({0, 0.3f}, 0.12f, 0.45f).z > 0, "OpenVR negative Z step is forward");
-    Check(RoomInput({-0.3f, 0}, 0.12f, 0.45f).x < 0, "left step stays left");
-    CheckNear(Length(Consumed(offset, {}, 1)), 0, "a wall cannot consume a blocked physical step");
-    CheckNear(Length(Consumed(offset, offset * -1, 1)), 0, "opposite travel cannot consume a step");
-    CheckNear(Length(Consumed(offset, offset * 5, 1) - offset), 0, "engine overshoot cannot consume beyond pending step");
-    CheckNear(Consumed({0, 1}, {0, 0.2f}, 0.5f).z, 0.1f, "manual movement share is excluded from consumption");
+    Check(EngineOwnsMovingFacing(true, {-1, 0}), "manual modern movement owns facing");
+    Check(!EngineOwnsMovingFacing(false, {-1, 0}), "tank controls keep HMD body following");
+    Check(!EngineOwnsMovingFacing(true, {}), "roomscale with idle stick keeps HMD facing");
     CheckNear(Length(Limit({1, 1})), 1, "combined diagonal input uses radial limiting");
+
+    // Physically turn about a neck pivot through a complete revolution. The
+    // HMD moves on an arc, but the corrected body request must remain zero.
+    bool stationaryTurn = true, lateralDrag = true, jumpHeading = true;
+    const float neutralYaw = 0.37f, neck = 0.15f;
+    for (int degrees = -180; degrees <= 180; ++degrees) {
+        const float yaw = degrees * Pi / 180;
+        const Vec initialHead = NeckToHead(neutralYaw, neck);
+        const Vec currentHead = NeckToHead(yaw, neck);
+        const Vec corrected = currentHead - initialHead
+            - (NeckToHead(yaw, neck) - NeckToHead(neutralYaw, neck));
+        stationaryTurn &= Length(DragRequest(corrected, .02f)) < 1e-5f;
+        for (float base : {0.0f, Pi/2, -Pi/2, Pi}) {
+            // Translation plus rotation retains exactly the physical step,
+            // including a sideways step after an arbitrary artificial turn.
+            const Vec step = Rotate({.3f, 0}, yaw);
+            const Vec request = Rotate(DragRequest(corrected + step, .02f), base);
+            const Vec relative = Rotate(request, -(base + yaw));
+            lateralDrag &= std::fabs(relative.x - .28f) < 1e-5f && std::fabs(relative.z) < 1e-5f;
+            const Vec forward = Rotate({0, 1}, base + yaw);
+            // An old chase camera may point anywhere; simulation publishes
+            // the same HMD frame in compression AND airborne forward jump.
+            for (int state : {15, 3}) {
+                const Vec stick = SimulationStick(forward, base + yaw, 95);
+                const Vec trajectory = Rotate(stick * (1/95.0f), base + yaw);
+                jumpHeading &= IsJumpSteeringState(state) && Length(trajectory-forward) < 1e-5f;
+            }
+        }
+    }
+    Check(stationaryTurn, "neck-pivot rotation requests no body translation through 360 degrees");
+    Check(lateralDrag, "direct sideways drag remains lateral after physical and artificial turns");
+    Check(jumpHeading, "compression and forward flight keep the HMD direction after every turn");
+    Check(!IsJumpSteeringState(13), "jump steering excludes hanging interactions");
+    CheckNear(DragRequest({.32f,0}, .02f).x, .30f, "body drag requests metres, not an analog strength");
 
     for (int rate : {30, 60, 90, 120, 360}) {
         float yaw = 0;

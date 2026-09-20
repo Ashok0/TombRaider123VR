@@ -7,7 +7,8 @@
 // the engine hands to phd_GenerateW2V for the scene render.
 //
 // A stable tracking-to-world heading drives rendering and locomotion. The
-// engine still owns position, collision, animation and movement triggers.
+// physical movement drags the body through native collision queries; the
+// engine keeps animation and movement triggers.
 #pragma once
 
 namespace tr {
@@ -25,8 +26,10 @@ void FirstPersonShutdown();
 // not be resolved.
 bool FirstPersonActive();
 
-// Called after merging physical and VR pads. Returns true when a tank-control
-// roomscale sidestep needs the game's walk modifier. UI input is left alone.
-bool FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted);
+// Called after merging physical and VR pads. Records manual intent for the
+// simulation hook and applies HMD-relative steering through jump preparation
+// and flight. Physical displacement never enters the gamepad axes.
+void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
+                      bool jumpPressed);
 
 } // namespace tr

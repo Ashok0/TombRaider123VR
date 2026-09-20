@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 34427 bytes, 701 lines.
+// Source: TombRaiderVR.ini, 34614 bytes, 704 lines.
 #pragma once
 
 namespace tr {
@@ -327,17 +327,20 @@ FirstPersonTurnDeadzone=0.25
 ; movement in any horizontal direction.
 FirstPersonMoveWithHead=1
 
-; Physical steps become collision-aware game movement. Translation must be on.
-; A step is consumed only as Lara actually moves, not once per input poll.
-; Horizontal tracking is used: crouching, pitch and roll cannot make her walk.
-; Tank controls use forward/back or walk+side-step, selecting the dominant
+; Physical movement directly drags Lara through native collision queries.
+; It never generates analog-stick input or walking animations. Both control
+; schemes support sideways/diagonal drag and simultaneous manual movement.
+; Translation must be on; the deadzone allows a small amount of leaning.
 )INI"
-           R"INI(; axis; diagonals and simultaneous stick/roomscale movement need Modern.
-FirstPersonRoomscaleMove=1
-FirstPersonRoomscaleDeadzoneMetres=0.12
+           R"INI(FirstPersonRoomscaleMove=1
+FirstPersonRoomscaleDeadzoneMetres=0.02
+; Legacy stick-ramp setting, ignored by direct body drag.
 FirstPersonRoomscaleFullMetres=0.45
+; Estimated horizontal neck-to-head distance. Prevents turning in place from
+; producing a roomscale step; 0 disables the correction.
+FirstPersonRoomscaleNeckMetres=0.15
 
-; Optional once-per-second heading, movement, pending step and room-count log.
+; Optional simulation heading, jump-state and requested/accepted drag log.
 FirstPersonDriftLog=0
 FirstPersonHideHead=1
 
@@ -621,11 +624,11 @@ DpadShift=1
 ;
 ; Touch has no Start or Back of its own, so both have to come from somewhere.
 ; The System button on the left hand's lower face sends one of them (see
-; GamepadMenuUsesBack); this chord reaches the other without spending a button.
+)INI"
+           R"INI(; GamepadMenuUsesBack); this chord reaches the other without spending a button.
 ;
 ; The hold is what separates the chord from real play: Y is Action and LT is
-)INI"
-           R"INI(; Equip, so the pair does occur naturally. One second is comfortable but IS
+; Equip, so the pair does occur naturally. One second is comfortable but IS
 ; within reach of normal play -- raise this if it ever fires unintentionally.
 ;
 ; It sends a PRESS, not a latch -- Menu toggles the pause screen itself, and a

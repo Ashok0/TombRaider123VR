@@ -291,6 +291,7 @@ void VRSystem::BeginFrame() {
 
         // mDeviceToAbsoluteTracking is head->tracking; we want tracking->head.
         m_headFromTracking = InvertRigid(FromHmd(pose));
+        if (!wasValid) RecenterHead();
     }
 
     if (wasValid != m_poseValid) {
@@ -313,6 +314,10 @@ void VRSystem::HeadFloorOffset(float& right, float& forward) const {
     if (!m_poseValid || !m_haveNeutral) return;
     right = m_headPosRaw[0] - m_headNeutral[0];
     forward = -(m_headPosRaw[2] - m_headNeutral[2]);
+    const auto pivot = locomotion::NeckToHead(HeadYawRadians(),
+        std::clamp(Cfg().firstPersonRoomscaleNeckMetres, 0.0f, 0.4f));
+    right -= pivot.x - m_neutralNeckToHead[0];
+    forward -= pivot.z - m_neutralNeckToHead[1];
 }
 
 void VRSystem::RefreshHeadTranslation() {
@@ -333,16 +338,29 @@ void VRSystem::ConsumeHeadFloorOffset(float right, float forward) {
 }
 
 void VRSystem::PivotHeadFloorOffset(float yawDelta) {
-    locomotion::Vec before;
-    HeadFloorOffset(before.x, before.z);
+    if (!m_poseValid || !m_haveNeutral) return;
+    // Pivot the actual eye displacement, and rotate the neck correction by
+    // the same amount so the locomotion request also stays fixed in world.
+    locomotion::Vec before{m_headPosRaw[0] - m_headNeutral[0],
+                         -(m_headPosRaw[2] - m_headNeutral[2])};
     const auto after = locomotion::Rotate(before, -yawDelta);
     ConsumeHeadFloorOffset(before.x - after.x, before.z - after.z);
+    const auto pivot = locomotion::NeckToHead(HeadYawRadians(),
+        std::clamp(Cfg().firstPersonRoomscaleNeckMetres, 0.0f, 0.4f));
+    const auto correction = locomotion::Rotate(
+        pivot - locomotion::Vec{m_neutralNeckToHead[0], m_neutralNeckToHead[1]}, -yawDelta);
+    m_neutralNeckToHead[0] = pivot.x - correction.x;
+    m_neutralNeckToHead[1] = pivot.z - correction.z;
 }
 
 void VRSystem::RecenterHead() {
     m_haveNeutral = m_poseValid;
     if (m_poseValid) {
         for (int i = 0; i < 3; ++i) m_headNeutral[i] = m_headPosRaw[i];
+        const auto pivot = locomotion::NeckToHead(HeadYawRadians(),
+            std::clamp(Cfg().firstPersonRoomscaleNeckMetres, 0.0f, 0.4f));
+        m_neutralNeckToHead[0] = pivot.x;
+        m_neutralNeckToHead[1] = pivot.z;
         RefreshHeadTranslation();
     }
 }

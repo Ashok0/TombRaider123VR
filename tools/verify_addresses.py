@@ -155,7 +155,8 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'outside_bottom',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
           'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
-          'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput']
+          'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
+          'input', 'LaraAboveWater', 'GetCollisionInfo', 'UpdateLaraRoom']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -212,6 +213,12 @@ for dll, stamp, vals in rows:
     size, f = udt(dll, 'lara_info')
     check('%s sizeof(lara_info)' % dll, 432, size)
     check('%s lara_info::water_status' % dll, 12, f.get('water_status'))
+    check('%s lara_info::turn_rate' % dll, 252, f.get('turn_rate'))
+    check('%s lara_info::move_angle' % dll, 254, f.get('move_angle'))
+    size, f = udt(dll, 'coll_info')
+    check('%s sizeof(coll_info)' % dll, 144, size)
+    for fld, want in [('radius',72), ('bad_pos',76), ('bad_neg',80), ('bad_ceiling',84), ('shift',88), ('old',100), ('facing',118), ('coll_type',122), ('trigger',128), ('slopes_are_walls',140)]:
+        check('%s coll_info::%s' % (dll,fld), want, f.get(fld))
 
     size, f = udt(dll, 'camera_info')
     check('%s sizeof(camera_info)' % dll, 128, size)

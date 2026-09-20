@@ -272,8 +272,8 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     float lx = mine.Gamepad.sThumbLX / 32767.0f;
     float ly = mine.Gamepad.sThumbLY / 32767.0f;
     float rx = mine.Gamepad.sThumbRX / 32767.0f;
-    if (FirstPersonInput(lx, ly, rx, shifted))
-        mine.Gamepad.wButtons |= XB_X; // tank sidestep; RB would trigger Photo with duck
+    const bool jumpPressed = (mine.Gamepad.wButtons & XB_A) != 0;
+    FirstPersonInput(lx, ly, rx, shifted, jumpPressed);
     mine.Gamepad.sThumbLX = Axis(lx);
     mine.Gamepad.sThumbLY = Axis(ly);
     mine.Gamepad.sThumbRX = Axis(rx);

@@ -11,6 +11,7 @@
 #include <intrin.h>
 #include <cstdint>
 #include <cstdlib>
+#include <cstddef>
 
 namespace tr {
 namespace {
@@ -72,10 +73,12 @@ constexpr int32_t kCamCinematic = 4;
 typedef void (__cdecl* Fn_GenerateW2V)(PHD_3DPOS*);
 typedef void (__cdecl* Fn_DrawCreatureHD)(void*, int32_t);
 typedef void (__cdecl* Fn_DrawHair)(int32_t);
+typedef void (__cdecl* Fn_LaraAboveWater)(uint8_t*, void*);
 
 hook::InlineHook g_hGenerateW2V;
 hook::InlineHook g_hDrawCreatureHD;
 hook::InlineHook g_hDrawHair;
+hook::InlineHook g_hLaraAboveWater;
 
 // Lara's head is mesh 14 of 15 in all three games -- the same index the camera
 // anchors to, because the HD skeleton's first meshes line up with the classic
@@ -124,9 +127,13 @@ locomotion::Heading g_heading;
 bool g_haveHeading = false;
 uint8_t* g_headingItem = nullptr;
 locomotion::Vec g_previousBody;
-locomotion::Vec g_roomRequest;
-float g_roomAllocation = 0;
 float g_lastHeadWorld = 0;
+bool g_engineOwnsMovingFacing = false;
+locomotion::Vec g_manualWorld;
+bool g_haveManualInput = false;
+bool g_shifted = false;
+bool g_jumpPressed = false;
+locomotion::Vec g_dragPrevious, g_dragCurrent, g_dragShown;
 LARGE_INTEGER g_inputTime{}, g_bodyTime{};
 
 float Elapsed(LARGE_INTEGER& last) {
@@ -358,7 +365,9 @@ void __cdecl Detour_DrawHair(int32_t arg) {
 }
 
 void TurnBodyToHead(uint8_t* item, float dt) {
-    if (!Cfg().firstPersonBodyFollowsHead || !CanWalk(item)) return;
+    if (!Cfg().firstPersonBodyFollowsHead || !CanWalk(item) ||
+        g_engineOwnsMovingFacing)
+        return;
     using namespace locomotion;
     auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
     const float delta = Wrap(g_heading.World(VR().HeadYawRadians()) - Radians(pos.y_rot));
@@ -366,6 +375,133 @@ void TurnBodyToHead(uint8_t* item, float dt) {
     const float move = std::copysign(std::max(0.0f, std::fabs(delta) - dead), delta);
     const float limit = std::max(0.0f, Cfg().firstPersonBodyTurnDegreesPerFrame) * 60 * dt * Pi / 180;
     pos.y_rot = Angle(Radians(pos.y_rot) + std::clamp(move, -limit, limit));
+}
+
+// PDB coll_info, shared by all three games. This is a private query object;
+// never reuse laracoll, whose old position belongs to the animation tick.
+struct RoomCollision {
+    int32_t floorSamples[18];
+    int32_t radius, badPos, badNeg, badCeiling;
+    int32_t shift[3], old[3];
+    int16_t oldState, oldAnim, oldFrame, facing, quadrant, type;
+    int16_t* trigger;
+    uint8_t tiltX, tiltZ, hitBaddie, hitStatic;
+    uint16_t flags;
+};
+static_assert(sizeof(RoomCollision) == 144);
+static_assert(offsetof(RoomCollision, facing) == 118);
+static_assert(offsetof(RoomCollision, trigger) == 128);
+using Fn_GetCollisionInfo = void(__cdecl*)(RoomCollision*, int32_t, int32_t,
+                                          int32_t, int16_t, int32_t);
+using Fn_UpdateLaraRoom = void(__cdecl*)(uint8_t*, int32_t);
+
+locomotion::Vec DragBody(uint8_t* item) {
+    using namespace locomotion;
+    if (!CanWalk(item) || g_shifted || !Cfg().firstPersonRoomscaleMove ||
+        !Cfg().positionalTracking || !Cfg().firstPersonHeadTranslation) return {};
+    Vec pending;
+    VR().HeadFloorOffset(pending.x, pending.z);
+    const float scale = LiveWorldUnitsPerMetre();
+    if (scale <= 1) return {};
+    // Exclude motion already simulated but not yet displayed by interpolation.
+    pending = pending - Rotate(g_dragCurrent - g_dragShown, -g_heading.base);
+    const Vec requested = Rotate(DragRequest(pending,
+        Cfg().firstPersonRoomscaleDeadzoneMetres), g_heading.base) * scale;
+    // Small sweeps cannot jump across a wall or skip a room boundary. A large
+    // tracking discontinuity is left pending for recenter, never teleported.
+    const float distance = Length(requested);
+    if (distance < 1 || distance > scale * 2) return {};
+    auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
+    const Vec initial{float(pos.x_pos), float(pos.z_pos)};
+    const int count = std::clamp(static_cast<int>(std::ceil(distance / 32)), 1, 128);
+    const Vec step = requested * (1.0f / count);
+    Vec remainder{};
+    for (int i = 0; i < count; ++i) {
+        remainder = remainder + step;
+        const int dx = static_cast<int>(std::round(remainder.x));
+        const int dz = static_cast<int>(std::round(remainder.z));
+        remainder = remainder - Vec{float(dx), float(dz)};
+        RoomCollision coll{};
+        coll.radius = 100;
+        coll.badPos = 384; coll.badNeg = -384; coll.badCeiling = 0;
+        coll.flags = 5; // slopes are walls, lava is a pit (as lara_col_stop)
+        coll.old[0] = pos.x_pos; coll.old[1] = pos.y_pos; coll.old[2] = pos.z_pos;
+        coll.facing = Angle(std::atan2(step.x, step.z));
+        const int x = pos.x_pos + dx, z = pos.z_pos + dz;
+        const int16_t room = *reinterpret_cast<int16_t*>(item + off::item_room_number);
+        reinterpret_cast<Fn_GetCollisionInfo>(g_boundBase + g_boundDll->getCollisionInfo)(
+            &coll, x, pos.y_pos, z, room, 762);
+        // Preserve ledge safety and let the normal Lara collision routine
+        // settle floor height and select falling/sliding states afterwards.
+        if (coll.floorSamples[0] < -384 || coll.floorSamples[0] > 384 ||
+            coll.floorSamples[1] >= 0 || coll.type == 8 || coll.type == 16 || coll.type == 32)
+            break;
+        const int acceptedX = x + coll.shift[0] - pos.x_pos;
+        const int acceptedZ = z + coll.shift[2] - pos.z_pos;
+        if (Length(Vec{float(acceptedX), float(acceptedZ)}) > 64) break;
+        pos.x_pos += acceptedX; pos.z_pos += acceptedZ;
+        reinterpret_cast<Fn_UpdateLaraRoom>(g_boundBase + g_boundDll->updateLaraRoom)(item, -381);
+        if (!acceptedX && !acceptedZ) break;
+    }
+    const Vec actual = Vec{float(pos.x_pos), float(pos.z_pos)} - initial;
+    g_dragCurrent = g_dragCurrent + actual * (1 / scale);
+    return actual * (1 / scale);
+}
+
+void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
+    using namespace locomotion;
+    g_dragPrevious = g_dragCurrent;
+    if (item && item == g_headingItem && g_active && g_haveHeading && Gate()) {
+        const int state = *reinterpret_cast<int16_t*>(item + off::item_anim_state);
+        const bool ground = CanWalk(item);
+        const bool jump = IsJumpSteeringState(state) && LaraWaterStatus() == 0 &&
+            *reinterpret_cast<int16_t*>(item + off::item_hit_points) > 0;
+        const float head = g_heading.World(VR().HeadYawRadians());
+        auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
+        auto* analog = Ptr<int16_t>(g_boundDll->analogInput);
+        auto& input = *Ptr<uint32_t>(g_boundDll->input);
+        if ((ground || jump) && g_haveManualInput && NewControls()) {
+            // This runs AFTER inputGet's axial deadzones and LaraControl's
+            // direction-bit conversion. Keep a single heading through stop,
+            // compression and forward-jump; neither old camera yaw nor the
+            // per-axis deadzone may rotate the requested direction.
+            analog[2] = analog[3] = Angle(head); // camTurn, oldCamTurn
+            if (Length(g_manualWorld) > 0 && !g_shifted) {
+                const float magnitude = std::sqrt(float(analog[0]) * analog[0] +
+                                                   float(analog[1]) * analog[1]);
+                if (magnitude > 0) {
+                    const Vec decoded = SimulationStick(g_manualWorld, head, magnitude);
+                    analog[0] = static_cast<int16_t>(std::round(decoded.x));
+                    analog[1] = static_cast<int16_t>(std::round(decoded.z));
+                }
+                if ((ground && g_jumpPressed) || state == 15) {
+                    pos.y_rot = Angle(std::atan2(g_manualWorld.x, g_manualWorld.z));
+                    *Ptr<int16_t>(g_boundDll->lara + 252) = 0; // turn_rate
+                    *Ptr<int16_t>(g_boundDll->lara + 254) = pos.y_rot; // move_angle
+                    input = (input & ~Directions) | Forward;
+                }
+            }
+        }
+        const Vec dragged = DragBody(item);
+        if (Cfg().firstPersonDriftLog) {
+            static uint64_t last = 0;
+            static int lastState = -1;
+            const uint64_t now = GetTickCount64();
+            if (now - last >= 500 || (jump && state != lastState)) {
+                last = now;
+                Vec pending;
+                VR().HeadFloorOffset(pending.x, pending.z);
+                LogF("locomotion: state=%d head=%.1f body=%.1f cam=%.1f "
+                     "manual=(%+.2f,%+.2f) pending=(%+.3f,%+.3f)m "
+                     "drag=(%+.3f,%+.3f)m input=%08X",
+                     state, head * 180 / Pi, Radians(pos.y_rot) * 180 / Pi,
+                     Radians(analog[2]) * 180 / Pi, g_manualWorld.x, g_manualWorld.z,
+                     pending.x, pending.z, dragged.x, dragged.z, input);
+            }
+            lastState = state;
+        }
+    }
+    g_hLaraAboveWater.Original<Fn_LaraAboveWater>()(item, nativeCollision);
 }
 
 void UpdateLocomotion(PHD_3DPOS& pose) {
@@ -378,29 +514,29 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
                    static_cast<float>(Lerp(prev.z_pos, pos.z_pos, frac))};
     const float scale = LiveWorldUnitsPerMetre();
     const bool relocated = Length(body - g_previousBody) > std::max(1024.0f, scale * 2);
+    if (g_haveHeading && g_headingItem == item && !relocated) {
+        // Consume only roomscale displacement actually visible this frame.
+        // Native stick movement is absent from these counters. Applying the
+        // same interpolation as the body keeps both body and view smooth.
+        const Vec shown = g_dragPrevious + (g_dragCurrent - g_dragPrevious) * (frac / 256.0f);
+        const Vec used = Rotate(shown - g_dragShown, -g_heading.base);
+        VR().ConsumeHeadFloorOffset(used.x, used.z);
+        g_dragShown = shown;
+    }
     if (!g_haveHeading || g_headingItem != item || relocated) {
         const float facing = g_headingItem == item && !relocated
             ? g_lastHeadWorld : Radians(pos.y_rot);
         g_heading.Align(facing, VR().HeadYawRadians());
         g_haveHeading = true;
         g_headingItem = item;
-        g_roomAllocation = 0;
+        g_engineOwnsMovingFacing = false;
+        g_haveManualInput = false;
+        g_dragPrevious = g_dragCurrent = g_dragShown = {};
         g_inputTime = g_bodyTime = {};
         VR().RecenterHead();
         LogF("locomotion: aligned base=%.1f body=%.1f controls=%s",
              g_heading.base * 180 / Pi, Radians(pos.y_rot) * 180 / Pi,
              NewControls() ? "modern" : "tank");
-    } else if (scale > 1 && g_roomAllocation > 0 && CanWalk(item)) {
-        Vec pending;
-        VR().HeadFloorOffset(pending.x, pending.z);
-        const Vec travel = (body - g_previousBody) * (1 / scale);
-        // Bound consumption by both the outstanding step and the last input
-        // request. Moving the head back cancels a step, even mid-animation.
-        const Vec worldPending = Rotate(pending, g_heading.base);
-        if (Dot(worldPending, g_roomRequest) > 0) {
-            const Vec used = Rotate(Consumed(worldPending, travel, g_roomAllocation), -g_heading.base);
-            VR().ConsumeHeadFloorOffset(used.x, used.z);
-        }
     }
     g_previousBody = body;
     if (!CanWalk(item)) {
@@ -409,7 +545,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         Vec pending;
         VR().HeadFloorOffset(pending.x, pending.z);
         VR().ConsumeHeadFloorOffset(pending.x, pending.z);
-        g_roomAllocation = 0;
+        g_engineOwnsMovingFacing = false;
     }
     TurnBodyToHead(item, Elapsed(g_bodyTime));
     pose.y_rot = Angle(g_heading.base);
@@ -444,7 +580,9 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         if (g_active) UpdateLocomotion(*pose);
         else {
             g_haveHeading = false;
-            g_roomAllocation = 0;
+            g_engineOwnsMovingFacing = false;
+            g_haveManualInput = false;
+            g_dragPrevious = g_dragCurrent = g_dragShown = {};
             g_neutralTaken = false;
         }
         SetHeadHidden(g_active && Cfg().firstPersonHideHead);
@@ -454,8 +592,14 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
 
 bool Install(const GameDllLayout& d, uint64_t base) {
     if (d.phdGenerateW2V == 0 || d.w2vSceneReturn == 0 ||
-        d.frameFrac == 0 || d.laraItem == 0 || d.analogInput == 0)
+        d.frameFrac == 0 || d.laraItem == 0 || d.analogInput == 0 ||
+        !d.input || !d.laraAboveWater || !d.getCollisionInfo || !d.updateLaraRoom)
         return false;
+    const uint8_t movementPrologue[] = {0x48, 0x89, 0x5C, 0x24,
+        static_cast<uint8_t>(d.module[4] == L'1' ? 0x08 : d.module[4] == L'2' ? 0x10 : 0x18)};
+    if (!g_hLaraAboveWater.Install(reinterpret_cast<void*>(base + d.laraAboveWater),
+            reinterpret_cast<void*>(&Detour_LaraAboveWater), 5,
+            movementPrologue, sizeof(movementPrologue), "LaraAboveWater")) return false;
     if (!g_hGenerateW2V.Install(
             reinterpret_cast<void*>(base + d.phdGenerateW2V),
             reinterpret_cast<void*>(&Detour_GenerateW2V),
@@ -488,13 +632,16 @@ bool Install(const GameDllLayout& d, uint64_t base) {
 
 void Remove() {
     SetHeadHidden(false);          // give her head back before letting go
+    g_hLaraAboveWater.Remove();
     g_hDrawHair.Remove();
     g_hDrawCreatureHD.Remove();
     g_hGenerateW2V.Remove();
     g_active     = false;
     g_haveHeading = false;
     g_headingItem = nullptr;
-    g_roomAllocation = 0;
+    g_engineOwnsMovingFacing = false;
+    g_haveManualInput = false;
+    g_dragPrevious = g_dragCurrent = g_dragShown = {};
     g_neutralTaken = false;
     g_boundDll   = nullptr;
     g_boundBase  = 0;
@@ -510,7 +657,7 @@ void FirstPersonUpdate() {
         const bool down = (GetAsyncKeyState(Cfg().firstPersonRecenterKey) & 0x8000) != 0;
         if (down && !held) {
             VR().RecenterHead();
-            g_roomAllocation = 0;
+            g_dragPrevious = g_dragCurrent = g_dragShown = {};
             Log("firstperson: head position recentered; world heading preserved");
         }
         held = down;
@@ -563,110 +710,48 @@ void FirstPersonShutdown() {
 
 bool FirstPersonActive() { return g_active; }
 
-bool FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted) {
+void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
+                      bool jumpPressed) {
     using namespace locomotion;
+    g_haveManualInput = false;
+    g_engineOwnsMovingFacing = false;
+    g_shifted = shifted;
+    g_jumpPressed = jumpPressed;
     if (!g_active || !g_haveHeading || !Gate()) {
-        g_roomAllocation = 0;
         g_inputTime = {};
-        return false;
+        return;
     }
     auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
-    if (!item || item != g_headingItem) {
-        g_roomAllocation = 0;
-        return false;
-    }
-    const float dt = Elapsed(g_inputTime);
+    if (!item || item != g_headingItem) return;
     const float change = StickTurn(rightX, Cfg().firstPersonTurnDeadzone,
-                                  Cfg().firstPersonTurnDegreesPerSecond, dt);
+                                  Cfg().firstPersonTurnDegreesPerSecond, Elapsed(g_inputTime));
     g_heading.Turn(change);
     VR().PivotHeadFloorOffset(change);
-
     const float headWorld = g_heading.World(VR().HeadYawRadians());
     g_lastHeadWorld = headWorld;
-    const bool canWalk = CanWalk(item);
-    if (!canWalk) {
-        // Keep native input during swimming, climbing and interactions. The
-        // same stick still turns the VR world, while the engine receives it to
-        // preserve state-specific steering. Ground locomotion consumes it to
-        // prevent the chase-camera feedback loop.
-        g_roomAllocation = 0;
-        return false;
-    }
+    const int state = *reinterpret_cast<const int16_t*>(item + off::item_anim_state);
+    const bool ground = CanWalk(item);
+    const bool jump = IsJumpSteeringState(state) && LaraWaterStatus() == 0
+        && *reinterpret_cast<const int16_t*>(item + off::item_hit_points) > 0;
+    if (!ground && !jump) return;
     rightX = 0;
-
-    const float inputYaw = Radians(*Ptr<int16_t>(g_boundDll->analogInput + 4));
-    const bool modern = NewControls();
     Vec manual{leftX, leftY};
     if (Length(manual) < 0.20f || shifted) manual = {};
-    Vec room;
-    if (Cfg().firstPersonRoomscaleMove && Cfg().positionalTracking
-        && Cfg().firstPersonHeadTranslation && canWalk && !shifted) {
-        Vec pending;
-        VR().HeadFloorOffset(pending.x, pending.z);
-        room = RoomInput(pending, Cfg().firstPersonRoomscaleDeadzoneMetres,
-                         Cfg().firstPersonRoomscaleFullMetres);
-        const float n = Length(room);
-        // XInput deadzone is applied again by the game. Cross it for a real
-        // step, otherwise small displacements remain permanently unconsumed.
-        if (n > 0) room = room * ((0.35f + 0.65f * n) / n);
-        room = Rotate(room, g_heading.base);
-    }
-
-    bool walkModifier = false;
-    Vec result = manual;
-    if (modern) {
-        const Vec manualWorld = Rotate(manual, Cfg().firstPersonMoveWithHead ? headWorld : inputYaw);
-        const Vec combined = manualWorld + room;
-        result = Limit(Rotate(combined, -inputYaw));
-        // Attribution only when both contributions help, never consume steps
-        // using an opposing manual command or collision motion.
-        g_roomAllocation = Dot(combined, room) > 0
-            ? Length(room) / std::max(0.0001f, Length(room) + Length(manualWorld)) : 0;
+    const float inputYaw = Radians(*Ptr<int16_t>(g_boundDll->analogInput + 4));
+    g_manualWorld = Rotate(manual, Cfg().firstPersonMoveWithHead ? headWorld : inputYaw);
+    g_haveManualInput = true;
+    if (NewControls()) {
+        const Vec result = Limit(Rotate(g_manualWorld, -inputYaw));
+        leftX = result.x;
+        leftY = result.z;
+        g_engineOwnsMovingFacing = EngineOwnsMovingFacing(true, manual);
     } else {
-        // Tank axes are actions, not a direction. Room-only sideways movement
-        // uses the game's walk+left/right sidestep rather than turning Lara.
-        auto& body = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
-        if (canWalk && Cfg().firstPersonBodyFollowsHead && Length(manual) > 0)
-            body.y_rot = Angle(headWorld);
-        const float bodyYaw = Radians(body.y_rot);
-        const Vec bodyRoom = Rotate(room, -bodyYaw);
-        g_roomAllocation = 0;
-        if (Length(manual) == 0 && Length(room) > 0) {
-            if (std::fabs(bodyRoom.x) > std::fabs(bodyRoom.z)) {
-                result = {bodyRoom.x, 0};
-                walkModifier = true;
-            } else result = {0, bodyRoom.z};
-            g_roomAllocation = 1;
-        }
+        leftX = manual.x;
+        leftY = manual.z;
     }
-    g_roomRequest = room;
-    if (shifted) {
-        // A D-pad/menu gesture must neither walk Lara nor consume a step. Keep
-        // the outstanding displacement so it resumes when the shift releases.
-        g_roomAllocation = 0;
-        result = {};
-    }
-    leftX = result.x;
-    leftY = result.z;
-
-    if (Cfg().firstPersonDriftLog) {
-        static uint64_t last = 0;
-        const uint64_t now = GetTickCount64();
-        if (now - last >= 1000) {
-            last = now;
-            Vec pending;
-            VR().HeadFloorOffset(pending.x, pending.z);
-            const float bodyYaw = Radians(reinterpret_cast<PHD_3DPOS*>(item + off::item_pos)->y_rot);
-            LogF("locomotion: base=%+.1f headWorld=%+.1f body=%+.1f inputYaw=%+.1f "
-                 "pending=(%+.3f,%+.3f)m room=(%+.2f,%+.2f) pad=(%+.2f,%+.2f) "
-                 "share=%.2f walk=%d rooms=%d",
-                 g_heading.base * 180 / Pi, headWorld * 180 / Pi,
-                 bodyYaw * 180 / Pi, inputYaw * 180 / Pi,
-                 pending.x, pending.z, room.x, room.z, leftX, leftY,
-                 g_roomAllocation, canWalk, *Ptr<int32_t>(g_boundDll->numberDrawRooms));
-        }
-    }
-    return walkModifier;
+    // Physical displacement never enters XInput. The simulation hook moves
+    // Lara through native collision queries independently of this stick.
+    return;
 }
 
 } // namespace tr

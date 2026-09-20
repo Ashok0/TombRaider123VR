@@ -208,7 +208,9 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.firstPersonRoomscaleDeadzoneMetres = GetFloat(L"FirstPersonRoomscaleDeadzoneMetres",
                                                 g_cfg.firstPersonRoomscaleDeadzoneMetres, ini);
     g_cfg.firstPersonRoomscaleFullMetres = GetFloat(L"FirstPersonRoomscaleFullMetres",
-                                                g_cfg.firstPersonRoomscaleFullMetres, ini);
+                                                g_cfg.firstPersonRoomscaleNeckMetres, ini);
+    g_cfg.firstPersonRoomscaleNeckMetres = GetFloat(L"FirstPersonRoomscaleNeckMetres",
+                                                g_cfg.firstPersonRoomscaleNeckMetres, ini);
     g_cfg.firstPersonRoomscaleDriftMetres = GetFloat(L"FirstPersonRoomscaleDriftMetres",
                                                 g_cfg.firstPersonRoomscaleDriftMetres, ini);
     g_cfg.firstPersonMoveWithHead    = GetBool (L"FirstPersonMoveWithHead",
@@ -320,11 +322,11 @@ void LoadConfig(const wchar_t* ini) {
              g_cfg.firstPersonBodyDeadzoneDegrees,
              g_cfg.firstPersonBodyTurnDegreesPerFrame,
              g_cfg.firstPersonMoveWithHead ? "on (camera-relative controls only)" : "OFF");
-        LogF("config: first person roomscale=%s (dead zone %.2f m, full %.2f m, "
-             "actual travel consumption; turn %.0f deg/sec)",
+        LogF("config: first person roomscale=%s (dead zone %.2f m, neck pivot %.2f m, "
+             "direct collision drag; turn %.0f deg/sec)",
              g_cfg.firstPersonRoomscaleMove ? "on" : "OFF",
              g_cfg.firstPersonRoomscaleDeadzoneMetres,
-             g_cfg.firstPersonRoomscaleFullMetres,
+             g_cfg.firstPersonRoomscaleNeckMetres,
              g_cfg.firstPersonTurnDegreesPerSecond);
     } else
         Log("config: camera=third person (the engine's own)");

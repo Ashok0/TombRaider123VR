@@ -53,7 +53,8 @@ public:
     // something left over from the last session.
     void RecenterHead();
 
-    // Horizontal offset in tracking metres (+x right, +z FORWARD).
+    // Horizontal body request in tracking metres (+x right, +z FORWARD),
+    // corrected for the estimated neck-to-HMD arc. Eye tracking stays raw.
     void HeadFloorOffset(float& right, float& forward) const;
     void ConsumeHeadFloorOffset(float right, float forward);
     // Keep the current eye position fixed while turning the virtual world.
@@ -129,6 +130,7 @@ private:
     Affine m_headFromTracking = Affine::Identity();  // inverse(hmdPose)
     float  m_headNeutral[3]   = { 0.0f, 0.0f, 0.0f };
     float  m_headPosRaw[3]    = { 0.0f, 0.0f, 0.0f };   // before the neutral
+    float  m_neutralNeckToHead[2] = {}; // tracking-floor metres (right, forward)
     bool   m_haveNeutral      = false;
     Affine m_eyeFromHead[2]   = { Affine::Identity(), Affine::Identity() };
     float  m_rawProj[2][4]    = {};                  // l, r, t, b per eye
