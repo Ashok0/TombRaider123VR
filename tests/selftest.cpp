@@ -535,8 +535,18 @@ static void TestLocomotion() {
     CheckNear(TrackingYaw(InvertRigid(pose)), Pi / 4, "pitch and roll cannot change the HMD heading");
 
     const Vec offset{0.3f, 0.2f};
-    const Vec turned = Rotate(offset, -Pi / 2);
+    const Vec turned = PivotFloorOffset(offset, {}, Pi / 2);
     CheckNear(Length(Rotate(turned, Pi / 2) - offset), 0, "stick turn pivots around the current head");
+    const Vec neckArc{0.12f, -0.07f};
+    const Vec translatedNeck{0.22f, 0.18f};
+    const Vec rawEye = translatedNeck + neckArc;
+    const Vec pivotedEye = PivotFloorOffset(rawEye, neckArc, Pi / 2);
+    CheckNear(Length(pivotedEye - neckArc - Rotate(translatedNeck, -Pi / 2)), 0,
+              "stick turn pivots room translation but keeps neck arc attached to Lara");
+    CheckNear(Length(PivotFloorOffset(neckArc, neckArc, Pi / 2) - neckArc), 0,
+              "combined physical and stick turn cannot orbit the eye around Lara");
+    CheckNear(Length(PivotFloorOffset(rawEye, neckArc, 2 * Pi) - rawEye), 0,
+              "full artificial rotation returns the same floor offset");
     Check(EngineOwnsMovingFacing(true, {-1, 0}), "manual modern movement owns facing");
     Check(!EngineOwnsMovingFacing(false, {-1, 0}), "tank controls keep HMD body following");
     Check(!EngineOwnsMovingFacing(true, {}), "roomscale with idle stick keeps HMD facing");

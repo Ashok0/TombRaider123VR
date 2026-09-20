@@ -798,10 +798,11 @@ matrix sign errors encountered by earlier controller-yaw experiments.
 
 Right-stick turning is smooth by default, uses elapsed time rather than frames,
 has its own dead zone, and clamps a long pause to 50 ms of catch-up. A stick turn
-also rotates the positional neutral around the current HMD position. Without
-that pivot, turning while leaning away from neutral would orbit the camera around
-the old neutral. Translation is refreshed immediately so culling and both eyes
-use the same origin in that frame.
+also rotates actual room translation around the current HMD position. The
+estimated neck-to-eye arc stays attached to Lara's new facing; rotating that arc
+with the room offset made combined physical/right-stick turns leave the player
+off-centre until completing 360 degrees. Translation is refreshed immediately
+so culling and both eyes use the same origin in that frame.
 
 When inventory, a fixed camera, a cinematic camera or a cutscene takes control,
 first person and locomotion stand down. Returning with the same Lara preserves
@@ -883,6 +884,7 @@ still cross nearby geometry.
 | physical sidesteps become forward walking | Modern controls convert analog direction into forward-run plus body rotation | direct collision-tested body displacement, no synthesized stick |
 | jump works initially but angles after physical rotation | compression and flight lost the input transform and used the old camera frame | correct decoded input at the simulation boundary throughout both states |
 | turning in place produces movement | headset traces an arc around the neck and exceeds the translation deadzone | subtract the estimated rotational arc from the body request |
+| combined physical/right-stick turn moves the player off-centre until 360 degrees | artificial pivot rotated the neck-to-eye arc as if it were room translation | pivot only translated neck position and keep the eye arc attached to Lara's facing |
 | physical steps drift or depend on frame rate | fixed neutral consumption or attribution from manual movement | consume only accepted drag, using body interpolation |
 
 #### Implementation and address verification
@@ -961,16 +963,15 @@ they do not run the game engine or a headset.
 `tools/verify_locomotion.py` checks the PDB and installed retail input, simulation
 hook, collision and room-update addresses against their native callers.
 
-The 2026-09-20 direct-drag revision was built in Release/x64 and installed in
-the Steam game folder. Its SHA-256 is
-`2339BBC4D4A6C3906FFFBED8D5F7CFBC9F01174C14B00ABD325AE0E80DB8BC2B`.
-The previous DLL and INI are preserved beside the installed files with suffix
-`.pre-direct-drag-20260920-153753`. The installed deadzone is now 0.02 m;
-other existing settings were preserved. The new neck-pivot setting uses its
-0.15 m default when absent from the INI. Disk exhaustion on C: required building
-under `E:\CodexBuilds\TombRaider123VR-roomdrag`; the resulting DLL and matching
-PDB were also copied to `build\x64\Release`. The build had no compiler errors
-or warnings; MSBuild reported one temporary-directory layout warning.
+The 2026-09-20 combined-turn centring revision was built in Release/x64 and
+installed in the Steam game folder. Its SHA-256 is
+`9A182503D99F32018F5A061D5D57C0F8D453F52FCC3BA94B556CC37F9A6396CF`.
+The preceding direct-drag DLL is preserved beside it with suffix
+`.pre-combined-turn-pivot-20260920-170702`; the earlier DLL and INI backup uses
+`.pre-direct-drag-20260920-153753`. The installed deadzone remains 0.02 m and
+other existing settings are preserved. The neck-pivot setting uses its 0.15 m
+default when absent from the INI. This build completed with no warnings or
+errors.
 
 The new direct-drag revision needs headset validation, especially walls, room
 boundaries, floor changes, turning in place and jumping after 90/180-degree

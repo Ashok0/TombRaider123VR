@@ -13,7 +13,8 @@ FirstPersonRoomscaleNeckMetres=0.15 estimates the horizontal neck-to-HMD pivot.
 3. Turn physically 90/180/360 degrees while staying in place. Lara should turn
    without a forward walk. Repeat physical side steps after each rotation.
 4. Repeat with right-stick turns and combined physical/artificial rotation.
-   Lean sideways while turning: the eye should not orbit the old neutral.
+   Lean sideways while turning: the eye should not orbit the old neutral or
+   drift off-centre from Lara before the rotation reaches 360 degrees.
 5. Hold left-stick forward and jump from standing and running at several
    physical and artificial headings. Check preparation, launch, flight and
    landing. A forward jump should continue in the HMD-forward direction.

@@ -339,18 +339,17 @@ void VRSystem::ConsumeHeadFloorOffset(float right, float forward) {
 
 void VRSystem::PivotHeadFloorOffset(float yawDelta) {
     if (!m_poseValid || !m_haveNeutral) return;
-    // Pivot the actual eye displacement, and rotate the neck correction by
-    // the same amount so the locomotion request also stays fixed in world.
-    locomotion::Vec before{m_headPosRaw[0] - m_headNeutral[0],
-                         -(m_headPosRaw[2] - m_headNeutral[2])};
-    const auto after = locomotion::Rotate(before, -yawDelta);
-    ConsumeHeadFloorOffset(before.x - after.x, before.z - after.z);
+    const locomotion::Vec before{m_headPosRaw[0] - m_headNeutral[0],
+                                -(m_headPosRaw[2] - m_headNeutral[2])};
     const auto pivot = locomotion::NeckToHead(HeadYawRadians(),
         std::clamp(Cfg().firstPersonRoomscaleNeckMetres, 0.0f, 0.4f));
-    const auto correction = locomotion::Rotate(
-        pivot - locomotion::Vec{m_neutralNeckToHead[0], m_neutralNeckToHead[1]}, -yawDelta);
-    m_neutralNeckToHead[0] = pivot.x - correction.x;
-    m_neutralNeckToHead[1] = pivot.z - correction.z;
+    const locomotion::Vec neckArc =
+        pivot - locomotion::Vec{m_neutralNeckToHead[0], m_neutralNeckToHead[1]};
+    // Keep actual neck translation fixed in world while the artificial yaw
+    // changes. The neck-to-eye arc stays in tracking space so it follows the
+    // newly rotated Lara instead of orbiting her body until 360 degrees.
+    const auto after = locomotion::PivotFloorOffset(before, neckArc, yawDelta);
+    ConsumeHeadFloorOffset(before.x - after.x, before.z - after.z);
 }
 
 void VRSystem::RecenterHead() {
