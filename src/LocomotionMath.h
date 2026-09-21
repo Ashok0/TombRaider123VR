@@ -33,11 +33,14 @@ inline float StickTurn(float axis, float dead, float degreesPerSecond, float sec
 inline Vec NeckToHead(float yaw, float metres) {
     return Rotate({0, metres}, yaw);
 }
+inline Vec NeckFloorOffset(Vec rawEyeOffset, Vec neckArc) {
+    return rawEyeOffset - neckArc;
+}
 // Artificial yaw pivots translated room position around the current player,
 // but the physical neck-to-eye arc belongs to the avatar's facing. Rotating
 // that arc with the room offset leaves the eye orbiting Lara until a full turn.
 inline Vec PivotFloorOffset(Vec rawEyeOffset, Vec neckArc, float yawDelta) {
-    return Rotate(rawEyeOffset - neckArc, -yawDelta) + neckArc;
+    return Rotate(NeckFloorOffset(rawEyeOffset, neckArc), -yawDelta) + neckArc;
 }
 inline bool IsJumpSteeringState(int state) { return state == 15 || state == 3; }
 inline Vec SimulationStick(Vec world, float frameYaw, float decodedMagnitude) {

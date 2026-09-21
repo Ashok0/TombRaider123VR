@@ -3,6 +3,7 @@
 #include "Log.h"
 #include "GL.h"
 #include "GameDll.h"
+#include "FirstPerson.h"
 #include "LocomotionMath.h"
 
 #include <cstdio>
@@ -292,6 +293,7 @@ void VRSystem::BeginFrame() {
         // mDeviceToAbsoluteTracking is head->tracking; we want tracking->head.
         m_headFromTracking = InvertRigid(FromHmd(pose));
         if (!wasValid) RecenterHead();
+        else RefreshHeadTranslation();
     }
 
     if (wasValid != m_poseValid) {
@@ -321,11 +323,26 @@ void VRSystem::HeadFloorOffset(float& right, float& forward) const {
 }
 
 void VRSystem::RefreshHeadTranslation() {
+    float displacement[3] = {
+        m_headPosRaw[0] - m_headNeutral[0],
+        m_headPosRaw[1] - m_headNeutral[1],
+        m_headPosRaw[2] - m_headNeutral[2]
+    };
+    if (FirstPersonActive()) {
+        // Lara's animated head already carries the body-to-eye arc as her body
+        // turns. Applying the raw tracked arc again makes the view orbit her
+        // until a physical rotation reaches 360 degrees. Keep genuine neck
+        // translation and raw vertical ducking, but remove that duplicate arc.
+        float right, forward;
+        HeadFloorOffset(right, forward);
+        displacement[0] = right;
+        displacement[2] = -forward;
+    }
     for (int i = 0; i < 3; ++i) {
         m_headFromTracking.r[i][3] = 0;
         for (int j = 0; j < 3; ++j)
             m_headFromTracking.r[i][3] -= m_headFromTracking.r[i][j]
-                * (m_headPosRaw[j] - m_headNeutral[j]);
+                * displacement[j];
     }
 }
 

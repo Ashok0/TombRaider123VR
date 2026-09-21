@@ -849,9 +849,12 @@ in both control schemes, including diagonal movement and concurrent stick use.
 `VRSystem::HeadFloorOffset` estimates floor translation of the neck pivot by
 subtracting the change in a horizontal neck-to-HMD offset from tracked head
 translation. `FirstPersonRoomscaleNeckMetres` defaults to 0.15 m. Thus turning
-about that pivot does not request a step, while camera tracking still shows the
-actual head movement. This is an estimate from HMD tracking, not a body tracker;
-the setting can be adjusted or disabled with zero.
+about that pivot does not request a step. First-person rendering uses the same
+horizontal correction because Lara's animated head already supplies the
+body-to-eye arc; applying the raw tracked arc again moved the player off-centre
+until a physical turn completed 360 degrees. Genuine horizontal neck movement
+and raw vertical ducking remain tracked. This is an estimate from HMD tracking,
+not a body tracker; the setting can be adjusted or disabled with zero.
 
 Physical displacement beyond the 2 cm default lean allowance becomes a distance
 in game units. Before the normal above-water simulation, `DragBody` sweeps that
@@ -884,6 +887,7 @@ still cross nearby geometry.
 | physical sidesteps become forward walking | Modern controls convert analog direction into forward-run plus body rotation | direct collision-tested body displacement, no synthesized stick |
 | jump works initially but angles after physical rotation | compression and flight lost the input transform and used the old camera frame | correct decoded input at the simulation boundary throughout both states |
 | turning in place produces movement | headset traces an arc around the neck and exceeds the translation deadzone | subtract the estimated rotational arc from the body request |
+| stationary physical turn moves the view off-centre until 360 degrees | Lara's animated head arc and the raw tracked eye arc were both applied | remove the estimated arc from first-person horizontal rendering as well as body drag |
 | combined physical/right-stick turn moves the player off-centre until 360 degrees | artificial pivot rotated the neck-to-eye arc as if it were room translation | pivot only translated neck position and keep the eye arc attached to Lara's facing |
 | physical steps drift or depend on frame rate | fixed neutral consumption or attribution from manual movement | consume only accepted drag, using body interpolation |
 
@@ -963,11 +967,12 @@ they do not run the game engine or a headset.
 `tools/verify_locomotion.py` checks the PDB and installed retail input, simulation
 hook, collision and room-update addresses against their native callers.
 
-The 2026-09-20 combined-turn centring revision was built in Release/x64 and
+The 2026-09-20 physical-turn centring revision was built in Release/x64 and
 installed in the Steam game folder. Its SHA-256 is
-`9A182503D99F32018F5A061D5D57C0F8D453F52FCC3BA94B556CC37F9A6396CF`.
-The preceding direct-drag DLL is preserved beside it with suffix
-`.pre-combined-turn-pivot-20260920-170702`; the earlier DLL and INI backup uses
+`55D3F8C525A2AEE7882212D9006008EC88B50B4DBFE6D5544F26F00F42E35509`.
+The preceding combined-turn DLL is preserved beside it with suffix
+`.pre-physical-turn-center-20260920-185850`; earlier backups use
+`.pre-combined-turn-pivot-20260920-170702` and
 `.pre-direct-drag-20260920-153753`. The installed deadzone remains 0.02 m and
 other existing settings are preserved. The neck-pivot setting uses its 0.15 m
 default when absent from the INI. This build completed with no warnings or

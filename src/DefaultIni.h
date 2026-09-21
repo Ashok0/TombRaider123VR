@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 34614 bytes, 704 lines.
+// Source: TombRaiderVR.ini, 34681 bytes, 705 lines.
 #pragma once
 
 namespace tr {
@@ -337,7 +337,8 @@ FirstPersonRoomscaleDeadzoneMetres=0.02
 ; Legacy stick-ramp setting, ignored by direct body drag.
 FirstPersonRoomscaleFullMetres=0.45
 ; Estimated horizontal neck-to-head distance. Prevents turning in place from
-; producing a roomscale step; 0 disables the correction.
+; producing a roomscale step or duplicating Lara's animated head arc in the
+; first-person camera; 0 disables the correction.
 FirstPersonRoomscaleNeckMetres=0.15
 
 ; Optional simulation heading, jump-state and requested/accepted drag log.
@@ -623,9 +624,9 @@ DpadShift=1
 ; Hold Y + LT for this many seconds to send the Xbox Menu button (XInput START).
 ;
 ; Touch has no Start or Back of its own, so both have to come from somewhere.
-; The System button on the left hand's lower face sends one of them (see
 )INI"
-           R"INI(; GamepadMenuUsesBack); this chord reaches the other without spending a button.
+           R"INI(; The System button on the left hand's lower face sends one of them (see
+; GamepadMenuUsesBack); this chord reaches the other without spending a button.
 ;
 ; The hold is what separates the chord from real play: Y is Action and LT is
 ; Equip, so the pair does occur naturally. One second is comfortable but IS

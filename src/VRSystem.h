@@ -54,7 +54,9 @@ public:
     void RecenterHead();
 
     // Horizontal body request in tracking metres (+x right, +z FORWARD),
-    // corrected for the estimated neck-to-HMD arc. Eye tracking stays raw.
+    // corrected for the estimated neck-to-HMD arc. First-person rendering uses
+    // the same horizontal correction because Lara's animated head already
+    // supplies that arc; vertical tracking remains raw.
     void HeadFloorOffset(float& right, float& forward) const;
     void ConsumeHeadFloorOffset(float right, float forward);
     // Keep the current eye position fixed while turning the virtual world.

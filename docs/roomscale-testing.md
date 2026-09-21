@@ -11,7 +11,9 @@ FirstPersonRoomscaleNeckMetres=0.15 estimates the horizontal neck-to-HMD pivot.
    then diagonally. Lara's body should drag with you without starting a walk
    animation. Test slowly and briskly. Stopping should stop displacement.
 3. Turn physically 90/180/360 degrees while staying in place. Lara should turn
-   without a forward walk. Repeat physical side steps after each rotation.
+   without a forward walk, and the view should remain centred in her body at
+   intermediate angles rather than returning only at 360 degrees. Repeat
+   physical side steps after each rotation.
 4. Repeat with right-stick turns and combined physical/artificial rotation.
    Lean sideways while turning: the eye should not orbit the old neutral or
    drift off-centre from Lara before the rotation reaches 360 degrees.

@@ -560,9 +560,11 @@ static void TestLocomotion() {
         const float yaw = degrees * Pi / 180;
         const Vec initialHead = NeckToHead(neutralYaw, neck);
         const Vec currentHead = NeckToHead(yaw, neck);
-        const Vec corrected = currentHead - initialHead
-            - (NeckToHead(yaw, neck) - NeckToHead(neutralYaw, neck));
+        const Vec rawArc = currentHead - initialHead;
+        const Vec corrected = NeckFloorOffset(rawArc,
+            NeckToHead(yaw, neck) - NeckToHead(neutralYaw, neck));
         stationaryTurn &= Length(DragRequest(corrected, .02f)) < 1e-5f;
+        stationaryTurn &= Length(corrected) < 1e-5f; // rendered horizontal translation too
         for (float base : {0.0f, Pi/2, -Pi/2, Pi}) {
             // Translation plus rotation retains exactly the physical step,
             // including a sideways step after an arbitrary artificial turn.
@@ -580,7 +582,7 @@ static void TestLocomotion() {
             }
         }
     }
-    Check(stationaryTurn, "neck-pivot rotation requests no body translation through 360 degrees");
+    Check(stationaryTurn, "physical rotation produces no duplicate camera/body neck arc through 360 degrees");
     Check(lateralDrag, "direct sideways drag remains lateral after physical and artificial turns");
     Check(jumpHeading, "compression and forward flight keep the HMD direction after every turn");
     Check(!IsJumpSteeringState(13), "jump steering excludes hanging interactions");
