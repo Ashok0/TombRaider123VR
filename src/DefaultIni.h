@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 34681 bytes, 705 lines.
+// Source: TombRaiderVR.ini, 34706 bytes, 705 lines.
 #pragma once
 
 namespace tr {
@@ -288,10 +288,10 @@ FirstPerson=0
 ; Which joint is the head, and where inside it the viewpoint sits.
 ;
 ; Joint 14 is the head in all three games. The offset is in world units in the
-; joint's own frame, relative to its neck pivot: -Y is up, +Z is forward, so
-; the default sits slightly above and ahead of the pivot -- about where her
-; eyes are. Raise -Y if you feel too low in the skull; increase +Z to move the
-; viewpoint forward towards the face.
+; joint's own frame, relative to its neck pivot: -Y is up and +Z is forward.
+; The forward default brings Lara's visible torso underneath the player.
+; Raise -Y if the view feels too low; increase +Z to move the body farther back
+; relative to the viewpoint, or decrease it to move the body forward.
 ;
 ; A joint index that is not the head is caught: if the resolved point lands
 ; more than four sectors from Lara the frame falls back to the game camera and
@@ -299,7 +299,7 @@ FirstPerson=0
 FirstPersonJoint=14
 FirstPersonAnchorX=0
 FirstPersonAnchorY=-32
-FirstPersonAnchorZ=16
+FirstPersonAnchorZ=144
 
 ; First person uses a stable tracking-to-world heading. Physical turns and the
 ; right stick steer that heading; the chase camera cannot steer it back.
@@ -330,9 +330,9 @@ FirstPersonMoveWithHead=1
 ; Physical movement directly drags Lara through native collision queries.
 ; It never generates analog-stick input or walking animations. Both control
 ; schemes support sideways/diagonal drag and simultaneous manual movement.
-; Translation must be on; the deadzone allows a small amount of leaning.
 )INI"
-           R"INI(FirstPersonRoomscaleMove=1
+           R"INI(; Translation must be on; the deadzone allows a small amount of leaning.
+FirstPersonRoomscaleMove=1
 FirstPersonRoomscaleDeadzoneMetres=0.02
 ; Legacy stick-ramp setting, ignored by direct body drag.
 FirstPersonRoomscaleFullMetres=0.45
@@ -623,9 +623,9 @@ DpadShift=1
 
 ; Hold Y + LT for this many seconds to send the Xbox Menu button (XInput START).
 ;
-; Touch has no Start or Back of its own, so both have to come from somewhere.
 )INI"
-           R"INI(; The System button on the left hand's lower face sends one of them (see
+           R"INI(; Touch has no Start or Back of its own, so both have to come from somewhere.
+; The System button on the left hand's lower face sends one of them (see
 ; GamepadMenuUsesBack); this chord reaches the other without spending a button.
 ;
 ; The hold is what separates the chord from real play: Y is Action and LT is

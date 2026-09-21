@@ -142,15 +142,14 @@ struct Config {
     // her animations move your head for you.
     bool  firstPerson           = false;
 
-    // Which joint to anchor to, and where inside it. Joint 14 is Lara's head
-    // in all three games. The offset is relative to the joint's neck pivot, in
-    // world units, in the joint's own frame: -Y is up, +Z is forward, so the
-    // default sits a little above and in front of the pivot -- roughly where
-    // her eyes are rather than in her throat.
+    // Which joint to anchor to, and the avatar-fit offset from it. Joint 14 is
+    // Lara's head in all three games. The offset is in world units in the
+    // joint's own frame: -Y is up and +Z is forward. The forward default puts
+    // her visible torso underneath the player instead of ahead of the view.
     int   firstPersonJoint      = 14;
     int   firstPersonAnchorX    = 0;
     int   firstPersonAnchorY    = -32;
-    int   firstPersonAnchorZ    = 16;
+    int   firstPersonAnchorZ    = 144;
 
     // Legacy setting, retained for old ini files. First person now always uses
     // a stable tracking-to-world yaw, independent of the chase camera/body.
