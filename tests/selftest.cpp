@@ -547,9 +547,42 @@ static void TestLocomotion() {
               "combined physical and stick turn cannot orbit the eye around Lara");
     CheckNear(Length(PivotFloorOffset(rawEye, neckArc, 2 * Pi) - rawEye), 0,
               "full artificial rotation returns the same floor offset");
-    Check(EngineOwnsMovingFacing(true, {-1, 0}), "manual modern movement owns facing");
-    Check(!EngineOwnsMovingFacing(false, {-1, 0}), "tank controls keep HMD body following");
-    Check(!EngineOwnsMovingFacing(true, {}), "roomscale with idle stick keeps HMD facing");
+    Check(MovementAction({0, 1}) == Forward, "forward stick selects native forward movement");
+    Check(MovementAction({0, -1}) == (Back | Walk),
+          "back stick selects native backpedal instead of fast-back hop");
+    Check(MovementAction({-1, 0}) == StepLeft, "left stick selects native left sidestep");
+    Check(MovementAction({1, 0}) == StepRight, "right stick selects native right sidestep");
+    Check(MovementAction({-1, 0}, true) == Left,
+          "left stick becomes native left direction while preparing a jump");
+    Check(MovementAction({1, 0}, true) == Right,
+          "right stick becomes native right direction while preparing a jump");
+    Check(MovementAction({.7f, .8f}) == Forward,
+          "a forward-dominant diagonal keeps the forward animation");
+    Check(MovementAction({-.8f, .7f}) == StepLeft,
+          "a lateral-dominant diagonal keeps the sidestep animation");
+    Check(MovementAction({}) == 0, "centred stick adds no movement action");
+    Check(DirectionalRootScale(StepLeft, false) == 3,
+          "native sidestep root motion scales to running pace");
+    Check(DirectionalRootScale(Back | Walk, false) == 3,
+          "native backpedal root motion scales to running pace");
+    Check(DirectionalRootScale(Forward, false) == 1,
+          "forward run keeps the engine's normal root motion");
+    Check(DirectionalRootScale(StepRight, true) == 1,
+          "jump preparation never receives scaled root motion");
+    CheckNear(Length(CardinalMovement({.6f, .8f}) - Vec{0, 1}), 0,
+              "forward-dominant analog is cardinalised without losing magnitude");
+    CheckNear(Length(CardinalMovement({-.8f, .6f}) - Vec{-1, 0}), 0,
+              "lateral-dominant analog is cardinalised without losing magnitude");
+    for (float head : {-Pi, -Pi / 2, 0.0f, Pi / 2, Pi - .001f}) {
+        const Vec backward = MovementWorld({0, -1}, head);
+        const float yaw = MovementYaw({0, -1}, head);
+        CheckNear(Length(Vec{std::sin(yaw), std::cos(yaw)} - backward), 0,
+                  "backpedal root-motion angle remains backward after every turn", 1e-5f);
+        const Vec left = MovementWorld({-1, 0}, head);
+        const float leftYaw = MovementYaw({-1, 0}, head);
+        CheckNear(Length(Vec{std::sin(leftYaw), std::cos(leftYaw)} - left), 0,
+                  "sidestep root-motion angle remains lateral after every turn", 1e-5f);
+    }
     CheckNear(Length(Limit({1, 1})), 1, "combined diagonal input uses radial limiting");
 
     // Physically turn about a neck pivot through a complete revolution. The

@@ -100,6 +100,7 @@ struct GameDllLayout {
     uint32_t analogInput;       // ANALOG_INPUT_INFO; camTurn at +4
     uint32_t input;             // decoded action bits, after Modern conversion
     uint32_t laraAboveWater;    // simulation entry, after LaraControl decodes input
+    uint32_t animateLara;       // advances Lara's animation and root motion
     uint32_t getCollisionInfo;
     uint32_t updateLaraRoom;
 };

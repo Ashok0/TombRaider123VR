@@ -33,6 +33,7 @@ constexpr uint32_t item_mesh_bits   = 12;    // uint32, one bit per mesh
 constexpr uint32_t item_object_number = 16;  // int16
 constexpr uint32_t item_anim_state    = 18;  // int16
 constexpr uint32_t item_room_number = 28;    // int16
+constexpr uint32_t item_speed       = 34;    // int16
 constexpr uint32_t item_hit_points    = 38;  // int16
 constexpr uint32_t item_pos         = 88;    // PHD_3DPOS, this tick
 constexpr uint32_t item_pos_prev    = 108;   // PHD_3DPOS, the previous tick
@@ -74,11 +75,13 @@ typedef void (__cdecl* Fn_GenerateW2V)(PHD_3DPOS*);
 typedef void (__cdecl* Fn_DrawCreatureHD)(void*, int32_t);
 typedef void (__cdecl* Fn_DrawHair)(int32_t);
 typedef void (__cdecl* Fn_LaraAboveWater)(uint8_t*, void*);
+typedef void (__cdecl* Fn_AnimateLara)(uint8_t*);
 
 hook::InlineHook g_hGenerateW2V;
 hook::InlineHook g_hDrawCreatureHD;
 hook::InlineHook g_hDrawHair;
 hook::InlineHook g_hLaraAboveWater;
+hook::InlineHook g_hAnimateLara;
 
 // Lara's head is mesh 14 of 15 in all three games -- the same index the camera
 // anchors to, because the HD skeleton's first meshes line up with the classic
@@ -128,11 +131,12 @@ bool g_haveHeading = false;
 uint8_t* g_headingItem = nullptr;
 locomotion::Vec g_previousBody;
 float g_lastHeadWorld = 0;
-bool g_engineOwnsMovingFacing = false;
+locomotion::Vec g_manualLocal;
 locomotion::Vec g_manualWorld;
 bool g_haveManualInput = false;
 bool g_shifted = false;
 bool g_jumpPressed = false;
+int g_directionalRootScale = 1;
 locomotion::Vec g_dragPrevious, g_dragCurrent, g_dragShown;
 LARGE_INTEGER g_inputTime{}, g_bodyTime{};
 
@@ -365,8 +369,7 @@ void __cdecl Detour_DrawHair(int32_t arg) {
 }
 
 void TurnBodyToHead(uint8_t* item, float dt) {
-    if (!Cfg().firstPersonBodyFollowsHead || !CanWalk(item) ||
-        g_engineOwnsMovingFacing)
+    if (!Cfg().firstPersonBodyFollowsHead || !CanWalk(item))
         return;
     using namespace locomotion;
     auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
@@ -448,6 +451,28 @@ locomotion::Vec DragBody(uint8_t* item) {
     return actual * (1 / scale);
 }
 
+// Classic sidestep/backpedal root motion advances at walking speed. Keep the
+// skeleton at one animation tick (multiple ticks made the first-person body
+// and animated head visibly stutter), then scale only that tick's horizontal
+// displacement before the native collision routine sees it. At about 45 units
+// the resulting sweep remains shorter than Lara's 100-unit collision radius.
+void __cdecl Detour_AnimateLara(uint8_t* item) {
+    auto original = g_hAnimateLara.Original<Fn_AnimateLara>();
+    const int scale = item && item == g_headingItem
+        ? std::clamp(g_directionalRootScale, 1, 3) : 1;
+    if (scale == 1) {
+        original(item);
+        return;
+    }
+    auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
+    const int32_t oldX = pos.x_pos, oldZ = pos.z_pos;
+    original(item); // exactly one skeletal/animation-frame update
+    pos.x_pos = oldX + (pos.x_pos - oldX) * scale;
+    pos.z_pos = oldZ + (pos.z_pos - oldZ) * scale;
+    auto& speed = *reinterpret_cast<int16_t*>(item + off::item_speed);
+    speed = static_cast<int16_t>(std::clamp<int>(speed * scale, -32768, 32767));
+}
+
 void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     using namespace locomotion;
     g_dragPrevious = g_dragCurrent;
@@ -460,25 +485,47 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
         auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
         auto* analog = Ptr<int16_t>(g_boundDll->analogInput);
         auto& input = *Ptr<uint32_t>(g_boundDll->input);
-        if ((ground || jump) && g_haveManualInput && NewControls()) {
+        if ((ground || jump) && g_haveManualInput) {
             // This runs AFTER inputGet's axial deadzones and LaraControl's
             // direction-bit conversion. Keep a single heading through stop,
             // compression and forward-jump; neither old camera yaw nor the
             // per-axis deadzone may rotate the requested direction.
             analog[2] = analog[3] = Angle(head); // camTurn, oldCamTurn
             if (Length(g_manualWorld) > 0 && !g_shifted) {
+                const Vec directionalWorld = MovementWorld(g_manualLocal, head);
                 const float magnitude = std::sqrt(float(analog[0]) * analog[0] +
                                                    float(analog[1]) * analog[1]);
                 if (magnitude > 0) {
-                    const Vec decoded = SimulationStick(g_manualWorld, head, magnitude);
+                    // Native ground gaits are cardinal relative to Lara/HMD.
+                    // Cardinalising the analog vector as well as its action
+                    // bit prevents ModernControlsRotation from turning a
+                    // forward-dominant diagonal away from the headset.
+                    const Vec steeringWorld = (ground || state == 15)
+                        ? directionalWorld : g_manualWorld;
+                    const Vec decoded = SimulationStick(steeringWorld, head, magnitude);
                     analog[0] = static_cast<int16_t>(std::round(decoded.x));
                     analog[1] = static_cast<int16_t>(std::round(decoded.z));
                 }
-                if ((ground && g_jumpPressed) || state == 15) {
-                    pos.y_rot = Angle(std::atan2(g_manualWorld.x, g_manualWorld.z));
+                // Keep Lara facing the HMD and choose a native animation for
+                // the direction relative to it. Ground-left/right are real
+                // sidesteps; during compression they become native side-jump
+                // directions. The airborne forward-jump path keeps the launch
+                // heading established here.
+                if (ground || state == 15) {
+                    const bool preparingJump = (ground && g_jumpPressed) || state == 15;
+                    const uint32_t action = MovementAction(g_manualLocal, preparingJump);
+                    pos.y_rot = Angle(head);
                     *Ptr<int16_t>(g_boundDll->lara + 252) = 0; // turn_rate
-                    *Ptr<int16_t>(g_boundDll->lara + 254) = pos.y_rot; // move_angle
-                    input = (input & ~Directions) | Forward;
+                    // AnimateLara consumes move_angle before the native
+                    // collision routine gets a chance to set it. Publishing
+                    // the selected direction here prevents side/back gaits
+                    // from taking one slow forward step every frame.
+                    *Ptr<int16_t>(g_boundDll->lara + 254) =
+                        Angle(MovementYaw(g_manualLocal, head));
+                    input = (input & ~Directions) | action;
+                    if (ground)
+                        g_directionalRootScale =
+                            DirectionalRootScale(action, preparingJump);
                 }
             }
         }
@@ -502,6 +549,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
         }
     }
     g_hLaraAboveWater.Original<Fn_LaraAboveWater>()(item, nativeCollision);
+    g_directionalRootScale = 1;
 }
 
 void UpdateLocomotion(PHD_3DPOS& pose) {
@@ -529,7 +577,6 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         g_heading.Align(facing, VR().HeadYawRadians());
         g_haveHeading = true;
         g_headingItem = item;
-        g_engineOwnsMovingFacing = false;
         g_haveManualInput = false;
         g_dragPrevious = g_dragCurrent = g_dragShown = {};
         g_inputTime = g_bodyTime = {};
@@ -545,7 +592,6 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         Vec pending;
         VR().HeadFloorOffset(pending.x, pending.z);
         VR().ConsumeHeadFloorOffset(pending.x, pending.z);
-        g_engineOwnsMovingFacing = false;
     }
     TurnBodyToHead(item, Elapsed(g_bodyTime));
     pose.y_rot = Angle(g_heading.base);
@@ -580,7 +626,6 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         if (g_active) UpdateLocomotion(*pose);
         else {
             g_haveHeading = false;
-            g_engineOwnsMovingFacing = false;
             g_haveManualInput = false;
             g_dragPrevious = g_dragCurrent = g_dragShown = {};
             g_neutralTaken = false;
@@ -593,13 +638,28 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
 bool Install(const GameDllLayout& d, uint64_t base) {
     if (d.phdGenerateW2V == 0 || d.w2vSceneReturn == 0 ||
         d.frameFrac == 0 || d.laraItem == 0 || d.analogInput == 0 ||
-        !d.input || !d.laraAboveWater || !d.getCollisionInfo || !d.updateLaraRoom)
+        !d.input || !d.laraAboveWater || !d.animateLara ||
+        !d.getCollisionInfo || !d.updateLaraRoom)
         return false;
     const uint8_t movementPrologue[] = {0x48, 0x89, 0x5C, 0x24,
         static_cast<uint8_t>(d.module[4] == L'1' ? 0x08 : d.module[4] == L'2' ? 0x10 : 0x18)};
     if (!g_hLaraAboveWater.Install(reinterpret_cast<void*>(base + d.laraAboveWater),
             reinterpret_cast<void*>(&Detour_LaraAboveWater), 5,
             movementPrologue, sizeof(movementPrologue), "LaraAboveWater")) return false;
+    const uint8_t animate1[] = {0x48, 0x89, 0x7C, 0x24, 0x20};
+    const uint8_t animate2[] = {0x57, 0x41, 0x54, 0x41, 0x57};
+    const uint8_t animate3[] = {0x57, 0x41, 0x54, 0x41, 0x55};
+    const uint8_t animate2Retail[] = {0x40, 0x57, 0x41, 0x54, 0x41, 0x57};
+    const uint8_t animate3Retail[] = {0x40, 0x57, 0x41, 0x54, 0x41, 0x55};
+    const bool stock = d.timestamp == 0x6A4B48FF || d.timestamp == 0x6A4B4915 ||
+                       d.timestamp == 0x6A4B490D;
+    const uint8_t* animatePrologue = d.module[4] == L'1' ? animate1 :
+        d.module[4] == L'2' ? (stock ? animate2 : animate2Retail) :
+                              (stock ? animate3 : animate3Retail);
+    const size_t animateBytes = d.module[4] == L'1' || stock ? 5 : 6;
+    if (!g_hAnimateLara.Install(reinterpret_cast<void*>(base + d.animateLara),
+            reinterpret_cast<void*>(&Detour_AnimateLara), animateBytes,
+            animatePrologue, animateBytes, "AnimateLara")) return false;
     if (!g_hGenerateW2V.Install(
             reinterpret_cast<void*>(base + d.phdGenerateW2V),
             reinterpret_cast<void*>(&Detour_GenerateW2V),
@@ -633,14 +693,15 @@ bool Install(const GameDllLayout& d, uint64_t base) {
 void Remove() {
     SetHeadHidden(false);          // give her head back before letting go
     g_hLaraAboveWater.Remove();
+    g_hAnimateLara.Remove();
     g_hDrawHair.Remove();
     g_hDrawCreatureHD.Remove();
     g_hGenerateW2V.Remove();
     g_active     = false;
     g_haveHeading = false;
     g_headingItem = nullptr;
-    g_engineOwnsMovingFacing = false;
     g_haveManualInput = false;
+    g_directionalRootScale = 1;
     g_dragPrevious = g_dragCurrent = g_dragShown = {};
     g_neutralTaken = false;
     g_boundDll   = nullptr;
@@ -714,7 +775,6 @@ void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
                       bool jumpPressed) {
     using namespace locomotion;
     g_haveManualInput = false;
-    g_engineOwnsMovingFacing = false;
     g_shifted = shifted;
     g_jumpPressed = jumpPressed;
     if (!g_active || !g_haveHeading || !Gate()) {
@@ -737,6 +797,7 @@ void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
     rightX = 0;
     Vec manual{leftX, leftY};
     if (Length(manual) < 0.20f || shifted) manual = {};
+    g_manualLocal = manual;
     const float inputYaw = Radians(*Ptr<int16_t>(g_boundDll->analogInput + 4));
     g_manualWorld = Rotate(manual, Cfg().firstPersonMoveWithHead ? headWorld : inputYaw);
     g_haveManualInput = true;
@@ -744,7 +805,6 @@ void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
         const Vec result = Limit(Rotate(g_manualWorld, -inputYaw));
         leftX = result.x;
         leftY = result.z;
-        g_engineOwnsMovingFacing = EngineOwnsMovingFacing(true, manual);
     } else {
         leftX = manual.x;
         leftY = manual.z;

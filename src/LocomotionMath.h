@@ -50,18 +50,43 @@ inline Vec SimulationStick(Vec world, float frameYaw, float decodedMagnitude) {
 constexpr uint32_t Forward = 1, Back = 2, Left = 4, Right = 8;
 constexpr uint32_t Walk = 0x80, StepLeft = 0x400, StepRight = 0x800;
 constexpr uint32_t Directions = Forward | Back | Left | Right | StepLeft | StepRight;
+inline Vec CardinalMovement(Vec stick) {
+    const float magnitude = Length(stick);
+    if (magnitude <= 0.0001f) return {};
+    if (std::fabs(stick.x) > std::fabs(stick.z))
+        return {std::copysign(magnitude, stick.x), 0};
+    return {0, std::copysign(magnitude, stick.z)};
+}
+inline Vec MovementWorld(Vec stick, float heading) {
+    return Rotate(CardinalMovement(stick), heading);
+}
+inline float MovementYaw(Vec stick, float heading) {
+    const Vec world = MovementWorld(stick, heading);
+    return std::atan2(world.x, world.z);
+}
+// First-person movement keeps Lara facing the HMD. On the ground, lateral
+// stick input therefore has to select the game's dedicated sidestep actions;
+// ordinary Left/Right would turn her and make the forward-run animation do all
+// four directions. Compression uses ordinary Left/Right for native side jumps.
+inline uint32_t MovementAction(Vec stick, bool preparingJump = false) {
+    if (Length(stick) <= 0.0001f) return 0;
+    if (std::fabs(stick.x) > std::fabs(stick.z)) {
+        if (stick.x < 0) return preparingJump ? Left : StepLeft;
+        return preparingJump ? Right : StepRight;
+    }
+    // Back alone selects the classic fast-back hop. Walk+Back is Lara's
+    // continuous backward-walk state, which is the intended backpedal here.
+    return stick.z < 0 ? (Back | Walk) : Forward;
+}
+inline int DirectionalRootScale(uint32_t action, bool preparingJump) {
+    if (preparingJump) return 1;
+    const uint32_t direction = action & Directions;
+    return direction == Back || direction == StepLeft || direction == StepRight ? 3 : 1;
+}
 inline Vec DragRequest(Vec pending, float dead) {
     const float n = Length(pending);
     return n > std::max(0.0f, dead) && n > 0.0001f
         ? pending * ((n - std::max(0.0f, dead)) / n) : Vec{};
-}
-// Modern controls turn Lara toward the requested movement vector. Body-follow
-// must stand down while that happens or a lateral request is forced back to
-// the HMD facing and becomes forward travel. Tank controls still need the VR
-// heading to own her facing because their axes are actions rather than a
-// camera-relative direction.
-inline bool EngineOwnsMovingFacing(bool modern, Vec manual) {
-    return modern && Length(manual) > 0.0001f;
 }
 struct Heading {
     float base = 0; // tracking forward -> world; never follows the chase camera

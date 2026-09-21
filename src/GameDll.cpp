@@ -69,6 +69,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* analogInput     */ 0x0041DFE0,
           /* input           */ 0x0041DD94,
           /* LaraAboveWater  */ 0x00020EA0,
+          /* AnimateLara     */ 0x00029E70,
           /* GetCollisionInfo*/ 0x00006690,
           /* UpdateLaraRoom  */ 0x00007590 },
 
@@ -103,6 +104,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* analogInput     */ 0x004330A0,
           /* input           */ 0x004331E0,
           /* LaraAboveWater  */ 0x0003E9C0,
+          /* AnimateLara     */ 0x00054290,
           /* GetCollisionInfo*/ 0x0000A3C0,
           /* UpdateLaraRoom  */ 0x0000B370 },
 
@@ -137,6 +139,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* analogInput     */ 0x00491F40,
           /* input           */ 0x00491F74,
           /* LaraAboveWater  */ 0x00058810,
+          /* AnimateLara     */ 0x00076F90,
           /* GetCollisionInfo*/ 0x00016D30,
           /* UpdateLaraRoom  */ 0x00017F20 },
     },
@@ -179,6 +182,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* analogInput     */ 0x0041EF20,
           /* input           */ 0x0041ECD4,
           /* LaraAboveWater  */ 0x00020FE0,
+          /* AnimateLara     */ 0x0002A010,
           /* GetCollisionInfo*/ 0x00006690,
           /* UpdateLaraRoom  */ 0x00007570 },
 
@@ -213,6 +217,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* analogInput     */ 0x00432FE0,
           /* input           */ 0x00433120,
           /* LaraAboveWater  */ 0x0003E950,
+          /* AnimateLara     */ 0x00054300,
           /* GetCollisionInfo*/ 0x0000A3C0,
           /* UpdateLaraRoom  */ 0x0000B350 },
 
@@ -247,6 +252,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* analogInput     */ 0x00494E80,
           /* input           */ 0x00494EB4,
           /* LaraAboveWater  */ 0x00058A20,
+          /* AnimateLara     */ 0x00076F50,
           /* GetCollisionInfo*/ 0x00016F20,
           /* UpdateLaraRoom  */ 0x00018110 },
     },

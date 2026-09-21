@@ -43,6 +43,17 @@ for directory in [ROOT / "PDB"] + [pathlib.Path(p) for p in sys.argv[1:]]:
         above = fields['LaraAboveWater']
         expected = bytes.fromhex('48 89 5c 24') + bytes([8 * int(name[4])])
         assert data[above:above+5] == expected, (name, 'movement hook prologue')
+        animate = fields['AnimateLara']
+        if name == 'tomb1.dll':
+            animation_prologue = bytes.fromhex('48 89 7c 24 20')
+        elif name == 'tomb2.dll':
+            animation_prologue = bytes.fromhex(
+                '40 57 41 54 41 57' if data[animate] == 0x40 else '57 41 54 41 57')
+        else:
+            animation_prologue = bytes.fromhex(
+                '40 57 41 54 41 55' if data[animate] == 0x40 else '57 41 54 41 55')
+        assert data[animate:animate+len(animation_prologue)] == animation_prologue, \
+            (name, 'AnimateLara hook prologue')
         # Validate native helper targets by CALL instructions in their callers,
         # independently of table adjacency or a guessed build-wide delta.
         md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -71,4 +82,5 @@ for directory in [ROOT / "PDB"] + [pathlib.Path(p) for p in sys.argv[1:]]:
             if fields['GetCollisionInfo'] in calls_at(rva):
                 collision_calls.append(rva)
         assert collision_calls, (name, 'no standing-height collision caller')
-        print(f"  input=0x{decoded_input:08X} simulation=0x{above:08X} collision/room calls verified")
+        print(f"  input=0x{decoded_input:08X} simulation=0x{above:08X} "
+              f"animation=0x{animate:08X} collision/room calls verified")

@@ -156,7 +156,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
           'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
           'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
-          'input', 'LaraAboveWater', 'GetCollisionInfo', 'UpdateLaraRoom']
+          'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to

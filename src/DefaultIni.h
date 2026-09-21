@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 34706 bytes, 705 lines.
+// Source: TombRaiderVR.ini, 34751 bytes, 705 lines.
 #pragma once
 
 namespace tr {
@@ -322,9 +322,9 @@ FirstPersonBodyTurnDegreesPerFrame=4
 FirstPersonTurnDegreesPerSecond=120
 FirstPersonTurnDeadzone=0.25
 
-; Modern controls: left-stick forward follows HMD world heading, including
-; after physical and stick turns. Select Modern controls for full analog
-; movement in any horizontal direction.
+; Manual movement follows HMD world heading after physical and stick turns.
+; Forward uses Lara's forward gait, back uses backpedal, and horizontal input
+; uses her native sidestep animations. Diagonals use their dominant axis.
 FirstPersonMoveWithHead=1
 
 ; Physical movement directly drags Lara through native collision queries.

@@ -819,10 +819,12 @@ of trying to catch up stale state.
 
 #### Body facing and jumps
 
-Idle ground states follow the HMD heading. Manual Modern-control movement gives
-facing to the game's directional locomotion. Direct roomscale dragging leaves
-facing under HMD control, so a physical sideways step moves Lara sideways while
-she keeps looking where the headset looks.
+Idle ground states and manual first-person movement follow the HMD heading.
+Manual forward input selects Lara's native forward walk/run, backward selects
+her backpedal, and horizontal input selects her dedicated left/right sidestep
+states. Lara no longer turns toward a lateral or backward input and reuses the
+forward-run animation. Direct roomscale dragging remains separate, so a
+physical sideways step moves Lara sideways without starting any gait animation.
 
 The previous jump-button yaw snap was incomplete. `lara_as_compress` (state 15)
 and `lara_as_forwardjump` (state 3) both recompute direction from `analogInput`.
@@ -834,22 +836,43 @@ The new `LaraAboveWater` hook runs at the simulation boundary, after
 `camTurn`/`oldCamTurn` and corrects the signed analog vector after the game's
 per-axis deadzones. This continues through compression and forward flight.
 A directional jump aligns body yaw and `lara.move_angle` and clears residual
-`lara.turn_rate` before launch. Airborne steering remains an engine operation
-using that consistent input frame. Swimming, climbing, hanging and scripted
-interactions retain their native controls.
+`lara.turn_rate` before launch. During compression, lateral stick directions
+use the engine's ordinary Left/Right actions so its native side-jump selection
+still works; forward continues to launch along HMD forward. Airborne steering
+remains an engine operation using that consistent input frame. Swimming,
+climbing, hanging and scripted interactions retain their native controls.
 
 #### Manual analog movement
 
-The merged Touch/Xbox left stick supplies manual intent. Forward means HMD
-forward under Modern controls, including after physical and right-stick turns.
-The gamepad pass converts it to the current engine input frame; the simulation
-pass corrects the decoded vector so per-axis deadzones cannot bend its direction.
-Roomscale displacement is never added to this stick. Right-stick yaw updates
-the persistent VR heading and is consumed during ground locomotion, compression
-and forward jumps.
+The merged Touch/Xbox movement axes supply manual intent. Forward means HMD
+forward, including after physical and right-stick turns. At the simulation
+boundary, the dominant stick axis selects one native action: forward, backpedal,
+sidestep-left or sidestep-right. A forward-dominant diagonal remains forward;
+a lateral-dominant diagonal remains a sidestep. This prevents Modern controls
+from rotating Lara toward every movement vector and showing a forward run while
+travelling sideways or backward.
 
-Tank controls keep their native manual actions. Physical body dragging works
-in both control schemes, including diagonal movement and concurrent stick use.
+The gamepad pass converts the vector to the current engine input frame; the
+simulation pass corrects it after per-axis deadzones, restores HMD-facing body
+yaw, clears residual turn rate, publishes the selected world direction through
+`lara.move_angle` before root motion, and replaces only the direction action bits.
+Jump and other buttons remain intact; backward also adds the native Walk
+modifier because `Back` alone selects the classic fast-back hop rather than a
+continuous backpedal. This direction routing applies to
+both control schemes while first person is active. Roomscale displacement is
+never added to the stick. Right-stick yaw continues to update the persistent VR
+heading. Physical body dragging works in both schemes, including diagonal
+movement and concurrent stick use.
+
+The classic sidestep and backward-walk states normally advance at walking pace.
+While one of these first-person directions is held on the ground, the
+`AnimateLara` hook advances exactly one animation frame and scales only that
+frame's horizontal root displacement by three before collision. This yields
+roughly forward-running travel speed without skipping skeletal/head frames;
+the earlier three-animation-ticks approach caused severe first-person stutter.
+Forward movement and all jump states retain the engine's normal root motion.
+The normal Lara collision routine still handles the resulting movement every
+simulation tick.
 
 #### Direct roomscale body dragging
 
@@ -896,6 +919,9 @@ still cross nearby geometry.
 | turning in place produces movement | headset traces an arc around the neck and exceeds the translation deadzone | subtract the estimated rotational arc from the body request |
 | stationary physical turn moves the view off-centre until 360 degrees | Lara's animated head arc and the raw tracked eye arc were both applied | remove the estimated arc from first-person horizontal rendering as well as body drag |
 | combined physical/right-stick turn moves the player off-centre until 360 degrees | artificial pivot rotated the neck-to-eye arc as if it were room translation | pivot only translated neck position and keep the eye arc attached to Lara's facing |
+| manual left/right/back movement shows a twisted forward run | Modern controls rotate Lara into the travel vector and use forward locomotion for every direction | hold body yaw to the HMD and select native sidestep/backpedal action bits |
+| sidestep/backpedal creeps forward slowly | the hook reset `lara.move_angle` to body-forward before root motion, and the native gaits use walking speed | publish the selected side/back world angle and scale one frame's horizontal root displacement |
+| side/back movement stutters while forward is smooth | accelerating the gait by processing three complete animation frames per simulation tick made the body/head skip frames | process one animation frame and scale only its collision-tested root displacement |
 | physical steps drift or depend on frame rate | fixed neutral consumption or attribution from manual movement | consume only accepted drag, using body interpolation |
 
 #### Implementation and address verification
@@ -930,6 +956,18 @@ layouts are verified. The retail collision and room functions were matched
 against the symbol-bearing build and checked through native callers. The
 simulation hook validates each game's five-byte prologue before installation.
 
+Directional gait speed adds the `AnimateLara` hook. Its checked RVAs are:
+
+| DLL | PDB build | Aspyr retail / Gold |
+|---|---:|---:|
+| `tomb1.dll` | `0x00029E70` | `0x0002A010` |
+| `tomb2.dll` | `0x00054290` | `0x00054300` |
+| `tomb3.dll` | `0x00076F90` | `0x00076F50` |
+
+The hook validates the different TR1/TR2/TR3 and stock/retail instruction
+windows before patching. `tools/verify_locomotion.py` independently checks each
+address and prologue in all six binaries.
+
 With `FirstPersonDriftLog=1`, simulation diagnostics report `state`, `head`,
 `body`, `cam`, the manual world vector, pending physical displacement, accepted
 `drag` in metres and decoded action bits. Lines are emitted twice a second and
@@ -950,7 +988,7 @@ forward jump, `head` and `cam` should agree even after turning.
 | `FirstPersonBodyTurnDegreesPerFrame` | `4` | 60 Hz legacy rate, scaled by elapsed time |
 | `FirstPersonTurnDegreesPerSecond` | `120` | smooth right-stick turning speed |
 | `FirstPersonTurnDeadzone` | `0.25` | right-stick turn dead zone |
-| `FirstPersonMoveWithHead` | `1` | Modern-control left-stick forward follows HMD heading |
+| `FirstPersonMoveWithHead` | `1` | manual direction follows HMD heading; ground lateral/back input uses native sidestep/backpedal |
 | `FirstPersonRoomscaleMove` | `1` | physical floor displacement directly drags the body |
 | `FirstPersonRoomscaleDeadzoneMetres` | `0.02` | small lean allowance before body dragging |
 | `FirstPersonRoomscaleNeckMetres` | `0.15` | estimated horizontal neck-to-HMD distance |
@@ -966,19 +1004,26 @@ ignored.
 
 `tests/build_selftest.cmd` checks independent physical/stick turns, render and
 movement heading agreement, pitch/roll isolation, neck-pivot rotation, lateral
-drag at arbitrary physical/artificial headings, and consistent steering in
+drag at arbitrary physical/artificial headings, native forward/backpedal/
+sidestep selection, jump-direction selection, and consistent steering in
 compression and forward flight. These checks validate math and state selection;
 they do not run the game engine or a headset.
 
-`tools/verify_addresses.py` passes all 424 PDB/address/layout checks.
-`tools/verify_locomotion.py` checks the PDB and installed retail input, simulation
-hook, collision and room-update addresses against their native callers.
+`tools/verify_addresses.py` passes all 427 PDB/address/layout checks and all 689
+checks when run with the matched retail images.
+`tools/verify_locomotion.py` checks the PDB and retail input, simulation,
+animation, collision and room-update addresses and hook prologues.
 
-The 2026-09-20 physical-turn centring and body-depth revision was built in
+The 2026-09-21 smooth directional root-motion correction was built in
 Release/x64 and installed in the Steam game folder. Its SHA-256 is
-`FE3AB8063E3D880BC2E168F9AAB15152657ACD22447B16F5851D4398CF51C22B`.
-The preceding physical-turn DLL is preserved beside it with suffix
-`.pre-repo-body-depth-20260920-223436`; earlier backups use
+`9FAD3DE73F58D69FC25E07FFC22E0DCDEEEE027E53A42A146A29C3A37DAE5812`.
+The preceding three-animation-tick build is preserved beside the installed file
+with suffix `.pre-smooth-root-scale-20260921-000100`. Earlier DLL backups use
+`.pre-direction-speed-fix-20260920-234600`; the prior DLL and INI are preserved
+with suffix `.pre-native-gaits-20260920-231700`. The obsolete experimental
+`FirstPersonHideBodyOnNonForward` line was removed from the active INI; Lara's
+body remains visible for all four manual directions. Earlier DLL backups use
+`.pre-repo-body-depth-20260920-223436`,
 `.pre-physical-turn-center-20260920-185850`,
 `.pre-combined-turn-pivot-20260920-170702` and
 `.pre-direct-drag-20260920-153753`. The installed deadzone remains 0.02 m and
@@ -987,11 +1032,12 @@ default when absent from the INI. The installed first-person anchor Z is tuned
 to 144 to move the viewpoint about 0.30 m forward relative to the earlier value
 of 16. This build completed with no warnings or errors.
 
-The new direct-drag revision needs headset validation, especially walls, room
-boundaries, floor changes, turning in place and jumping after 90/180-degree
-physical turns. The test sequence is in `docs/roomscale-testing.md`. Full-body
-tracking is unavailable, so the neck pivot is an adjustable estimate. Physical
-drag is grounded only; a large tracking discontinuity requires END to recenter.
+Headset testing has confirmed direct roomscale dragging, physical/artificial
+rotation, centring, body depth and HMD-forward jumping. The new side/back angle
+and single-frame root-motion scaling still need a headset pass; the sequence is in
+`docs/roomscale-testing.md`. Full-body tracking is unavailable, so the neck
+pivot remains an adjustable estimate. Physical drag is grounded only; a large
+tracking discontinuity requires END to recenter.
 
 ### Supporting the Aspyr retail and Tomb Raider Gold builds (no PDBs)
 
