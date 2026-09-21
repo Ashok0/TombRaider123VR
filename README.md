@@ -614,8 +614,15 @@ engine's own `frame_frac` (0..256), which is the same value `DrawLara` uses to
 draw the body, and adds Lara's world position interpolated from `pos_prev` to
 `pos`. The result is smooth by construction and touches no engine state at all.
 
-The offset `(0, -32, 16)` is a point inside the skull relative to the joint's
-neck pivot, so the viewpoint sits behind the eyes rather than in her throat.
+The offset `(0, -32, 144)` places the viewpoint forward of the head joint so
+Lara's visible torso sits underneath the player instead of floating ahead.
+`FirstPersonAnchorZ` is also the body-depth adjustment: increasing it moves the
+viewpoint forward and brings Lara's visible torso back underneath the player.
+At the default 423 units/metre, 128 units are about 0.30 m. The current Steam
+test installation uses `FirstPersonAnchorZ=144` (the normal 16 plus that 128-unit
+correction) after headset testing found the body about one foot too far forward.
+This is a static avatar-fit adjustment and does not enter roomscale translation,
+collision or rotation maths.
 
 A sanity check rejects an anchor further than four sectors from Lara: a wrong
 joint index then falls back to the game camera and says so in the log, rather
@@ -720,7 +727,7 @@ identical across all of them. Going through `mesh_bits` avoids needing it.
 |---|---|---|
 | `FirstPerson` | `0` | the whole feature |
 | `FirstPersonJoint` | `14` | Lara's head joint, the same in all three games |
-| `FirstPersonAnchorX/Y/Z` | `0,-32,16` | where in the skull the viewpoint sits; -Y is up, +Z towards her face |
+| `FirstPersonAnchorX/Y/Z` | `0,-32,144` | avatar fit; -Y is up and +Z moves the viewpoint forward, bringing the visible body back |
 | `FirstPersonYawFromLara` | `0` | obsolete; stable VR heading now owns first-person yaw |
 | `FirstPersonHeadTranslation` | `1` | lets your own leaning move the viewpoint relative to neutral |
 | `FirstPersonHideHead` | `1` | hide the head mesh, the face, the sunglasses and the braid |
@@ -967,16 +974,18 @@ they do not run the game engine or a headset.
 `tools/verify_locomotion.py` checks the PDB and installed retail input, simulation
 hook, collision and room-update addresses against their native callers.
 
-The 2026-09-20 physical-turn centring revision was built in Release/x64 and
-installed in the Steam game folder. Its SHA-256 is
-`55D3F8C525A2AEE7882212D9006008EC88B50B4DBFE6D5544F26F00F42E35509`.
-The preceding combined-turn DLL is preserved beside it with suffix
-`.pre-physical-turn-center-20260920-185850`; earlier backups use
+The 2026-09-20 physical-turn centring and body-depth revision was built in
+Release/x64 and installed in the Steam game folder. Its SHA-256 is
+`FE3AB8063E3D880BC2E168F9AAB15152657ACD22447B16F5851D4398CF51C22B`.
+The preceding physical-turn DLL is preserved beside it with suffix
+`.pre-repo-body-depth-20260920-223436`; earlier backups use
+`.pre-physical-turn-center-20260920-185850`,
 `.pre-combined-turn-pivot-20260920-170702` and
 `.pre-direct-drag-20260920-153753`. The installed deadzone remains 0.02 m and
 other existing settings are preserved. The neck-pivot setting uses its 0.15 m
-default when absent from the INI. This build completed with no warnings or
-errors.
+default when absent from the INI. The installed first-person anchor Z is tuned
+to 144 to move the viewpoint about 0.30 m forward relative to the earlier value
+of 16. This build completed with no warnings or errors.
 
 The new direct-drag revision needs headset validation, especially walls, room
 boundaries, floor changes, turning in place and jumping after 90/180-degree
