@@ -116,7 +116,13 @@ uint64_t             g_boundBase  = 0;
 uint64_t             g_failedBase = 0;
 
 bool     g_active      = false;   // anchored on the last scene camera
+bool     g_runtimeEnabled = false; // whole first-person package, toggled in play
+bool     g_runtimeInitialized = false;
 bool     g_headHidden  = false;   // mesh_bits bit 14 is currently cleared
+bool     g_rollHidden  = false;   // all Lara geometry suppressed during a roll
+bool     g_meshOverride = false;
+uint8_t* g_meshItem = nullptr;
+uint32_t g_meshBaseBits = 0;
 unsigned g_headDraws   = 0;       // Lara draws routed through the mesh_bits path
 unsigned g_headSkips   = 0;       // face / sunglasses draws dropped
 unsigned g_hairSkips   = 0;       // braid draws dropped
@@ -182,7 +188,7 @@ bool IsSceneCall(const void* ret) {
 
 bool Gate() {
     if (!g_boundDll || !g_boundBase)               return false;
-    if (!Cfg().enabled || !Cfg().firstPerson)      return false;
+    if (!Cfg().enabled || !g_runtimeEnabled)       return false;
     if (!VR().active() || !VR().poseValid())       return false;
     // The inventory ring and the title screen draw a scene of their own.
     if (InInventory() || InTitle() || InCutscene()) return false;
@@ -296,20 +302,62 @@ bool Anchor(PHD_3DPOS& pose) {
 // below passes one instead, and the same cleared bit then hides the head in
 // both renderers.
 //
-// The bit is cleared for as long as first person is anchoring and put back the
-// moment it stops, so an unhook, a cutscene or FirstPerson=0 all restore her
-// head. It is ORed back rather than restored from a saved copy, because the
-// game owns that field and may write it between frames.
-void SetHeadHidden(bool hide) {
-    if (hide == g_headHidden) return;
+// Visibility overrides compose: first person clears only the head bit, while a
+// roll clears the full mask. The original mask is restored when both overrides
+// end so switching views during a roll cannot leave Lara partly hidden.
+void ApplyMeshVisibility() {
     if (!g_boundDll || !g_boundBase) return;
     auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
-    if (!item) return;
+    if (!item) {
+        g_meshOverride = false;
+        g_meshItem = nullptr;
+        return;
+    }
+    if (g_meshOverride && item != g_meshItem) {
+        // The old item belongs to a level that was unloaded; never dereference
+        // it. Capture the new Lara independently if an override is still active.
+        g_meshOverride = false;
+        g_meshItem = nullptr;
+    }
 
     auto& bits = *reinterpret_cast<uint32_t*>(item + off::item_mesh_bits);
-    if (hide) bits &= ~kHeadMeshBit;
-    else      bits |=  kHeadMeshBit;
+    if (!g_headHidden && !g_rollHidden) {
+        if (g_meshOverride && item == g_meshItem) bits = g_meshBaseBits;
+        g_meshOverride = false;
+        g_meshItem = nullptr;
+        return;
+    }
+    if (!g_meshOverride) {
+        g_meshOverride = true;
+        g_meshItem = item;
+        g_meshBaseBits = bits;
+    }
+    uint32_t visible = g_meshBaseBits;
+    if (g_headHidden) visible &= ~kHeadMeshBit;
+    if (g_rollHidden) visible = 0;
+    bits = visible;
+}
+
+void SetHeadHidden(bool hide) {
+    if (hide == g_headHidden) return;
     g_headHidden = hide;
+    ApplyMeshVisibility();
+}
+
+bool IsRollState(const uint8_t* item) {
+    if (!item) return false;
+    // Shared classic Lara state IDs: roll end, standing-roll start, underwater
+    // roll and airborne roll. The first two cover the ordinary B-button roll.
+    switch (*reinterpret_cast<const int16_t*>(item + off::item_anim_state)) {
+    case 23: case 45: case 66: case 68: return true;
+    default: return false;
+    }
+}
+
+void SetRollHidden(bool hide) {
+    if (hide == g_rollHidden) return;
+    g_rollHidden = hide;
+    ApplyMeshVisibility();
 }
 
 // Is this draw about to use one of the head geometries?
@@ -341,6 +389,8 @@ bool DrawingHeadGeometry(const uint8_t* item) {
 }
 
 void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
+    if (g_active && g_rollHidden && g_boundDll && g_boundBase &&
+        item == *Ptr<void*>(g_boundDll->laraItem)) return;
     if (g_headHidden && g_boundDll && g_boundBase &&
         item == *Ptr<void*>(g_boundDll->laraItem)) {
         if (DrawingHeadGeometry(static_cast<const uint8_t*>(item))) {
@@ -361,7 +411,7 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
 // neither mesh_bits nor the geometry test above can reach it -- and from inside
 // her head it sweeps through the view.
 void __cdecl Detour_DrawHair(int32_t arg) {
-    if (g_headHidden) {
+    if (g_active && (g_headHidden || g_rollHidden)) {
         ++g_hairSkips;
         return;
     }
@@ -600,6 +650,8 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
 
 void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
     if (pose && IsSceneCall(_ReturnAddress())) {
+        auto* item = g_boundDll && g_boundBase
+            ? *Ptr<uint8_t*>(g_boundDll->laraItem) : nullptr;
         if (Gate() && Anchor(*pose)) {
             g_active = true;
             ++g_anchored;
@@ -607,6 +659,11 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_active = false;
             ++g_skipped;
         }
+        // Roll visibility belongs only to the active first-person gameplay
+        // scene. The title, inventory and other UI scenes reuse this camera
+        // path and Lara's last animation state, so evaluating the state before
+        // Gate() could leak a zero mesh mask into their visual passes.
+        SetRollHidden(g_active && IsRollState(item));
         // WHEN THE NEUTRAL IS TAKEN.
         //
         // Not at the first pose the runtime produces -- that is usually while
@@ -631,6 +688,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_neutralTaken = false;
         }
         SetHeadHidden(g_active && Cfg().firstPersonHideHead);
+        ApplyMeshVisibility();
     }
     g_hGenerateW2V.Original<Fn_GenerateW2V>()(pose);
 }
@@ -691,7 +749,8 @@ bool Install(const GameDllLayout& d, uint64_t base) {
 }
 
 void Remove() {
-    SetHeadHidden(false);          // give her head back before letting go
+    SetRollHidden(false);
+    SetHeadHidden(false);          // give her complete mesh back before letting go
     g_hLaraAboveWater.Remove();
     g_hAnimateLara.Remove();
     g_hDrawHair.Remove();
@@ -711,6 +770,12 @@ void Remove() {
 } // namespace
 
 void FirstPersonUpdate() {
+    if (!g_runtimeInitialized) {
+        g_runtimeEnabled = false;
+        g_runtimeInitialized = true;
+        Log("firstperson: startup view is always third person; press Y+LT to switch views");
+    }
+
     // Re-take the neutral head position on request. Edge triggered: held down,
     // it would re-capture every frame while the head drifts.
     if (Cfg().firstPersonRecenterKey) {
@@ -727,7 +792,10 @@ void FirstPersonUpdate() {
     const GameDllLayout* d = GameDllBound();
     const uint64_t base = GameDllBase();
 
-    const bool want = Cfg().enabled && Cfg().firstPerson && d && base
+    // Keep the detours installed while third person is selected so Y+LT can
+    // engage first person without patching live code at the moment of input.
+    // Gate() makes every detour a pass-through until the runtime mode is on.
+    const bool want = Cfg().enabled && d && base
                    && d->phdGenerateW2V != 0;
 
     if (g_boundDll && (!want || d != g_boundDll || base != g_boundBase)) {
@@ -750,10 +818,35 @@ void FirstPersonUpdate() {
         g_failedBase = base;
         return;
     }
-    LogF("firstperson: hooked %S (%s) -- scene camera anchors to Lara's head "
-         "(joint %d). Stable VR heading owns view/body/input; fixed and "
-         "cinematic cameras keep their own framing.",
-         d->module, d->name, Cfg().firstPersonJoint);
+    LogF("firstperson: hooked %S (%s) -- runtime camera switch ready (Y+LT, "
+         "startup third person, joint %d). Fixed and cinematic cameras keep "
+         "their own framing.", d->module, d->name, Cfg().firstPersonJoint);
+}
+
+void FirstPersonToggle() {
+    if (!g_runtimeInitialized) {
+        g_runtimeEnabled = false;
+        g_runtimeInitialized = true;
+    }
+
+    g_runtimeEnabled = !g_runtimeEnabled;
+    // A view change starts with a clean heading and roomscale neutral. This is
+    // also the immediate stand-down path: no simulation tick between the chord
+    // and the next camera draw can inherit first-person steering.
+    SetRollHidden(false);
+    SetHeadHidden(false);
+    g_active = false;
+    g_haveHeading = false;
+    g_headingItem = nullptr;
+    g_haveManualInput = false;
+    g_shifted = false;
+    g_jumpPressed = false;
+    g_directionalRootScale = 1;
+    g_dragPrevious = g_dragCurrent = g_dragShown = {};
+    g_inputTime = g_bodyTime = {};
+    g_neutralTaken = false;
+    LogF("firstperson: Y+LT switched to %s",
+         g_runtimeEnabled ? "FIRST PERSON" : "third person");
 }
 
 void FirstPersonShutdown() {
@@ -767,6 +860,8 @@ void FirstPersonShutdown() {
     g_headDraws   = 0;
     g_headSkips   = 0;
     g_hairSkips   = 0;
+    g_runtimeEnabled = false;
+    g_runtimeInitialized = false;
 }
 
 bool FirstPersonActive() { return g_active; }

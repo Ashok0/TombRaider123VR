@@ -17,6 +17,12 @@ namespace tr {
 // and idempotent; call once per frame beside SkyUpdate().
 void FirstPersonUpdate();
 
+// Toggle the complete first-person package at runtime. Third person remains
+// the engine's original camera/input path; first person enables the head
+// anchor, stable heading, roomscale drag and directional gait handling as one
+// unit. Called by the merged-pad Y+LT chord.
+void FirstPersonToggle();
+
 // Drop the hook. Called from RemoveHooks.
 void FirstPersonShutdown();
 

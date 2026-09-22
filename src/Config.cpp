@@ -255,8 +255,6 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.videoOffscreen      = GetBool (L"VideoOffscreen",     g_cfg.videoOffscreen,     ini);
     g_cfg.videoFlipV          = GetBool (L"VideoFlipV",         g_cfg.videoFlipV,         ini);
     g_cfg.gamepadEnabled      = GetBool (L"GamepadEnabled",     g_cfg.gamepadEnabled,     ini);
-    g_cfg.menuChordSeconds    = GetFloat(L"MenuChordSeconds",    g_cfg.menuChordSeconds,   ini);
-    g_cfg.menuChordPressSeconds = GetFloat(L"MenuChordPressSeconds", g_cfg.menuChordPressSeconds, ini);
     g_cfg.dpadShift           = GetBool (L"DpadShift",           g_cfg.dpadShift,          ini);
     g_cfg.dpadShiftDeadzone   = GetFloat(L"DpadShiftDeadzone",   g_cfg.dpadShiftDeadzone,  ini);
     g_cfg.gamepadLogButtons   = GetBool (L"GamepadLogButtons",  g_cfg.gamepadLogButtons,  ini);
@@ -308,28 +306,25 @@ void LoadConfig(const wchar_t* ini) {
          g_cfg.cullFovMarginDegrees, g_cfg.cullMaxDepth, g_cfg.cullMaxPortals,
          g_cfg.cullFarUnits, g_cfg.cullWidenBounds, g_cfg.cullObjects,
          g_cfg.skyAtInfinity ? "infinity" : "ENGINE (finite dome)");
-    if (g_cfg.firstPerson) {
-        LogF("config: camera=FIRST PERSON, joint %d offset (%d,%d,%d), yaw from %s, "
-             "head translation %s, head %s",
-             g_cfg.firstPersonJoint, g_cfg.firstPersonAnchorX,
-             g_cfg.firstPersonAnchorY, g_cfg.firstPersonAnchorZ,
-             "stable VR heading",
-             g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)",
-             g_cfg.firstPersonHideHead ? "hidden (mesh_bits bit 14)" : "DRAWN");
-        LogF("config: first person body-follows-head=%s (dead zone %.0f deg, "
-             "%.1f deg/frame), move-with-head=%s",
-             g_cfg.firstPersonBodyFollowsHead ? "on" : "OFF",
-             g_cfg.firstPersonBodyDeadzoneDegrees,
-             g_cfg.firstPersonBodyTurnDegreesPerFrame,
-             g_cfg.firstPersonMoveWithHead ? "on (camera-relative controls only)" : "OFF");
-        LogF("config: first person roomscale=%s (dead zone %.2f m, neck pivot %.2f m, "
-             "direct collision drag; turn %.0f deg/sec)",
-             g_cfg.firstPersonRoomscaleMove ? "on" : "OFF",
-             g_cfg.firstPersonRoomscaleDeadzoneMetres,
-             g_cfg.firstPersonRoomscaleNeckMetres,
-             g_cfg.firstPersonTurnDegreesPerSecond);
-    } else
-        Log("config: camera=third person (the engine's own)");
+    Log("config: startup camera=third person (always); Y+LT switches first/third person");
+    LogF("config: first person joint %d offset (%d,%d,%d), stable VR heading, "
+         "head translation %s, head %s",
+         g_cfg.firstPersonJoint, g_cfg.firstPersonAnchorX,
+         g_cfg.firstPersonAnchorY, g_cfg.firstPersonAnchorZ,
+         g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)",
+         g_cfg.firstPersonHideHead ? "hidden (mesh_bits bit 14)" : "DRAWN");
+    LogF("config: first person body-follows-head=%s (dead zone %.0f deg, "
+         "%.1f deg/frame), move-with-head=%s",
+         g_cfg.firstPersonBodyFollowsHead ? "on" : "OFF",
+         g_cfg.firstPersonBodyDeadzoneDegrees,
+         g_cfg.firstPersonBodyTurnDegreesPerFrame,
+         g_cfg.firstPersonMoveWithHead ? "on (camera-relative controls only)" : "OFF");
+    LogF("config: first person roomscale=%s (dead zone %.2f m, neck pivot %.2f m, "
+         "direct collision drag; turn %.0f deg/sec)",
+         g_cfg.firstPersonRoomscaleMove ? "on" : "OFF",
+         g_cfg.firstPersonRoomscaleDeadzoneMetres,
+         g_cfg.firstPersonRoomscaleNeckMetres,
+         g_cfg.firstPersonTurnDegreesPerSecond);
     if (g_cfg.traceFrames > 0) {
         LogF("config: frame-graph trace armed -- %d frame(s), hotkey vk=0x%02X",
              g_cfg.traceFrames, g_cfg.traceKey);

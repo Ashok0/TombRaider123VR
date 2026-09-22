@@ -136,10 +136,9 @@ struct Config {
     bool  skyAtInfinity         = true;
 
     // --- first person -------------------------------------------------------
-    // Anchor the scene camera to Lara's animated head instead of the chase
-    // camera. Off by default: it is a different game, not a better camera, and
-    // it has the comfort profile of a game that was never designed for it --
-    // her animations move your head for you.
+    // Legacy startup setting retained for old INI files. Runtime now always
+    // starts on the engine's original third-person camera; Y+LT toggles the
+    // complete first-person camera/roomscale/locomotion mode while playing.
     bool  firstPerson           = false;
 
     // Which joint to anchor to, and the avatar-fit offset from it. Joint 14 is
@@ -479,7 +478,8 @@ struct Config {
     // Log the raw OpenVR legacy button masks whenever they change. Touch's
     // button ids differ between runtimes, so if something lands in the wrong
     // place this says which mask it actually set.
-    // Hold R3 to turn the LEFT stick into a D-pad.
+    // Hold R3 to turn the LEFT stick into a D-pad. L3+R3 is Photo Mode and
+    // takes priority over this shift.
     //
     // R3 is the modifier rather than L3 because L3 is Sprint, and sprint in
     // this game is held WHILE running forward -- so "hold L3, push the stick
@@ -488,28 +488,6 @@ struct Config {
     // emitted RIGHT_THUMB and nothing else. A plain R3 click still emits
     // RIGHT_THUMB, so nothing that relied on it is lost -- the D-pad only
     // appears once the left stick is actually deflected.
-    // Hold Y + LT for this long to send the Xbox Menu button (XInput START).
-    //
-    // Touch has no Start or Back of its own, so both have to come from
-    // somewhere. The System button on the left hand's lower face sends one of
-    // them (see gamepadMenuUsesBack); this chord reaches the other without
-    // spending another button.
-    //
-    // A deliberate hold: Y is Action and LT is Equip, so the pair does occur in
-    // ordinary play, and the duration is the only thing separating the chord
-    // from a real grab-and-draw. One second is short enough to be comfortable
-    // but IS within reach of normal play -- if it ever fires when you did not
-    // mean it, this is the number to raise.
-    //
-    // It sends a PRESS, not a latch -- Menu toggles the pause screen itself, and
-    // a held START would never look like a clean press to the game. 0 disables.
-    float menuChordSeconds = 1.0f;
-
-    // How long the synthesised Menu press is held, in seconds. Long enough for
-    // the game to sample it across several frames, short enough not to read as
-    // a second press.
-    float menuChordPressSeconds = 0.15f;
-
     bool  dpadShift        = true;
 
     // How far the left stick must travel before a shifted press registers.

@@ -82,8 +82,9 @@ the stock finite-dome stereo. See "Sky at infinity" below.
 
 First person is confirmed working in the headset on TR1: the camera rides Lara's
 animated head rather than the chase camera, with her head, face, sunglasses and
-braid hidden and the rest of her body still drawn. It is off by default
-(`FirstPerson=1` turns it on), and her animations move your head for you. See
+braid hidden and the rest of her body still drawn. The game starts in its old
+third-person view every launch; **Y+LT** toggles the complete first-person mode
+during play. Her animations move your head for you. See
 "First person" below.
 
 Around it: positional tracking is measured from a captured neutral, physical and
@@ -562,7 +563,26 @@ All in `[VR]`, documented in `TombRaiderVR.ini`.
 
 **Confirmed working in the headset** on Aspyr retail / Gold, TR1. TR2 and TR3
 use the same hook and the same table and should work, but have not been played.
-Off by default: `FirstPerson=1` in `[VR]`.
+The startup view is always the engine's original third person. Press **Y+LT**
+to switch the head camera, roomscale drag, HMD/stick rotation and directional
+sidestep/backpedal handling on or off together. The chord is edge-triggered and
+its Y/left-trigger actions are withheld from the game while held. `FirstPerson`
+remains readable for old INI files but no longer changes the startup view.
+
+Photo Mode is restored to its native controller chord, **L3+R3**. **Y+RT** is
+converted to the Xbox Menu/Start button, the game's native classic/remastered
+graphics toggle. These mappings run after Touch and physical-pad input is
+merged, so both controller sources behave the same way. The two Y/trigger
+chords are recognized only in gameplay; title, inventory and cutscene input is
+passed through unchanged.
+
+Pressing B still starts Lara's native roll. During the roll states, her body,
+separate HD face/sunglasses geometry and braid are temporarily suppressed. Her
+saved mesh mask is restored as soon as the roll finishes, including if the view
+was switched during the animation. Roll suppression is armed only after the
+first-person gameplay gate succeeds. It is forcibly cleared before title,
+inventory, cutscene and third-person draws so Lara's retained animation state
+cannot alter those visual passes.
 
 The camera rides Lara's animated head. Her animations then move your head for
 you -- through every roll, swan dive and grab -- which is not something the game
@@ -685,10 +705,12 @@ on the order of the draws, or on which of them a given outfit produces.
 so neither of the above can see it -- and from inside her head it sweeps through
 the view. It gets a third hook, which does nothing but decline to draw.
 
-Her body stays drawn throughout: look down and she is there. The bit is OR'd back
-and every skip stops the moment first person stands down -- a cutscene, the
-inventory, `FirstPerson=0`, an unhook -- so nothing outside this mode ever sees a
-headless Lara. The unhook line counts what was dropped:
+Her body stays drawn during ordinary first-person movement: look down and she is
+there. A B-button roll temporarily applies a second visibility override that
+clears the whole body mask and skips the separate HD face, sunglasses and braid
+draws. The saved mask returns when the roll state ends. First-person head hiding
+also ends immediately for a cutscene, inventory, the third-person toggle or an
+unhook. The unhook line counts what was dropped:
 
 ```
 firstperson: unhooking tomb1.dll (anchored 41233 frames, stood down 120,
@@ -725,7 +747,7 @@ identical across all of them. Going through `mesh_bits` avoids needing it.
 
 | key | default | what it is for |
 |---|---|---|
-| `FirstPerson` | `0` | the whole feature |
+| `FirstPerson` | `0` | legacy setting; startup is always third person and Y+LT toggles the full mode |
 | `FirstPersonJoint` | `14` | Lara's head joint, the same in all three games |
 | `FirstPersonAnchorX/Y/Z` | `0,-32,144` | avatar fit; -Y is up and +Z moves the viewpoint forward, bringing the visible body back |
 | `FirstPersonYawFromLara` | `0` | obsolete; stable VR heading now owns first-person yaw |
@@ -905,7 +927,7 @@ cannot be applied twice.
 Dragging is restricted to ordinary ground states. Jumping, swimming, climbing
 and interactions do not receive physical displacement. Pending horizontal
 motion is cleared there to avoid movement on returning to ground. R3 D-pad
-shift suppresses drag. END captures a fresh neutral and clears interpolation
+shift suppresses drag; L3+R3 takes priority for Photo Mode. END captures a fresh neutral and clears interpolation
 history. Wall collision blocks Lara's body; tracked camera leaning itself can
 still cross nearby geometry.
 
@@ -932,7 +954,7 @@ The feature is deliberately split by ownership:
 |---|---|
 | `src/VRSystem.cpp` | raw tracked position, neutral, HMD yaw, step consumption and turn pivot |
 | `src/FirstPerson.cpp` | stable heading, simulation steering, collision body drag, interpolation and diagnostics |
-| `src/Gamepad.cpp` | merge Touch/physical pads, then apply first-person input transformation |
+| `src/Gamepad.cpp` | merge Touch/physical pads, handle L3+R3 Photo, Y+RT graphics and Y+LT view chords, then apply the active view's input path |
 | `src/LocomotionMath.h` | tested frame-independent vector, angle, step and heading maths |
 | `src/StereoMath.h` | floor-projected yaw extraction from the inverse HMD pose |
 
@@ -979,7 +1001,7 @@ forward jump, `head` and `cam` should agree even after turning.
 
 | key | default | purpose |
 |---|---|---|
-| `FirstPerson` | `0` | enables the head anchor and this locomotion path |
+| `FirstPerson` | `0` | legacy setting; every launch starts in third person and Y+LT toggles the full mode |
 | `PositionalTracking` | `1` | required for leaning and physical-step movement |
 | `FirstPersonHeadTranslation` | `1` | track displacement from the captured neutral |
 | `FirstPersonRecenterKey` | `0x23` | END resets position without changing world heading |
@@ -1014,11 +1036,22 @@ checks when run with the matched retail images.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-09-21 smooth directional root-motion correction was built in
-Release/x64 and installed in the Steam game folder. Its SHA-256 is
-`9FAD3DE73F58D69FC25E07FFC22E0DCDEEEE027E53A42A146A29C3A37DAE5812`.
-The preceding three-animation-tick build is preserved beside the installed file
-with suffix `.pre-smooth-root-scale-20260921-000100`. Earlier DLL backups use
+The 2026-09-22 UI-safe control-remap/roll-visibility build was built in
+Release/x64 and installed in the Steam game folder. It always starts on the
+engine's original third-person path, uses L3+R3 for native Photo Mode, Y+RT for the native
+classic/remastered graphics toggle, and Y+LT for the complete first-person
+package. Lara's mesh is hidden for her roll states and restored afterwards, but
+only while the first-person gameplay scene is active. This corrects the prior
+build's visual regression, where roll detection ran before the gameplay gate
+and could leak the mesh override into menu/UI scene draws. Its SHA-256 is
+`4D688039D4FE18958463C5CC1A636991AFE069CFA780932760392D85ED45C329`.
+The preceding restored DLL is preserved as
+`.pre-ui-safe-roll-20260922-010509`. The regressed build is retained for binary
+comparison as `.broken-visual-ui-20260922-005935`, and the same known-good
+fallback also remains as `.pre-control-remap-20260922-004701`. The prior view-toggle DLL and INI are
+preserved with suffix `.pre-view-toggle-20260922-000924`; only `FirstPerson=0`
+was changed in that installed INI. The earlier three-animation-tick build is preserved beside the
+installed file with suffix `.pre-smooth-root-scale-20260921-000100`. Earlier DLL backups use
 `.pre-direction-speed-fix-20260920-234600`; the prior DLL and INI are preserved
 with suffix `.pre-native-gaits-20260920-231700`. The obsolete experimental
 `FirstPersonHideBodyOnNonForward` line was removed from the active INI; Lara's

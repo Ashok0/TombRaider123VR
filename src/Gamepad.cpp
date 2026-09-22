@@ -57,6 +57,7 @@ uint32_t           g_packet    = 0;
 uint64_t           g_lastRaw[2] = { 0, 0 };
 bool               g_loggedOnce = false;
 int                g_lastWater  = -2;
+bool               g_viewToggleHeld = false;
 
 int16_t Axis(float v) {
     if (v >  1.0f) v =  1.0f;
@@ -77,27 +78,21 @@ uint8_t Trig(float v) {
 //   Move        left stick        Jump    A      Roll   B
 //   Look        right stick       Action  Y      Shoot  RT
 //   Duck        LB                Equip   LT     Sprint L3
-//   Walk        LS + RB           System  X      Photo  LB + RB
-//   D-pad       R3 + left stick   Menu    Y + LT held 3s
+//   Walk        LS + RB           System  X      Photo  L3 + R3
+//   D-pad       R3 + left stick   Graphics Y + RT
+//   View        Y + LT
 //
 // Two of these are deliberately not the flat-screen defaults, because they suit
 // VR hands better:
 //
 //   Walk is the RIGHT GRIP rather than a face button, so it can be held while
 //   the left thumb keeps moving. The game binds Walk to XInput X, so the grip
-//   emits X. It emits RIGHT_SHOULDER as well, because Photo Mode is LB + RB and
-//   that chord has to keep working; X and RB never collide in practice.
+//   emits X. It emits RIGHT_SHOULDER as well so the optional RT + RB pitch
+//   chord stays reachable; X and RB never collide in practice.
 //
 //   System is the left hand's lower face button, sending BACK. Touch has no
 //   Start or Back of its own, and putting either on a chord made it awkward to
 //   reach mid-play.
-// Menu chord state. Wall clock rather than frames: the poll rate belongs to
-// the game, not to us, so "three seconds" must not become "three seconds at
-// whatever frame rate happens to be running".
-uint64_t g_menuChordSince = 0;   // when the chord was first seen held, 0 = not
-uint64_t g_menuPressUntil = 0;   // synthesised START is held until this tick
-bool     g_menuChordFired = false;
-
 void BuildState(XState& out, bool& shifted) {
     VRSystem::HandState h[2];
     VR().ReadControllers(h);
@@ -107,12 +102,6 @@ void BuildState(XState& out, bool& shifted) {
 
     const VRSystem::HandState& L = h[0];
     const VRSystem::HandState& R = h[1];
-
-    // Set once the Menu chord fires, and honoured where the triggers are
-    // written further down. Declared here because that assignment happens after
-    // this block -- setting out.Gamepad.bLeftTrigger from inside the chord would
-    // simply be overwritten.
-    bool suppressLeftTrigger = false;
 
     uint16_t b = 0;
     if (R.btnLower)   b |= XB_A;               // Jump
@@ -133,8 +122,9 @@ void BuildState(XState& out, bool& shifted) {
     //
     // A plain R3 click -- held with the stick centred -- still emits
     // RIGHT_THUMB exactly as before, so whatever the game binds it to survives.
+    const bool photoChord = L.stickClick && R.stickClick;
     uint16_t dpad = 0;
-    if (Cfg().dpadShift && R.stickClick) {
+    if (Cfg().dpadShift && R.stickClick && !photoChord) {
         const float dz = Cfg().dpadShiftDeadzone;
         if (std::fabs(L.stickX) > std::fabs(L.stickY)) {
             if (L.stickX >  dz) dpad = XB_DPAD_RIGHT;
@@ -153,57 +143,17 @@ void BuildState(XState& out, bool& shifted) {
         b |= Cfg().gamepadMenuUsesBack ? XB_BACK : XB_START;
     }
 
-    // --- Menu chord: Y + LT held ------------------------------------------
-    //
-    // Touch has no Start or Back of its own. The System button above sends one
-    // of them; this reaches the other without spending a second button.
-    //
-    // Y is Action and LT is Equip, so the pair happens in normal play -- hence
-    // the long hold. It fires ONCE per hold: after firing, the chord must be
-    // released before it can fire again, so leaning on it does not machine-gun
-    // the pause screen.
-    //
-    // Y and LT are suppressed from the moment it fires until release. They were
-    // already sent for the three seconds it took to arm, which cannot be undone,
-    // but there is no reason to keep grabbing and drawing weapons afterwards.
-    if (Cfg().menuChordSeconds > 0.0f) {
-        const bool     chord = L.btnUpper && L.trigger > 0.5f;
-        const uint64_t now   = GetTickCount64();
-
-        if (!chord) {
-            g_menuChordSince = 0;
-            g_menuChordFired = false;
-        } else {
-            if (g_menuChordSince == 0) g_menuChordSince = now;
-            const uint64_t needed = (uint64_t)(Cfg().menuChordSeconds * 1000.0f);
-            if (!g_menuChordFired && now - g_menuChordSince >= needed) {
-                g_menuChordFired = true;
-                g_menuPressUntil = now +
-                    (uint64_t)(Cfg().menuChordPressSeconds * 1000.0f);
-                Log("pad: Menu (START) sent -- Y + LT held");
-            }
-        }
-
-        if (now < g_menuPressUntil) b |= XB_START;
-
-        if (g_menuChordFired) {
-            b &= (uint16_t)~XB_Y;          // stop Action
-            suppressLeftTrigger = true;    // stop Equip
-        }
-    }
-
-    // Duck, and the left half of the Photo Mode chord.
+    // Duck.
     if (L.grip > 0.5f) b |= XB_LEFT_SHOULDER;
 
-    // Walk modifier. X is what the game binds Walk to; RIGHT_SHOULDER is also
-    // set so that LB + RB still reaches Photo Mode.
+    // Walk modifier. X is what the game binds Walk to; RIGHT_SHOULDER also
+    // keeps the optional RT+RB pitch chord reachable.
     if (R.grip > 0.5f) b |= static_cast<uint16_t>(XB_X | XB_RIGHT_SHOULDER);
 
     out.Gamepad.wButtons      = b;
-    out.Gamepad.bLeftTrigger  = suppressLeftTrigger ? 0
-                                                    : Trig(L.trigger);  // Equip
+    out.Gamepad.bLeftTrigger  = Trig(L.trigger);    // Equip
     out.Gamepad.bRightTrigger = Trig(R.trigger);   // Shoot
-    shifted = (Cfg().dpadShift && R.stickClick);
+    shifted = (Cfg().dpadShift && R.stickClick && !photoChord);
     float lx = L.stickX, ly = L.stickY;
 
     out.Gamepad.sThumbLX      = shifted ? 0 : Axis(lx);
@@ -238,6 +188,7 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     }
 
     if (!Cfg().gamepadEnabled || !VR().active()) {
+        g_viewToggleHeld = false;
         return g_original ? g_original(userIndex, state)
                           : ERROR_DEVICE_NOT_CONNECTED;
     }
@@ -265,6 +216,38 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
             if (std::abs((int)real.Gamepad.sThumbRY) > std::abs((int)mine.Gamepad.sThumbRY))
                 mine.Gamepad.sThumbRY = real.Gamepad.sThumbRY;
         }
+    }
+
+    // Photo Mode's native controller binding is L3+R3. Leave the buttons intact
+    // and only neutralise the axes while both are clicked, so stick drift cannot
+    // move Lara or the camera on the same poll that enters Photo Mode.
+    constexpr uint16_t photoMask = XB_LEFT_THUMB | XB_RIGHT_THUMB;
+    const bool photoChord = (mine.Gamepad.wButtons & photoMask) == photoMask;
+    if (photoChord) {
+        mine.Gamepad.sThumbLX = mine.Gamepad.sThumbLY = 0;
+        mine.Gamepad.sThumbRX = mine.Gamepad.sThumbRY = 0;
+        shifted = false;
+    }
+
+    // Y+LT switches the complete first-person package on its rising edge.
+    // Y+RT becomes the Xbox Menu/Start button, which is the game's native
+    // classic/remastered graphics toggle. The view chord takes priority if
+    // both triggers happen to be down. Consume the constituent actions so a
+    // view/graphics switch cannot also use Action, draw guns or shoot.
+    const bool gameplay = !InInventory() && !InTitle() && !InCutscene();
+    const bool yHeld = (mine.Gamepad.wButtons & XB_Y) != 0;
+    const bool viewToggle = gameplay && yHeld && mine.Gamepad.bLeftTrigger > 30;
+    const bool graphicsToggle = gameplay && !viewToggle && yHeld &&
+                                mine.Gamepad.bRightTrigger > 30;
+    if (viewToggle && !g_viewToggleHeld) FirstPersonToggle();
+    g_viewToggleHeld = viewToggle;
+    if (viewToggle) {
+        mine.Gamepad.wButtons &= static_cast<uint16_t>(~XB_Y);
+        mine.Gamepad.bLeftTrigger = 0;
+    } else if (graphicsToggle) {
+        mine.Gamepad.wButtons &= static_cast<uint16_t>(~XB_Y);
+        mine.Gamepad.wButtons |= XB_START;
+        mine.Gamepad.bRightTrigger = 0;
     }
 
     // Transform the MERGED state so a physical Xbox pad has the same heading
@@ -363,7 +346,8 @@ void GamepadUpdate() {
         g_loggedOnce = true;
         LogF("pad: move=Lstick look=Rstick%s jump=A(R lower) roll=B(R upper) "
              "action=Y(L upper) system=%s(L lower) walk=LS+RB(R grip) "
-             "duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=LB+RB%s",
+             "duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=L3+R3 "
+             "graphics=Y+RT view=Y+LT%s",
              Cfg().decoupledPitch
                  ? (Cfg().decoupledPitchChord
                         ? "(yaw only; hold RT+RB for pitch)"
@@ -382,6 +366,7 @@ void GamepadShutdown() {
     g_slot = nullptr;
     g_original = nullptr;
     g_installed = false;
+    g_viewToggleHeld = false;
 }
 
 } // namespace tr

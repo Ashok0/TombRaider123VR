@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 34751 bytes, 705 lines.
+// Source: TombRaiderVR.ini, 34406 bytes, 694 lines.
 #pragma once
 
 namespace tr {
@@ -282,6 +282,10 @@ SkyAtInfinity=1
 ; headset. Her head's own animated pitch and roll are discarded on purpose, so
 ; an animation that tilts her head cannot tilt your horizon.
 ;
+; The game always starts in its original third-person view. Press Y + LT to
+; toggle this complete first-person camera, roomscale, rotation and directional
+; movement package during play. FirstPerson is retained only so old INI files
+; remain readable; its value no longer changes the startup view.
 ; The head and hair are hidden while first person is active.
 FirstPerson=0
 
@@ -324,14 +328,14 @@ FirstPersonTurnDeadzone=0.25
 
 ; Manual movement follows HMD world heading after physical and stick turns.
 ; Forward uses Lara's forward gait, back uses backpedal, and horizontal input
-; uses her native sidestep animations. Diagonals use their dominant axis.
+)INI"
+           R"INI(; uses her native sidestep animations. Diagonals use their dominant axis.
 FirstPersonMoveWithHead=1
 
 ; Physical movement directly drags Lara through native collision queries.
 ; It never generates analog-stick input or walking animations. Both control
 ; schemes support sideways/diagonal drag and simultaneous manual movement.
-)INI"
-           R"INI(; Translation must be on; the deadzone allows a small amount of leaning.
+; Translation must be on; the deadzone allows a small amount of leaning.
 FirstPersonRoomscaleMove=1
 FirstPersonRoomscaleDeadzoneMetres=0.02
 ; Legacy stick-ramp setting, ignored by direct body drag.
@@ -548,11 +552,16 @@ VideoFlipV=0
 ;   Action  Y  (left hand, UPPER)   System  X  (left hand, LOWER)
 ;   Walk    left stick + RIGHT GRIP Duck    LEFT GRIP
 ;   Equip   left trigger (hold)     Shoot   right trigger
-;   Sprint  left stick click        Photo   both grips
+;   Sprint  left stick click        Photo   L3 + R3
+;   View    Y + LT                  Graphics Y + RT
+;   D-pad   R3 + left stick
 ;
 ; Walk is the right grip rather than a face button so it can be held while the
 ; left thumb keeps moving. The game binds Walk to XInput X, so the grip emits X
-; -- and RIGHT_SHOULDER as well, so the Photo Mode chord (LB+RB) still works.
+; -- and RIGHT_SHOULDER as well, keeping the optional RT+RB pitch chord usable.
+; Photo Mode receives the game's native L3+R3 chord. During gameplay, Y+RT is
+; translated to the native Xbox Menu/Start graphics toggle and Y+LT switches
+; first/third person. Y/trigger input is left untouched in menus and cutscenes.
 GamepadEnabled=1
 
 ; Log the raw OpenVR legacy button masks whenever they change. Touch's button
@@ -595,8 +604,8 @@ DecoupledPitch=1
 ;
 ; KNOW WHAT RB IS HERE. Touch has no physical shoulder buttons: the RIGHT GRIP
 ; synthesises XB_X and XB_RIGHT_SHOULDER together, because X is what the game
-; binds Walk to and RIGHT_SHOULDER is what keeps the LB+RB Photo Mode chord
-; reachable. So this chord is right grip + right trigger, which in play reads as
+; binds Walk to and RIGHT_SHOULDER is what makes this pitch chord reachable.
+; So this chord is right grip + right trigger, which in play reads as
 ; "walk and shoot" -- a combination people genuinely use, on a ledge especially,
 ; and it WILL engage the chord. Set this to 0 if you would rather walk-and-shoot
 ; leave pitch alone.
@@ -605,12 +614,14 @@ DecoupledPitch=1
 ; while it is held; nothing is taken away to pay for it.
 DecoupledPitchChord=1
 
-; Hold R3 (right stick click) to turn the LEFT stick into a D-pad.
+; Hold R3 (right stick click) to turn the LEFT stick into a D-pad. L3+R3 takes
+; priority and activates the game's native Photo Mode instead.
 ;
 ; R3 is the modifier rather than L3 because L3 is Sprint, and sprint here is
 ; held WHILE running forward -- "hold L3, push the stick forward" is already a
-; gesture in play, so reusing it for D-pad up would mean choosing between them.
-; R3 was the only spare input on the pad.
+)INI"
+           R"INI(; gesture in play, so reusing it for D-pad up would mean choosing between them.
+; R3 was otherwise the only spare input on the pad.
 ;
 ; A plain R3 click, with the stick centred, still emits RIGHT_THUMB exactly as
 ; before -- the D-pad only appears once the left stick is actually deflected,
@@ -620,28 +631,6 @@ DecoupledPitchChord=1
 ; Only the dominant axis fires, so a flick cannot emit up and left together and
 ; move a menu selection twice.
 DpadShift=1
-
-; Hold Y + LT for this many seconds to send the Xbox Menu button (XInput START).
-;
-)INI"
-           R"INI(; Touch has no Start or Back of its own, so both have to come from somewhere.
-; The System button on the left hand's lower face sends one of them (see
-; GamepadMenuUsesBack); this chord reaches the other without spending a button.
-;
-; The hold is what separates the chord from real play: Y is Action and LT is
-; Equip, so the pair does occur naturally. One second is comfortable but IS
-; within reach of normal play -- raise this if it ever fires unintentionally.
-;
-; It sends a PRESS, not a latch -- Menu toggles the pause screen itself, and a
-; held START would never look like a clean press to the game. It fires once per
-; hold; release and re-hold to send another. Y and LT are suppressed from the
-; moment it fires until you let go, so it does not keep grabbing afterwards.
-;
-; 0 disables the chord entirely.
-MenuChordSeconds=1.0
-
-; How long the synthesised Menu press is held, in seconds.
-MenuChordPressSeconds=0.15
 
 ; How far the left stick must travel before a shifted press registers, 0-1.
 ; Raise it if directions trigger too easily, lower it if they feel stiff.
