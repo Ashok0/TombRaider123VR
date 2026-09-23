@@ -88,6 +88,7 @@ struct GameDllLayout {
     // the engine's own way of hiding a body part, which is what first person
     // borrows to hide the head.
     uint32_t drawCreatureHD;
+    uint32_t drawLaraHD;        // void(ITEM_INFO*): scope for Lara-only physics
 
     // The rest of Lara's head, which is NOT part of her body mesh and so is not
     // covered by mesh_bits: the animated face and the sunglasses are separate

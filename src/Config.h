@@ -708,6 +708,41 @@ struct Config {
     // thing upstream reads correct and the headset still shows mono. See
     // StereoRenderer::MarkEyes for how to read the result.
     bool  eyeMarkers       = false;
+
+    // Chest physics ported from TR4/5. Engine-state drive, vertical landing
+    // response, and per-vertex chest masking use the same tuning defaults.
+    bool  dynamicBones          = true;
+    int   dynamicBonesTorsoJoint = 7;
+    float dynamicBonesAnchorX   = 34.0f;
+    float dynamicBonesAnchorY   = -170.0f;
+    float dynamicBonesAnchorZ   = 45.0f;
+    float dynamicBonesStiffness = 630.0f;
+    float dynamicBonesDamping   = 9.5f;
+    float dynamicBonesGravity   = 5400.0f;
+    float dynamicBonesDriveScale = 1.0f;
+    float dynamicBonesDriveDeadzone = 4000.0f;
+    int   dynamicBonesDriveMode = 1;
+    float dynamicBonesAirGravity = 1.0f;
+    float dynamicBonesLandImpulse = 0.2f;
+    float dynamicBonesDriveSmoothing = 0.25f;
+    float dynamicBonesDriveMax  = 20000.0f;
+    int   dynamicBonesAxis      = 1;
+    int   dynamicBonesShader    = 1;
+    int   dynamicBonesForwardSign = 0;
+    float dynamicBonesChestStrength = 2.5f;
+    float dynamicBonesChestTop    = 0.18f;
+    float dynamicBonesChestBottom = 0.52f;
+    float dynamicBonesChestDepth  = 0.6f;
+    float dynamicBonesChestWidth  = 0.34f;
+    float dynamicBonesChestBand   = 0.65f;
+    float dynamicBonesRegionDebug = 0.0f;
+    bool  dynamicBonesApply     = true;
+    float dynamicBonesDebugScale = 1.0f;
+    float dynamicBonesSeparation = 12.0f;
+    float dynamicBonesMaxDisplace = 40.0f;
+    float dynamicBonesTeleport  = 900.0f;
+    int   dynamicBonesReportFrames = 900;
+    bool  dynamicBonesLogJoints = false;
 };
 
 const Config& Cfg();

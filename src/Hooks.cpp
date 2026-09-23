@@ -94,6 +94,8 @@
 #include "Gamepad.h"
 #include "Callsite.h"
 #include "GameDll.h"
+#include "DynamicBones.h"
+#include "BoneSkin.h"
 #include "PortalCull.h"
 #include "Sky.h"
 #include "FirstPerson.h"
@@ -541,6 +543,16 @@ void __cdecl Detour_vid_setPass(int shader, float* params, int cull) {
 // validate_draw -- per-eye matrix injection
 // ---------------------------------------------------------------------------
 void __cdecl Detour_validate_draw() {
+    DynamicBonesObserveDraw();
+    DynamicBonesApplyToDraw();
+    struct PhysicsDrawGuard {
+        ~PhysicsDrawGuard() {
+            const bool jointApplied = DynamicBonesAppliedToDraw();
+            DynamicBonesRestoreDraw();
+            BoneSkinAfterValidate(jointApplied);
+        }
+    } physicsDrawGuard;
+
     DumpDrawState();
 
     // Read the world/2D classification LIVE, from vid_state.proj, rather than
@@ -1328,6 +1340,7 @@ void __cdecl Detour_ogl_present() {
     // the player moves between games from the title screen, so this is not a
     // one-time bind.
     GameDllUpdate();
+    DynamicBonesUpdate();
 
     // Install or drop the culling hooks to match. Must follow GameDllUpdate:
     // it hooks INSIDE the game DLL, so it needs to know which one is live.
@@ -1559,11 +1572,14 @@ bool InstallHooks() {
         return false;
     }
 
+    BoneSkinInstall();
     Log("hooks: all six installed");
     return true;
 }
 
 void RemoveHooks() {
+    DynamicBonesShutdown();
+    BoneSkinShutdown();
     GamepadShutdown();
     FirstPersonShutdown();
     SkyShutdown();

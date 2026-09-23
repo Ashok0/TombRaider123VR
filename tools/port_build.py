@@ -46,14 +46,14 @@ EXE_LAYOUT = ['vid_setPass', 'validate_draw', 'ogl_draw', 'ogl_present', 'fmvSho
               'ogl_setRenderTarget', 'gGame', '_XInputGetState', 'vid_state',
               'vid_state_prev', 'mProj', 'mView_packed', 'shaders', 'ogl_textures',
               'FBO_custom', 'FBO_default', 'app', 'gWidth', 'gHeight',
-              'gTargetWidth', 'gTargetHeight']
+              'gTargetWidth', 'gTargetHeight', 'shader_init']
 DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
               'number_draw_rooms', 'w2v_matrix', 'phd_mxptr', 'phd_winxmax',
               'phd_winymax', 'outside', 'outside_left', 'outside_right',
               'outside_top', 'outside_bottom', 'PrintRoomsList',
               'S_GetObjectBounds', 'DrawSkyHD', 'S_InitialisePolyList',
               'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
-              'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
+              'DrawCreatureHD', 'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
           'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom']
 # Not a symbol: the return address of the ONE phd_GenerateW2V call that builds
 # the main scene view, inside S_InitialisePolyList. FirstPerson.cpp gates on it

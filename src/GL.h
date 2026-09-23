@@ -39,6 +39,28 @@
 #define GL_ARRAY_BUFFER_BINDING   0x8894
 #define GL_ACTIVE_TEXTURE         0x84E0
 
+#define GL_ELEMENT_ARRAY_BUFFER   0x8893
+
+#define GL_BUFFER_SIZE            0x8764
+
+#define GL_INFO_LOG_LENGTH        0x8B84
+
+#define GL_HALF_FLOAT             0x140B
+
+#define GL_VERTEX_ATTRIB_ARRAY_ENABLED        0x8622
+
+#define GL_VERTEX_ATTRIB_ARRAY_SIZE           0x8623
+
+#define GL_VERTEX_ATTRIB_ARRAY_STRIDE         0x8624
+
+#define GL_VERTEX_ATTRIB_ARRAY_TYPE           0x8625
+
+#define GL_VERTEX_ATTRIB_ARRAY_NORMALIZED     0x886A
+
+#define GL_VERTEX_ATTRIB_ARRAY_POINTER        0x8645
+
+#define GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING 0x889F
+
 typedef ptrdiff_t GLsizeiptr_t;
 
 namespace gl {
@@ -93,6 +115,16 @@ extern void   (APIENTRY* ActiveTexture)(GLenum);
 
 // True once the shader/buffer set above resolved. VideoPanel needs all of it.
 bool LoadedShaderApi();
+
+// GL 1.5/2.0, used only by BoneSkin.cpp: the per-draw dynamic-bone uniform and
+// the one-shot readback that measures Lara's torso mesh. Its own flag, because
+// losing it should cost the chest deformation and nothing else.
+extern void (APIENTRY* Uniform4fv)(GLint, GLsizei, const GLfloat*);
+extern void (APIENTRY* GetVertexAttribiv)(GLuint, GLenum, GLint*);
+extern void (APIENTRY* GetVertexAttribPointerv)(GLuint, GLenum, void**);
+extern void (APIENTRY* GetBufferParameteriv)(GLenum, GLenum, GLint*);
+extern void (APIENTRY* GetBufferSubData)(GLenum, GLsizeiptr_t, GLsizeiptr_t, void*);
+bool LoadedSkinApi();
 
 // Resolve everything. Requires a current context. Safe to call repeatedly.
 bool Load();

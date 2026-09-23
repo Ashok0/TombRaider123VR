@@ -84,7 +84,7 @@ h = consts(os.path.join(ROOT, 'src', 'Engine.h'))
 EXE = ['vid_setPass', 'validate_draw', 'ogl_draw', 'ogl_present', 'fmvShow',
        'ogl_setRenderTarget', 'ogl_setPersp', 'ogl_setOrtho', 'vid_setOrtho3D',
        'vid_setViewMatrix', 'ogl_setViewport', 'ogl_setScissor', 'vidInit',
-       'init_ogl', 'appGetGame',
+       'init_ogl', 'appGetGame', 'shader_init',
        'gGame', 'vid_state', 'vid_state_prev', 'mProj', 'mView', 'mView_packed',
        'mShadow', 'mContacts', 'shaders', 'ogl_textures', 'FBO_custom',
        'FBO_default', 'texDesc', 'app', 'gWidth', 'gHeight', 'gTargetHeight',
@@ -155,7 +155,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'outside_bottom',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
           'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
-          'DrawCreatureHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
+          'DrawCreatureHD', 'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
           'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
@@ -244,6 +244,8 @@ for dll, stamp, vals in rows:
     size, f = udt(dll, 'ITEM_INFO')
     check('%s ITEM_INFO::mesh_bits' % dll, 12, f.get('mesh_bits'))
     check('%s ITEM_INFO::object_number' % dll, 16, f.get('object_number'))
+    check('%s ITEM_INFO::fallspeed' % dll, 36, f.get('fallspeed'))
+    check('%s ITEM_INFO::gravity_status' % dll, 484, f.get('gravity_status'))
     check('%s ITEM_INFO::pos' % dll, 88, f.get('pos'))
     check('%s ITEM_INFO::pos_prev' % dll, 108, f.get('pos_prev'))
 
@@ -374,7 +376,9 @@ try:
                      'Draw': 'ogl_draw', 'Present': 'ogl_present',
                      'FmvShow': 'fmvShow', 'SetRt': 'ogl_setRenderTarget'})
 
+    check_prologues('tomb123.exe', 'BoneSkin.cpp', {'ShaderInit': 'shader_init'})
     for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
+        check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'})
         check_prologues(dll, 'PortalCull.cpp',
                         {'PrintRoomsList': 'PrintRoomsList',
                          'ObjectBounds': 'S_GetObjectBounds'})
@@ -401,7 +405,7 @@ try:
                   'fmvShow', 'ogl_setRenderTarget', 'gGame', '_XInputGetState',
                   'vid_state', 'vid_state_prev', 'mProj', 'mView_packed', 'shaders',
                   'ogl_textures', 'FBO_custom', 'FBO_default', 'app', 'gWidth',
-                  'gHeight', 'gTargetWidth', 'gTargetHeight']
+                  'gHeight', 'gTargetWidth', 'gTargetHeight', 'shader_init']
 
     # Engine.h rows written as hex literals -- i.e. not the stock row, which is
     # spelled with the rva::/drva:: names checked above.
@@ -455,6 +459,10 @@ try:
             continue
         pj = json.load(open(jpath))
         P = {img: {n: e['new'] for n, e in pj[img]['symbols'].items()} for img in pj}
+
+        check_prologues('tomb123.exe', 'BoneSkin.cpp', {'ShaderInit': 'shader_init'}, d, P['tomb123.exe'], tag)
+        for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
+            check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'}, d, P[dll], tag)
 
         # 1. The Engine.h row matches port_build.json.
         stamp = pe_stamp(os.path.join(d, 'tomb123.exe'))

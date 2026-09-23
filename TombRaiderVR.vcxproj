@@ -122,6 +122,8 @@
 
   <ItemGroup>
     <ClCompile Include="src\Callsite.cpp" />
+    <ClCompile Include="src\DynamicBones.cpp" />
+    <ClCompile Include="src\BoneSkin.cpp" />
     <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="src\Engine.cpp" />
@@ -141,6 +143,8 @@
 
   <ItemGroup>
     <ClInclude Include="src\Callsite.h" />
+    <ClInclude Include="src\DynamicBones.h" />
+    <ClInclude Include="src\BoneSkin.h" />
     <ClInclude Include="src\Config.h" />
     <ClInclude Include="src\DefaultIni.h" />
     <ClInclude Include="src\Engine.h" />

@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 34406 bytes, 694 lines.
+// Source: TombRaiderVR.ini, 34994 bytes, 733 lines.
 #pragma once
 
 namespace tr {
@@ -712,6 +712,45 @@ DumpDraws=0
 
 ; Virtual-key code that arms the dump. 0x78 = F9.
 DumpKey=0x78
+
+; Chest physics (HD Lara, TR1/TR2/TR3; retail and Gold).
+; Same spring and chest-region defaults as the TR4/5 mod.
+; DynamicBones=0 disables all physics. ChestStrength scales the visible bounce.
+; DriveMode=1 responds to landings; 0 uses filtered torso acceleration.
+; Shader=1 moves the chest per vertex; 0 uses the whole-torso debug fallback.
+; Apply=0 keeps measurements only. RegionDebug=30 shows the selected area.
+DynamicBones=1
+DynamicBonesTorsoJoint=7
+DynamicBonesAnchorX=34.0
+DynamicBonesAnchorY=-170.0
+DynamicBonesAnchorZ=45.0
+DynamicBonesStiffness=630.0
+DynamicBonesDamping=9.5
+DynamicBonesGravity=5400.0
+DynamicBonesDriveScale=1.0
+DynamicBonesDriveDeadzone=4000.0
+DynamicBonesDriveMode=1
+DynamicBonesAirGravity=1.0
+DynamicBonesLandImpulse=0.2
+DynamicBonesDriveSmoothing=0.25
+DynamicBonesDriveMax=20000.0
+DynamicBonesAxis=1
+DynamicBonesShader=1
+DynamicBonesForwardSign=0
+DynamicBonesChestStrength=2.5
+DynamicBonesChestTop=0.18
+DynamicBonesChestBottom=0.52
+DynamicBonesChestDepth=0.6
+DynamicBonesChestWidth=0.34
+DynamicBonesChestBand=0.65
+DynamicBonesRegionDebug=0.0
+DynamicBonesApply=1
+DynamicBonesDebugScale=1.0
+DynamicBonesSeparation=12.0
+DynamicBonesMaxDisplace=40.0
+DynamicBonesTeleport=900.0
+DynamicBonesReportFrames=900
+DynamicBonesLogJoints=0
 )INI";
 }
 

@@ -145,6 +145,7 @@ constexpr uint32_t ogl_setViewport    = 0x0000FC80;
 constexpr uint32_t ogl_setScissor     = 0x0000FC60;
 
 constexpr uint32_t vidInit            = 0x0000B430;
+constexpr uint32_t shader_init        = 0x0000EC10; // void(Shader*, cull, fvf, vs, fs)
 constexpr uint32_t init_ogl           = 0x00011200;
 constexpr uint32_t appGetGame         = 0x000084D0;
 
@@ -251,6 +252,7 @@ struct Layout {
     uint32_t gHeight;
     uint32_t gTargetWidth;
     uint32_t gTargetHeight;
+    uint32_t shader_init;
 };
 
 // The build every address above was read out of the PDB for.
@@ -268,6 +270,7 @@ constexpr Layout kBuildStock = {
     drva::mProj,       drva::mView_packed,   drva::shaders,     drva::ogl_textures,
     drva::FBO_custom,  drva::FBO_default,    drva::app,
     drva::gWidth,      drva::gHeight,        drva::gTargetWidth, drva::gTargetHeight,
+    rva::shader_init,
 };
 
 // The current Aspyr retail build: PE TimeDateStamp 0x6A4B7C52, SizeOfImage
@@ -325,6 +328,7 @@ constexpr Layout kBuildAspyrRetail = {
     /* gHeight             */ 0x0041E1CC,
     /* gTargetWidth        */ 0x0269E220,
     /* gTargetHeight       */ 0x0041E1EC,
+    /* shader_init         */ 0x0000EC40,
 };
 
 // ---------------------------------------------------------------------------

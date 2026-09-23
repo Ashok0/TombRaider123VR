@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cwchar>
+#include <cmath>
 
 namespace tr {
 namespace {
@@ -273,6 +274,83 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.traceFrames         = GetInt  (L"TraceFrames",        g_cfg.traceFrames,        ini);
     g_cfg.traceStartFrame     = GetInt  (L"TraceStartFrame",    g_cfg.traceStartFrame,    ini);
     g_cfg.traceKey            = GetIntAuto(L"TraceKey",         g_cfg.traceKey,           ini);
+
+    // TR1-3 chest physics: same configuration keys as the TR4/5 implementation.
+    g_cfg.dynamicBones           = GetBool (L"DynamicBones",           g_cfg.dynamicBones,           ini);
+    g_cfg.dynamicBonesTorsoJoint = GetInt  (L"DynamicBonesTorsoJoint", g_cfg.dynamicBonesTorsoJoint, ini);
+    g_cfg.dynamicBonesAnchorX    = GetFloat(L"DynamicBonesAnchorX",    g_cfg.dynamicBonesAnchorX,    ini);
+    g_cfg.dynamicBonesAnchorY    = GetFloat(L"DynamicBonesAnchorY",    g_cfg.dynamicBonesAnchorY,    ini);
+    g_cfg.dynamicBonesAnchorZ    = GetFloat(L"DynamicBonesAnchorZ",    g_cfg.dynamicBonesAnchorZ,    ini);
+    g_cfg.dynamicBonesStiffness  = GetFloat(L"DynamicBonesStiffness",  g_cfg.dynamicBonesStiffness,  ini);
+    g_cfg.dynamicBonesDamping    = GetFloat(L"DynamicBonesDamping",    g_cfg.dynamicBonesDamping,    ini);
+    g_cfg.dynamicBonesGravity    = GetFloat(L"DynamicBonesGravity",    g_cfg.dynamicBonesGravity,    ini);
+    g_cfg.dynamicBonesDriveScale = GetFloat(L"DynamicBonesDriveScale", g_cfg.dynamicBonesDriveScale, ini);
+    g_cfg.dynamicBonesSeparation = GetFloat(L"DynamicBonesSeparation", g_cfg.dynamicBonesSeparation, ini);
+    g_cfg.dynamicBonesAxis       = GetInt  (L"DynamicBonesAxis",       g_cfg.dynamicBonesAxis,       ini);
+    g_cfg.dynamicBonesDriveDeadzone = GetFloat(L"DynamicBonesDriveDeadzone", g_cfg.dynamicBonesDriveDeadzone, ini);
+    g_cfg.dynamicBonesDriveMax   = GetFloat(L"DynamicBonesDriveMax",   g_cfg.dynamicBonesDriveMax,   ini);
+    g_cfg.dynamicBonesDriveMode  = GetInt  (L"DynamicBonesDriveMode",  g_cfg.dynamicBonesDriveMode,  ini);
+    g_cfg.dynamicBonesAirGravity = GetFloat(L"DynamicBonesAirGravity", g_cfg.dynamicBonesAirGravity, ini);
+    g_cfg.dynamicBonesLandImpulse = GetFloat(L"DynamicBonesLandImpulse", g_cfg.dynamicBonesLandImpulse, ini);
+    g_cfg.dynamicBonesDriveSmoothing = GetFloat(L"DynamicBonesDriveSmoothing", g_cfg.dynamicBonesDriveSmoothing, ini);
+    if (g_cfg.dynamicBonesDriveSmoothing <= 0.0f || g_cfg.dynamicBonesDriveSmoothing > 1.0f)
+        g_cfg.dynamicBonesDriveSmoothing = 0.25f;
+    g_cfg.dynamicBonesApply      = GetBool (L"DynamicBonesApply",      g_cfg.dynamicBonesApply,      ini);
+    g_cfg.dynamicBonesShader     = GetInt  (L"DynamicBonesShader",     g_cfg.dynamicBonesShader,     ini);
+    g_cfg.dynamicBonesForwardSign = GetInt (L"DynamicBonesForwardSign", g_cfg.dynamicBonesForwardSign, ini);
+    g_cfg.dynamicBonesChestStrength = GetFloat(L"DynamicBonesChestStrength", g_cfg.dynamicBonesChestStrength, ini);
+    g_cfg.dynamicBonesChestTop    = GetFloat(L"DynamicBonesChestTop",    g_cfg.dynamicBonesChestTop,    ini);
+    g_cfg.dynamicBonesChestBottom = GetFloat(L"DynamicBonesChestBottom", g_cfg.dynamicBonesChestBottom, ini);
+    g_cfg.dynamicBonesChestDepth  = GetFloat(L"DynamicBonesChestDepth",  g_cfg.dynamicBonesChestDepth,  ini);
+    g_cfg.dynamicBonesChestWidth  = GetFloat(L"DynamicBonesChestWidth",  g_cfg.dynamicBonesChestWidth,  ini);
+    g_cfg.dynamicBonesChestBand   = GetFloat(L"DynamicBonesChestBand",   g_cfg.dynamicBonesChestBand,   ini);
+    g_cfg.dynamicBonesRegionDebug = GetFloat(L"DynamicBonesRegionDebug", g_cfg.dynamicBonesRegionDebug, ini);
+    g_cfg.dynamicBonesDebugScale = GetFloat(L"DynamicBonesDebugScale", g_cfg.dynamicBonesDebugScale, ini);
+    g_cfg.dynamicBonesMaxDisplace = GetFloat(L"DynamicBonesMaxDisplace", g_cfg.dynamicBonesMaxDisplace, ini);
+    g_cfg.dynamicBonesTeleport   = GetFloat(L"DynamicBonesTeleport",   g_cfg.dynamicBonesTeleport,   ini);
+    g_cfg.dynamicBonesReportFrames = GetInt(L"DynamicBonesReportFrames", g_cfg.dynamicBonesReportFrames, ini);
+    g_cfg.dynamicBonesLogJoints  = GetBool (L"DynamicBonesLogJoints",  g_cfg.dynamicBonesLogJoints,  ini);
+
+    const Config physicsDefaults;
+    if (!std::isfinite(g_cfg.dynamicBonesAnchorX)) g_cfg.dynamicBonesAnchorX = physicsDefaults.dynamicBonesAnchorX;
+    if (!std::isfinite(g_cfg.dynamicBonesAnchorY)) g_cfg.dynamicBonesAnchorY = physicsDefaults.dynamicBonesAnchorY;
+    if (!std::isfinite(g_cfg.dynamicBonesAnchorZ)) g_cfg.dynamicBonesAnchorZ = physicsDefaults.dynamicBonesAnchorZ;
+    if (!std::isfinite(g_cfg.dynamicBonesStiffness)) g_cfg.dynamicBonesStiffness = physicsDefaults.dynamicBonesStiffness;
+    if (!std::isfinite(g_cfg.dynamicBonesDamping)) g_cfg.dynamicBonesDamping = physicsDefaults.dynamicBonesDamping;
+    if (!std::isfinite(g_cfg.dynamicBonesGravity)) g_cfg.dynamicBonesGravity = physicsDefaults.dynamicBonesGravity;
+    if (!std::isfinite(g_cfg.dynamicBonesDriveScale)) g_cfg.dynamicBonesDriveScale = physicsDefaults.dynamicBonesDriveScale;
+    if (!std::isfinite(g_cfg.dynamicBonesDriveDeadzone)) g_cfg.dynamicBonesDriveDeadzone = physicsDefaults.dynamicBonesDriveDeadzone;
+    if (!std::isfinite(g_cfg.dynamicBonesAirGravity)) g_cfg.dynamicBonesAirGravity = physicsDefaults.dynamicBonesAirGravity;
+    if (!std::isfinite(g_cfg.dynamicBonesLandImpulse)) g_cfg.dynamicBonesLandImpulse = physicsDefaults.dynamicBonesLandImpulse;
+    if (!std::isfinite(g_cfg.dynamicBonesDriveSmoothing)) g_cfg.dynamicBonesDriveSmoothing = physicsDefaults.dynamicBonesDriveSmoothing;
+    if (!std::isfinite(g_cfg.dynamicBonesDriveMax)) g_cfg.dynamicBonesDriveMax = physicsDefaults.dynamicBonesDriveMax;
+    if (!std::isfinite(g_cfg.dynamicBonesChestStrength)) g_cfg.dynamicBonesChestStrength = physicsDefaults.dynamicBonesChestStrength;
+    if (!std::isfinite(g_cfg.dynamicBonesChestTop)) g_cfg.dynamicBonesChestTop = physicsDefaults.dynamicBonesChestTop;
+    if (!std::isfinite(g_cfg.dynamicBonesChestBottom)) g_cfg.dynamicBonesChestBottom = physicsDefaults.dynamicBonesChestBottom;
+    if (!std::isfinite(g_cfg.dynamicBonesChestDepth)) g_cfg.dynamicBonesChestDepth = physicsDefaults.dynamicBonesChestDepth;
+    if (!std::isfinite(g_cfg.dynamicBonesChestWidth)) g_cfg.dynamicBonesChestWidth = physicsDefaults.dynamicBonesChestWidth;
+    if (!std::isfinite(g_cfg.dynamicBonesChestBand)) g_cfg.dynamicBonesChestBand = physicsDefaults.dynamicBonesChestBand;
+    if (!std::isfinite(g_cfg.dynamicBonesRegionDebug)) g_cfg.dynamicBonesRegionDebug = physicsDefaults.dynamicBonesRegionDebug;
+    if (!std::isfinite(g_cfg.dynamicBonesDebugScale)) g_cfg.dynamicBonesDebugScale = physicsDefaults.dynamicBonesDebugScale;
+    if (!std::isfinite(g_cfg.dynamicBonesSeparation)) g_cfg.dynamicBonesSeparation = physicsDefaults.dynamicBonesSeparation;
+    if (!std::isfinite(g_cfg.dynamicBonesMaxDisplace)) g_cfg.dynamicBonesMaxDisplace = physicsDefaults.dynamicBonesMaxDisplace;
+    if (!std::isfinite(g_cfg.dynamicBonesTeleport)) g_cfg.dynamicBonesTeleport = physicsDefaults.dynamicBonesTeleport;
+    if (g_cfg.dynamicBonesStiffness <= 0.0f) g_cfg.dynamicBonesStiffness = physicsDefaults.dynamicBonesStiffness;
+    if (g_cfg.dynamicBonesTeleport <= 0.0f) g_cfg.dynamicBonesTeleport = physicsDefaults.dynamicBonesTeleport;
+    if (g_cfg.dynamicBonesSeparation <= 0.0f) g_cfg.dynamicBonesSeparation = physicsDefaults.dynamicBonesSeparation;
+    if (g_cfg.dynamicBonesDamping < 0.0f) g_cfg.dynamicBonesDamping = physicsDefaults.dynamicBonesDamping;
+    if (g_cfg.dynamicBonesMaxDisplace < 0.0f) g_cfg.dynamicBonesMaxDisplace = physicsDefaults.dynamicBonesMaxDisplace;
+    if (g_cfg.dynamicBonesDriveMax < 0.0f) g_cfg.dynamicBonesDriveMax = physicsDefaults.dynamicBonesDriveMax;
+    if (g_cfg.dynamicBonesChestStrength < 0.0f) g_cfg.dynamicBonesChestStrength = physicsDefaults.dynamicBonesChestStrength;
+    if (g_cfg.dynamicBonesTorsoJoint < 0 || g_cfg.dynamicBonesTorsoJoint >= 15) g_cfg.dynamicBonesTorsoJoint = 7;
+
+    LogF("config: chest physics=%s shader=%d apply=%d drive=%d strength=%.2f",
+         g_cfg.dynamicBones ? "on" : "off", g_cfg.dynamicBonesShader,
+         g_cfg.dynamicBonesApply, g_cfg.dynamicBonesDriveMode,
+         g_cfg.dynamicBonesChestStrength);
+
+    // A zero or negative interval would divide by zero in the report path.
+    if (g_cfg.dynamicBonesReportFrames < 1) g_cfg.dynamicBonesReportFrames = 900;
 
     g_liveScale = g_cfg.worldUnitsPerMetre;
     g_liveIpd   = g_cfg.ipdScale;

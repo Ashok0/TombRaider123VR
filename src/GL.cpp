@@ -46,7 +46,14 @@ void   (APIENTRY* EnableVertexAttribArray)(GLuint) = nullptr;
 GLint  (APIENTRY* GetAttribLocation)(GLuint, const char*) = nullptr;
 void   (APIENTRY* ActiveTexture)(GLenum) = nullptr;
 
-namespace { bool g_shaderApi = false; }
+void (APIENTRY* Uniform4fv)(GLint, GLsizei, const GLfloat*) = nullptr;
+void (APIENTRY* GetVertexAttribiv)(GLuint, GLenum, GLint*) = nullptr;
+void (APIENTRY* GetVertexAttribPointerv)(GLuint, GLenum, void**) = nullptr;
+void (APIENTRY* GetBufferParameteriv)(GLenum, GLenum, GLint*) = nullptr;
+void (APIENTRY* GetBufferSubData)(GLenum, GLsizeiptr_t, GLsizeiptr_t, void*) = nullptr;
+
+namespace { bool g_shaderApi = false; bool g_skinApi = false; }
+bool LoadedSkinApi() { return g_skinApi; }
 bool LoadedShaderApi() { return g_shaderApi; }
 
 namespace {
@@ -126,6 +133,16 @@ bool Load() {
     sh &= Grab(GetAttribLocation,       "glGetAttribLocation");
     sh &= Grab(ActiveTexture,           "glActiveTexture");
     g_shaderApi = sh;
+
+    // Dynamic-bone skinning set (BoneSkin.cpp). Needs the shader set as well,
+    // for the test compile that guards every patched shader.
+    bool sk = sh;
+    sk &= Grab(Uniform4fv,              "glUniform4fv");
+    sk &= Grab(GetVertexAttribiv,       "glGetVertexAttribiv");
+    sk &= Grab(GetVertexAttribPointerv, "glGetVertexAttribPointerv");
+    sk &= Grab(GetBufferParameteriv,    "glGetBufferParameteriv");
+    sk &= Grab(GetBufferSubData,        "glGetBufferSubData");
+    g_skinApi = sk;
 
     g_loaded = ok;
     LogF("gl: loader %s (shader api %s)", ok ? "ready" : "INCOMPLETE",

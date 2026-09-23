@@ -32,6 +32,8 @@ rewrite also has independent maths tests and verifies its newly required
 
 - Native stereo 3D, 6DOF head tracking, per-eye asymmetric frustums.
 - All three games (TR1, TR2, TR3) through one build.
+- HD Lara chest physics ported from TR4/5, with the same landing response and
+  tuning controls. Enabled by default; see [chest physics](docs/chest-physics.md).
 - Head-driven room culling, so geometry does not vanish when you look away
   from the game camera.
 - World-locked HUD and inventory rather than a flat overlay pinned to your face.

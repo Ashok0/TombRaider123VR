@@ -1,0 +1,691 @@
+{
+ "tomb123.exe": {
+  "timestamp": 1783331922,
+  "size_of_image": 211230720,
+  "symbols": {
+   "vid_setPass": {
+    "old": 43936,
+    "new": 43936,
+    "how": "function match"
+   },
+   "validate_draw": {
+    "old": 61360,
+    "new": 61408,
+    "how": "function match"
+   },
+   "ogl_draw": {
+    "old": 64816,
+    "new": 64480,
+    "how": "function match"
+   },
+   "ogl_present": {
+    "old": 63440,
+    "new": 63104,
+    "how": "fuzzy 0.97"
+   },
+   "fmvShow": {
+    "old": 58912,
+    "new": 58928,
+    "how": "fuzzy 0.92"
+   },
+   "ogl_setRenderTarget": {
+    "old": 66768,
+    "new": 66464,
+    "how": "function match"
+   },
+   "gGame": {
+    "old": 975912,
+    "new": 980024,
+    "how": "8/8 votes"
+   },
+   "_XInputGetState": {
+    "old": 4289632,
+    "new": 4293552,
+    "how": "3/3 votes"
+   },
+   "vid_state": {
+    "old": 208278896,
+    "new": 208282816,
+    "how": "3/3 votes"
+   },
+   "vid_state_prev": {
+    "old": 208279056,
+    "new": 208282976,
+    "how": "3/3 votes"
+   },
+   "mProj": {
+    "old": 208278304,
+    "new": 208282224,
+    "how": "3/3 votes"
+   },
+   "mView_packed": {
+    "old": 208279296,
+    "new": 208283216,
+    "how": "inferred: mFogBlack and mShadow both shift +3920"
+   },
+   "shaders": {
+    "old": 211077824,
+    "new": 211081664,
+    "how": "3/3 votes"
+   },
+   "ogl_textures": {
+    "old": 211077712,
+    "new": 211081552,
+    "how": "2/2 votes"
+   },
+   "FBO_custom": {
+    "old": 208312904,
+    "new": 208316744,
+    "how": "3/3 votes"
+   },
+   "FBO_default": {
+    "old": 211077788,
+    "new": 211081628,
+    "how": "2/2 votes"
+   },
+   "app": {
+    "old": 3724464,
+    "new": 3728384,
+    "how": "4/4 votes"
+   },
+   "gWidth": {
+    "old": 4313728,
+    "new": 4317648,
+    "how": "3/3 votes"
+   },
+   "gHeight": {
+    "old": 4313724,
+    "new": 4317644,
+    "how": "3/3 votes"
+   },
+   "gTargetWidth": {
+    "old": 40489680,
+    "new": 40493600,
+    "how": "2/2 votes"
+   },
+   "gTargetHeight": {
+    "old": 4313756,
+    "new": 4317676,
+    "how": "1/1 votes"
+   },
+   "vidInit": {
+    "old": 46128,
+    "new": 46128,
+    "how": "function match"
+   },
+   "init_ogl": {
+    "old": 70144,
+    "new": 69856,
+    "how": "function match"
+   },
+   "appInit": {
+    "old": 34592,
+    "new": 34576,
+    "how": "function match"
+   },
+   "vid_setViewMatrix": {
+    "old": 42464,
+    "new": 42480,
+    "how": "1/1 votes"
+   },
+   "WinMain": {
+    "old": 27360,
+    "new": 27344,
+    "how": "function match"
+   },
+   "_XInputSetState": {
+    "old": 4289680,
+    "new": 4293600,
+    "how": "3/3 votes"
+   },
+   "mShadow": {
+    "old": 208279360,
+    "new": 208283280,
+    "how": "2/2 votes"
+   },
+   "shader_init": {
+    "old": 60432,
+    "new": 60480,
+    "how": "unique normalized whole-function match 0.9854"
+   }
+  }
+ },
+ "tomb1.dll": {
+  "timestamp": 1783331880,
+  "size_of_image": 5263360,
+  "symbols": {
+   "lara": {
+    "old": 3390464,
+    "new": 3394368,
+    "how": "14/14 votes"
+   },
+   "camera": {
+    "old": 4317024,
+    "new": 4320928,
+    "how": "52/52 votes"
+   },
+   "room": {
+    "old": 4317320,
+    "new": 4321224,
+    "how": "131/131 votes"
+   },
+   "number_rooms": {
+    "old": 4317008,
+    "new": 4320912,
+    "how": "53/53 votes"
+   },
+   "draw_rooms": {
+    "old": 4316608,
+    "new": 4320512,
+    "how": "7/7 votes"
+   },
+   "number_draw_rooms": {
+    "old": 4317012,
+    "new": 4320916,
+    "how": "14/14 votes"
+   },
+   "w2v_matrix": {
+    "old": 2919488,
+    "new": 2923392,
+    "how": "9/9 votes"
+   },
+   "phd_mxptr": {
+    "old": 1108264,
+    "new": 1112360,
+    "how": "392/392 votes"
+   },
+   "phd_winxmax": {
+    "old": 2919428,
+    "new": 2923332,
+    "how": "21/21 votes"
+   },
+   "phd_winymax": {
+    "old": 2919424,
+    "new": 2923328,
+    "how": "21/21 votes"
+   },
+   "outside": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "outside_left": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "outside_right": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "outside_top": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "outside_bottom": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "PrintRoomsList": {
+    "old": 452944,
+    "new": 453984,
+    "how": "function match"
+   },
+   "S_GetObjectBounds": {
+    "old": 409072,
+    "new": 409136,
+    "how": "function match"
+   },
+   "DrawSkyHD": {
+    "old": 451712,
+    "new": 452752,
+    "how": "function match"
+   },
+   "S_InitialisePolyList": {
+    "old": 406144,
+    "new": 406192,
+    "how": "function match"
+   },
+   "phd_GenerateW2V": {
+    "old": 472496,
+    "new": 473664,
+    "how": "function match"
+   },
+   "frame_frac": {
+    "old": 2919416,
+    "new": 2923320,
+    "how": "70/70 votes"
+   },
+   "lara_item": {
+    "old": 3390896,
+    "new": 3394800,
+    "how": "309/309 votes"
+   },
+   "DrawCreatureHD": {
+    "old": 440928,
+    "new": 441968,
+    "how": "function match"
+   },
+   "DrawHair": {
+    "old": 349232,
+    "new": 349152,
+    "how": "function match"
+   },
+   "gLaraHead": {
+    "old": 4068448,
+    "new": 4072352,
+    "how": "3/3 votes"
+   },
+   "gActorHead": {
+    "old": 4091968,
+    "new": 4095872,
+    "how": "3/3 votes"
+   },
+   "objects": {
+    "old": 4317376,
+    "new": 4321280,
+    "how": "32/32 votes"
+   },
+   "analogInput": {
+    "old": 4317152,
+    "new": 4321056,
+    "how": "52/52 votes"
+   },
+   "input": {
+    "old": 4316564,
+    "new": 4320468,
+    "how": "208/208 votes"
+   },
+   "LaraAboveWater": {
+    "old": 134816,
+    "new": 135136,
+    "how": "function match"
+   },
+   "AnimateLara": {
+    "old": 171632,
+    "new": 172048,
+    "how": "function match"
+   },
+   "GetCollisionInfo": {
+    "old": 26256,
+    "new": 26256,
+    "how": "function match"
+   },
+   "UpdateLaraRoom": {
+    "old": 30096,
+    "new": 30064,
+    "how": "function match"
+   },
+   "w2v_scene_return": {
+    "old": 406918,
+    "new": 406968,
+    "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
+   },
+   "DrawLaraHD": {
+    "old": 448928,
+    "new": 449968,
+    "how": "unique normalized whole-function match 0.9375"
+   }
+  }
+ },
+ "tomb2.dll": {
+  "timestamp": 1783331903,
+  "size_of_image": 5525504,
+  "symbols": {
+   "lara": {
+    "old": 3648832,
+    "new": 3648640,
+    "how": "32/32 votes"
+   },
+   "camera": {
+    "old": 4403552,
+    "new": 4403360,
+    "how": "52/52 votes"
+   },
+   "room": {
+    "old": 4575776,
+    "new": 4575584,
+    "how": "152/154 votes"
+   },
+   "number_rooms": {
+    "old": 4403312,
+    "new": 4403120,
+    "how": "38/38 votes"
+   },
+   "draw_rooms": {
+    "old": 4402912,
+    "new": 4402720,
+    "how": "9/9 votes"
+   },
+   "number_draw_rooms": {
+    "old": 4403324,
+    "new": 4403132,
+    "how": "24/24 votes"
+   },
+   "w2v_matrix": {
+    "old": 3177824,
+    "new": 3177632,
+    "how": "14/14 votes"
+   },
+   "phd_mxptr": {
+    "old": 1347832,
+    "new": 1347832,
+    "how": "572/572 votes"
+   },
+   "phd_winxmax": {
+    "old": 3177888,
+    "new": 3177696,
+    "how": "28/28 votes"
+   },
+   "phd_winymax": {
+    "old": 3177884,
+    "new": 3177692,
+    "how": "28/28 votes"
+   },
+   "outside": {
+    "old": 4378260,
+    "new": 4378068,
+    "how": "3/3 votes"
+   },
+   "outside_left": {
+    "old": 5472368,
+    "new": 5472176,
+    "how": "3/3 votes"
+   },
+   "outside_right": {
+    "old": 5472352,
+    "new": 5472160,
+    "how": "3/3 votes"
+   },
+   "outside_top": {
+    "old": 5472360,
+    "new": 5472168,
+    "how": "3/3 votes"
+   },
+   "outside_bottom": {
+    "old": 5472356,
+    "new": 5472164,
+    "how": "3/3 votes"
+   },
+   "PrintRoomsList": {
+    "old": 658480,
+    "new": 658160,
+    "how": "function match"
+   },
+   "S_GetObjectBounds": {
+    "old": 612160,
+    "new": 610864,
+    "how": "function match"
+   },
+   "DrawSkyHD": {
+    "old": 657248,
+    "new": 656928,
+    "how": "function match"
+   },
+   "S_InitialisePolyList": {
+    "old": 609232,
+    "new": 607920,
+    "how": "function match"
+   },
+   "phd_GenerateW2V": {
+    "old": 687808,
+    "new": 687552,
+    "how": "function match"
+   },
+   "frame_frac": {
+    "old": 3177880,
+    "new": 3177688,
+    "how": "74/74 votes"
+   },
+   "lara_item": {
+    "old": 3649264,
+    "new": 3649072,
+    "how": "349/349 votes"
+   },
+   "DrawCreatureHD": {
+    "old": 645584,
+    "new": 645264,
+    "how": "function match"
+   },
+   "DrawHair": {
+    "old": 556000,
+    "new": 554576,
+    "how": "function match"
+   },
+   "gLaraHead": {
+    "old": 4335872,
+    "new": 4335680,
+    "how": "3/3 votes"
+   },
+   "gActorHead": {
+    "old": 4359360,
+    "new": 4359168,
+    "how": "3/3 votes"
+   },
+   "objects": {
+    "old": 4575808,
+    "new": 4575616,
+    "how": "34/34 votes"
+   },
+   "analogInput": {
+    "old": 4403360,
+    "new": 4403168,
+    "how": "49/49 votes"
+   },
+   "input": {
+    "old": 4403680,
+    "new": 4403488,
+    "how": "241/241 votes"
+   },
+   "LaraAboveWater": {
+    "old": 256448,
+    "new": 256336,
+    "how": "function match"
+   },
+   "AnimateLara": {
+    "old": 344720,
+    "new": 344832,
+    "how": "function match"
+   },
+   "GetCollisionInfo": {
+    "old": 41920,
+    "new": 41920,
+    "how": "function match"
+   },
+   "UpdateLaraRoom": {
+    "old": 45936,
+    "new": 45904,
+    "how": "function match"
+   },
+   "w2v_scene_return": {
+    "old": 610006,
+    "new": 608696,
+    "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
+   },
+   "DrawLaraHD": {
+    "old": 654464,
+    "new": 654144,
+    "how": "unique normalized whole-function match 0.9375"
+   }
+  }
+ },
+ "tomb3.dll": {
+  "timestamp": 1783331895,
+  "size_of_image": 5931008,
+  "symbols": {
+   "lara": {
+    "old": 4004928,
+    "new": 4017024,
+    "how": "29/29 votes"
+   },
+   "camera": {
+    "old": 4792224,
+    "new": 4804320,
+    "how": "67/67 votes"
+   },
+   "room": {
+    "old": 4792352,
+    "new": 4804448,
+    "how": "223/223 votes"
+   },
+   "number_rooms": {
+    "old": 4788560,
+    "new": 4800656,
+    "how": "40/40 votes"
+   },
+   "draw_rooms": {
+    "old": 4788160,
+    "new": 4800256,
+    "how": "10/10 votes"
+   },
+   "number_draw_rooms": {
+    "old": 4788564,
+    "new": 4800660,
+    "how": "29/29 votes"
+   },
+   "w2v_matrix": {
+    "old": 3533952,
+    "new": 3546048,
+    "how": "13/13 votes"
+   },
+   "phd_mxptr": {
+    "old": 1694360,
+    "new": 1706648,
+    "how": "759/759 votes"
+   },
+   "phd_winxmax": {
+    "old": 3533872,
+    "new": 3545968,
+    "how": "27/27 votes"
+   },
+   "phd_winymax": {
+    "old": 3533868,
+    "new": 3545964,
+    "how": "27/27 votes"
+   },
+   "outside": {
+    "old": 4765448,
+    "new": 4777544,
+    "how": "4/4 votes"
+   },
+   "outside_left": {
+    "old": 5863344,
+    "new": 5875440,
+    "how": "3/3 votes"
+   },
+   "outside_right": {
+    "old": 5863328,
+    "new": 5875424,
+    "how": "3/3 votes"
+   },
+   "outside_top": {
+    "old": 5863336,
+    "new": 5875432,
+    "how": "3/3 votes"
+   },
+   "outside_bottom": {
+    "old": 5863332,
+    "new": 5875428,
+    "how": "3/3 votes"
+   },
+   "PrintRoomsList": {
+    "old": 962384,
+    "new": 969824,
+    "how": "function match"
+   },
+   "S_GetObjectBounds": {
+    "old": 916336,
+    "new": 922816,
+    "how": "function match"
+   },
+   "DrawSkyHD": {
+    "old": 961152,
+    "new": 968592,
+    "how": "function match"
+   },
+   "S_InitialisePolyList": {
+    "old": 913408,
+    "new": 919872,
+    "how": "function match"
+   },
+   "phd_GenerateW2V": {
+    "old": 999264,
+    "new": 1006944,
+    "how": "function match"
+   },
+   "frame_frac": {
+    "old": 3533860,
+    "new": 3545956,
+    "how": "87/87 votes"
+   },
+   "lara_item": {
+    "old": 4005360,
+    "new": 4017456,
+    "how": "560/561 votes"
+   },
+   "DrawCreatureHD": {
+    "old": 949440,
+    "new": 956880,
+    "how": "function match"
+   },
+   "DrawHair": {
+    "old": 846752,
+    "new": 853200,
+    "how": "function match"
+   },
+   "gLaraHead": {
+    "old": 4679808,
+    "new": 4691904,
+    "how": "3/3 votes"
+   },
+   "gActorHead": {
+    "old": 4694080,
+    "new": 4706176,
+    "how": "3/3 votes"
+   },
+   "objects": {
+    "old": 4964448,
+    "new": 4976544,
+    "how": "49/49 votes"
+   },
+   "analogInput": {
+    "old": 4792128,
+    "new": 4804224,
+    "how": "71/71 votes"
+   },
+   "input": {
+    "old": 4792180,
+    "new": 4804276,
+    "how": "346/346 votes"
+   },
+   "LaraAboveWater": {
+    "old": 362512,
+    "new": 363040,
+    "how": "function match"
+   },
+   "AnimateLara": {
+    "old": 487312,
+    "new": 487248,
+    "how": "function match"
+   },
+   "GetCollisionInfo": {
+    "old": 93488,
+    "new": 93984,
+    "how": "function match"
+   },
+   "UpdateLaraRoom": {
+    "old": 98080,
+    "new": 98576,
+    "how": "function match"
+   },
+   "w2v_scene_return": {
+    "old": 914182,
+    "new": 920648,
+    "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
+   },
+   "DrawLaraHD": {
+    "old": 958368,
+    "new": 965808,
+    "how": "unique normalized whole-function match 0.9375"
+   }
+  }
+ }
+}
