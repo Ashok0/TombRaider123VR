@@ -364,6 +364,16 @@ finds. Nothing the engine listed is ever removed, so `PortalCulling=0` is the
 stock behaviour exactly, and with your head aligned to the game camera the
 result is what the engine would have drawn anyway.
 
+**First-person room seed.** The engine starts its room list in the chase
+camera's room. Lara's first-person eye can cross a doorway or enter a stacked
+room while that seed stays behind, so a one-sided portal can hide the room
+containing the eye. When first person is active, the traversal resolves the
+effective eye position, including headset translation, through the native
+`GetFloor` room lookup and starts in that room. An invalid lookup falls back to
+the engine's seed. Third person still starts in the game camera's room. The
+`cull: first-person eye in room ...; game camera seeded room ...` log line shows
+when the two differ.
+
 **The frustum shrinks at every doorway.** The portal quad is transformed into
 eye space, clipped against the planes arriving from the previous room, and a new
 plane is built from the head through each surviving edge. A room enters the list
@@ -383,13 +393,13 @@ because the world→eye transform is orthogonal, so `dot(A·n, A·(p−c) + t)` 
 | `tests\selftest.cpp` | 26 hand-worked checks on the geometry |
 | `tools\verify_addresses.py` | re-derives every address and both hook prologues from the PDBs |
 
-#### How this differs from TR4-6
+#### How this differed from the earlier TR4-6 culling fix
 
-The TR4-6 mod expanded the list by **portal hops**: take every room already
+The earlier TR4-6 mod expanded the list by **portal hops**: take every room already
 listed, add everything one doorway away, repeat *N* times. It worked, and every
 row below is something it had to live with that a real traversal does not.
 
-| | TR4-6 (`RoomCull.cpp`) | here (`PortalCull.cpp`) |
+| | earlier TR4-6 (`RoomCull.cpp`) | here (`PortalCull.cpp`) |
 |---|---|---|
 | criterion | hop count `N` | whether the head can see through the doorways |
 | depth | `PortalHops`, tuned per level | decided by the geometry; the budgets only bound the worst case |
@@ -404,6 +414,9 @@ draw one over the other. TR4-6 hit exactly that and needed
 live room's portals name a storage room, so a real traversal cannot reach one —
 the same reason the engine's own never draws one. There is no exclusion list
 here because there is nothing to exclude.
+
+The current TR4-6 mod also uses head-frustum portal traversal and resolves the
+first-person eye's room for its traversal seed. This TR1-3 port now does both.
 
 #### The two levers behind the room list
 
@@ -1081,19 +1094,23 @@ The wall camera sweep calls the game engine's `GetCollisionInfo`, so it also
 needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump and pull-up changes have not yet been confirmed there.
 
-`tools/verify_addresses.py` passes all 427 PDB/address/layout checks and all 689
-checks when run with the matched retail images.
+`tools/verify_addresses.py` passes all 463 PDB/address/layout checks, 752 checks
+with the matched retail images, and 1041 checks with retail and Gold images.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
 The 2026-09-25 Release/x64 DLL is installed in the Steam game folder with the
-walking/jump camera clearance, interaction anchor and dual-grip Action mapping.
+walking/jump camera clearance, interaction anchor, dual-grip Action mapping,
+and first-person eye-room culling seed.
 Its SHA-256 is
-`9303F83ED3D020C5E96E1AD53CEF3A280C31B8350F3AD340DC4DDCCA77BD20CB`.
+`1704CC3ED8643FC6A6936493932AF01EB8D9357B7127180DC82EE7937968D532`.
 The previous DLL is preserved there as
-`TombRaiderVR.dll.pre-jump-wall-clamp-20260925-002511`. The source build and
-`tests/build_selftest.cmd` passed; jump, pull-up and two-grip behavior still
-need an in-headset check.
+`TombRaiderVR.dll.pre-port-verification-20260925-172526`. The source build,
+`tests/build_selftest.cmd`, address verification and locomotion verification
+passed. A TR1 startup smoke test loaded the culling hook, initialized SteamVR,
+created the stereo target, and submitted the first stereo frame. The eye-room
+change still needs an in-headset check near doorways and stacked rooms. Jump,
+pull-up and two-grip behavior also await an in-headset check.
 
 An earlier 2026-09-22 UI-safe control-remap/roll-visibility build was built in
 Release/x64 and installed in the Steam game folder. It always starts on the

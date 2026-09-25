@@ -108,6 +108,11 @@
     "new": 4317676,
     "how": "1/1 votes"
    },
+   "shader_init": {
+    "old": 60432,
+    "new": 60480,
+    "how": "function match"
+   },
    "vidInit": {
     "old": 46128,
     "new": 46128,
@@ -142,11 +147,6 @@
     "old": 208279360,
     "new": 208283280,
     "how": "2/2 votes"
-   },
-   "shader_init": {
-    "old": 60432,
-    "new": 60480,
-    "how": "unique normalized whole-function match 0.9854"
    }
   }
  },
@@ -264,6 +264,11 @@
     "new": 441968,
     "how": "function match"
    },
+   "DrawLaraHD": {
+    "old": 448928,
+    "new": 449968,
+    "how": "function match"
+   },
    "DrawHair": {
     "old": 349232,
     "new": 349152,
@@ -314,15 +319,15 @@
     "new": 30064,
     "how": "function match"
    },
+   "GetFloor": {
+    "old": 38912,
+    "new": 38944,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 406918,
     "new": 406968,
     "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
-   },
-   "DrawLaraHD": {
-    "old": 448928,
-    "new": 449968,
-    "how": "unique normalized whole-function match 0.9375"
    }
   }
  },
@@ -445,6 +450,11 @@
     "new": 645264,
     "how": "function match"
    },
+   "DrawLaraHD": {
+    "old": 654464,
+    "new": 654144,
+    "how": "function match"
+   },
    "DrawHair": {
     "old": 556000,
     "new": 554576,
@@ -495,15 +505,15 @@
     "new": 45904,
     "how": "function match"
    },
+   "GetFloor": {
+    "old": 56976,
+    "new": 56960,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 610006,
     "new": 608696,
     "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
-   },
-   "DrawLaraHD": {
-    "old": 654464,
-    "new": 654144,
-    "how": "unique normalized whole-function match 0.9375"
    }
   }
  },
@@ -626,6 +636,11 @@
     "new": 956880,
     "how": "function match"
    },
+   "DrawLaraHD": {
+    "old": 958368,
+    "new": 965808,
+    "how": "function match"
+   },
    "DrawHair": {
     "old": 846752,
     "new": 853200,
@@ -676,15 +691,15 @@
     "new": 98576,
     "how": "function match"
    },
+   "GetFloor": {
+    "old": 141328,
+    "new": 141584,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 914182,
     "new": 920648,
     "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
-   },
-   "DrawLaraHD": {
-    "old": 958368,
-    "new": 965808,
-    "how": "unique normalized whole-function match 0.9375"
    }
   }
  }

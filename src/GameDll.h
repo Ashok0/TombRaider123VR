@@ -104,6 +104,7 @@ struct GameDllLayout {
     uint32_t animateLara;       // advances Lara's animation and root motion
     uint32_t getCollisionInfo;
     uint32_t updateLaraRoom;
+    uint32_t getFloor;          // resolves the first-person eye's room for culling
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cmath>
+#include <limits>
 
 namespace tr {
 namespace {
@@ -28,6 +29,7 @@ namespace {
 //
 namespace off {
 constexpr uint32_t room_stride = 168;
+constexpr uint32_t item_room   = 28;  // ITEM_INFO::room_number
 
 constexpr uint32_t room_door   = 8;    // int16*  portal list, null if none
 constexpr uint32_t room_x      = 40;   // int32   room origin, world units
@@ -307,6 +309,7 @@ hook::InlineHook g_hObjectBounds;
 
 typedef void (__cdecl* Fn_PrintRoomsList)(void);
 typedef int  (__cdecl* Fn_S_GetObjectBounds)(int16_t*);
+typedef void* (__cdecl* Fn_GetFloor)(int32_t, int32_t, int32_t, int16_t*);
 
 // Verified with tools\prologue.py against all three DLLs. Both windows are
 // identical in tomb1/2/3.dll, both stop on an instruction boundary, and neither
@@ -426,6 +429,44 @@ void BuildTransform(WorldToEye& out, float& tanX, float& tanY) {
     CullTangents(tanX, tanY);
 }
 
+// The engine starts its room list in the game camera's room. In first person
+// the eye can already be across a doorway or in a stacked room, where that
+// seed's one-sided portals cannot lead back to what the player sees. Resolve
+// the effective rendered eye through the game's own room lookup instead.
+int FirstPersonSeed(const Ctx& cx, int cameraSeed) {
+    if (!FirstPersonActive() || !g_boundDll->getFloor || !g_boundDll->laraItem)
+        return cameraSeed;
+    const auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
+    if (!item) return cameraSeed;
+    int16_t room = *reinterpret_cast<const int16_t*>(item + off::item_room);
+    if (room < 0 || room >= cx.numRooms) return cameraSeed;
+
+    // e = A * (p - c) + t. A is orthogonal, so its transpose takes the
+    // zero eye-space point back into world space, including tracked position.
+    int32_t eye[3];
+    for (int j = 0; j < 3; ++j) {
+        const double p = cx.m.c[j] -
+            (double(cx.m.a[0][j]) * cx.m.t[0] +
+             double(cx.m.a[1][j]) * cx.m.t[1] +
+             double(cx.m.a[2][j]) * cx.m.t[2]);
+        if (!std::isfinite(p) || p < std::numeric_limits<int32_t>::min() ||
+            p > std::numeric_limits<int32_t>::max()) return cameraSeed;
+        eye[j] = static_cast<int32_t>(std::lround(p));
+    }
+
+    void* floor = reinterpret_cast<Fn_GetFloor>(g_boundBase + g_boundDll->getFloor)(
+        eye[0], eye[1], eye[2], &room);
+    if (!floor || room < 0 || room >= cx.numRooms) return cameraSeed;
+
+    static int lastCameraSeed = -1, lastEyeRoom = -1;
+    if (cameraSeed != lastCameraSeed || room != lastEyeRoom)
+        LogF("cull: first-person eye in room %d; game camera seeded room %d",
+             room, cameraSeed);
+    lastCameraSeed = cameraSeed;
+    lastEyeRoom = room;
+    return room;
+}
+
 // Widen every listed room's clip rect to the whole target.
 //
 // PrintRooms copies that rect into phd_left/right/top/bottom and CheckClipping
@@ -529,7 +570,7 @@ void __cdecl Detour_PrintRoomsList() {
     // both of its implementations (TR1 writes it directly, TR2/TR3 reach it
     // first out of bound_list). Taking it from the list rather than from
     // camera.pos.room_number means the two can never disagree.
-    const int seed = cx.drawRooms[0];
+    const int seed = FirstPersonSeed(cx, cx.drawRooms[0]);
 
     Plane root[kMaxPlanes];
     const int nRoot = portal::RootPlanes(tanX, tanY, root);

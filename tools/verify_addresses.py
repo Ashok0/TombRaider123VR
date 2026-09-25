@@ -156,7 +156,8 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
           'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
           'DrawCreatureHD', 'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
-          'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom']
+          'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom',
+          'GetFloor']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -243,6 +244,7 @@ for dll, stamp, vals in rows:
     # geometry pointer that identifies the face and sunglasses draws.
     size, f = udt(dll, 'ITEM_INFO')
     check('%s ITEM_INFO::mesh_bits' % dll, 12, f.get('mesh_bits'))
+    check('%s ITEM_INFO::room_number' % dll, 28, f.get('room_number'))
     check('%s ITEM_INFO::object_number' % dll, 16, f.get('object_number'))
     check('%s ITEM_INFO::fallspeed' % dll, 36, f.get('fallspeed'))
     check('%s ITEM_INFO::gravity_status' % dll, 484, f.get('gravity_status'))
