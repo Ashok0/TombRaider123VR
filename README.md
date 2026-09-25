@@ -40,14 +40,16 @@ rewrite also has independent maths tests and verifies its newly required
 - FMV cutscenes captured offscreen and replayed as real geometry, so they
   keystone and roll correctly instead of sitting flat.
 - Touch controllers presented to the game as an Xbox pad, with decoupled
-  head/aim pitch.
+  head/aim pitch and a two-grip Action chord for blocks.
 - Ceiling clearance clamp, so standing up in a crawlspace does not put your head
   through the ceiling.
 - Sky at optical infinity, so the HD dome does not sit a few metres away in
   stereo or paint over distant geometry.
 - First person: the camera rides Lara's animated head instead of the chase
   camera, interpolated so it does not judder against the world, with her head
-  hidden and the rest of her body still visible.
+  hidden and the rest of her body still visible. Camera clearance checks the
+  rendered eyes against walls while walking or jumping; interaction animations
+  retract the forward eye offset.
 - Roomscale: leaning and ducking move the viewpoint, turning round turns Lara,
   and walking about the room walks her through the engine's own collision.
 - Live IPD and world-scale tuning on the numpad.
@@ -92,8 +94,9 @@ during play. Her animations move your head for you. See
 Around it: positional tracking is measured from a captured neutral, physical and
 right-stick turning share a stable VR-world heading, HMD-relative stick movement
 stays aligned after either kind of turn, and walking about the room moves Lara
-by direct displacement through native collision queries. The final rewrite has passed
-the automated and binary checks described below and is awaiting a headset run.
+by direct displacement through native collision queries. These controls have
+been exercised in the headset on TR1; the latest pull-up, jump and
+controller-chord changes still need a headset check.
 See "Roomscale and rotation in first person".
 
 Supported builds:
@@ -136,6 +139,16 @@ mismatch, and `vr: up and running`.
 Current builds refuse an unknown exe with `refusing to patch an executable no
 address table describes`. If you see that, the exe is genuinely new; see
 "Supporting the Aspyr retail and Tomb Raider Gold builds" for how to add it.
+
+### Troubleshooting: SteamVR grid but no game video
+
+If SteamVR starts but stays on its grid, check `TombRaiderVR.log` for the per-eye
+target size. Some runtime/driver starts return a zero recommended width or
+height, which previously prevented the stereo framebuffer from being created.
+The mod now replaces a zero width with 1512 and a zero height with 1680 before applying
+`SuperSample`, and logs `vr: runtime returned ... render target; using
+1512x1680 fallback`. Explicit `EyeWidth` and `EyeHeight` settings take priority.
+The next `vr: ready, per-eye target ...` line shows the dimensions actually used.
 
 ---
 
@@ -578,6 +591,12 @@ merged, so both controller sources behave the same way. The two Y/trigger
 chords are recognized only in gameplay; title, inventory and cutscene input is
 passed through unchanged.
 
+On Touch controllers, **LB+RB** (both grips) is another way to hold Action (Y)
+while pushing or pulling blocks. During gameplay the chord replaces the grips'
+individual Duck and Walk inputs; the normal Y button still works. The synthesized
+Y is applied after the Y+trigger view/graphics chords, so gripping while using
+a trigger does not switch modes.
+
 Pressing B still starts Lara's native roll. During the roll states, her body,
 separate HD face/sunglasses geometry and braid are temporarily suppressed. Her
 saved mesh mask is restored as soon as the roll finishes, including if the view
@@ -591,12 +610,13 @@ you -- through every roll, swan dive and grab -- which is not something the game
 was ever designed to do, so treat it as a different way to play rather than a
 better camera.
 
-#### One hook, and why the camera is the only thing touched
+#### The scene camera hook
 
 The stereo layer already computes `finalView = eyeView * gameView`, so it never
-needs to know where the game camera is. Move the GAME's camera and everything
-downstream follows on its own: the stereo view, the head-frustum culling, item
-visibility, both renderers. Nothing in `Hooks.cpp` knows this feature exists.
+needs to know where the game camera is. Move the game's camera and everything
+downstream follows: the stereo view, head-frustum culling, item visibility and
+both renderers. `Hooks.cpp` checks whether first person is active to decide
+whether the stereo layer should include tracked head translation.
 
 So the camera portion of `src\FirstPerson.cpp` hooks exactly one function,
 `phd_GenerateW2V`, which turns a camera pose into `w2v_matrix`, and rewrites the
@@ -643,12 +663,35 @@ viewpoint forward and brings Lara's visible torso back underneath the player.
 At the default 423 units/metre, 128 units are about 0.30 m. The current Steam
 test installation uses `FirstPersonAnchorZ=144` (the normal 16 plus that 128-unit
 correction) after headset testing found the body about one foot too far forward.
-This is a static avatar-fit adjustment and does not enter roomscale translation,
-collision or rotation maths.
+This avatar-fit adjustment changes the camera position only; it does not move
+Lara or change her native collision.
 
 A sanity check rejects an anchor further than four sectors from Lara: a wrong
 joint index then falls back to the game camera and says so in the log, rather
 than putting the player inside the world.
+
+#### Wall clearance during movement and interactions
+
+Lara's collision body can stop at a wall while her animated head and the
+forward avatar-fit offset put the first-person eye inside it. During ground
+movement the mod traces from Lara's interpolated body position toward the final
+head position, including horizontal headset translation. It queries the game's
+room collision in steps of at most 16 units with 64 units of clearance for the
+two eyes and near plane. At a wall it keeps the last clear position and shifts
+the camera anchor to hold the rendered viewpoint there. Lara's body collision
+and movement are unchanged.
+
+The same horizontal check covers jump preparation, forward and vertical jumps,
+side/back jumps, falls and the wall-impact animation. In the air it allows the
+floor to be farther below Lara, so an ordinary jump does not pull the camera
+back simply because she has left the ground.
+
+Hanging, ledge pull-up, ladder climbing and push/pull animations instead use
+`FirstPersonInteractionAnchorZ=16`. This retracts the usual 144-unit forward
+offset while Lara is held against geometry; ledge pull-up state 19 is included.
+Hanging keeps its existing camera behavior. These camera corrections run only
+when the first-person gameplay view is active. Switching to third person clears
+that state immediately and leaves the native chase camera alone.
 
 #### What headset testing changed
 
@@ -752,6 +795,7 @@ identical across all of them. Going through `mesh_bits` avoids needing it.
 | `FirstPerson` | `0` | legacy setting; startup is always third person and Y+LT toggles the full mode |
 | `FirstPersonJoint` | `14` | Lara's head joint, the same in all three games |
 | `FirstPersonAnchorX/Y/Z` | `0,-32,144` | avatar fit; -Y is up and +Z moves the viewpoint forward, bringing the visible body back |
+| `FirstPersonInteractionAnchorZ` | `16` | retracts the forward offset while hanging, pulling up a ledge, climbing or pushing/pulling |
 | `FirstPersonYawFromLara` | `0` | obsolete; stable VR heading now owns first-person yaw |
 | `FirstPersonHeadTranslation` | `1` | lets your own leaning move the viewpoint relative to neutral |
 | `FirstPersonHideHead` | `1` | hide the head mesh, the face, the sunglasses and the braid |
@@ -930,8 +974,8 @@ Dragging is restricted to ordinary ground states. Jumping, swimming, climbing
 and interactions do not receive physical displacement. Pending horizontal
 motion is cleared there to avoid movement on returning to ground. R3 D-pad
 shift suppresses drag; L3+R3 takes priority for Photo Mode. END captures a fresh neutral and clears interpolation
-history. Wall collision blocks Lara's body; tracked camera leaning itself can
-still cross nearby geometry.
+history. The first-person camera check separately constrains the rendered eye
+near walls, including the remaining horizontal tracked movement.
 
 #### Why earlier revisions failed
 
@@ -955,8 +999,8 @@ The feature is deliberately split by ownership:
 | file | responsibility |
 |---|---|
 | `src/VRSystem.cpp` | raw tracked position, neutral, HMD yaw, step consumption and turn pivot |
-| `src/FirstPerson.cpp` | stable heading, simulation steering, collision body drag, interpolation and diagnostics |
-| `src/Gamepad.cpp` | merge Touch/physical pads, handle L3+R3 Photo, Y+RT graphics and Y+LT view chords, then apply the active view's input path |
+| `src/FirstPerson.cpp` | stable heading, simulation steering, collision body drag, rendered-eye wall clearance, interpolation and diagnostics |
+| `src/Gamepad.cpp` | merge Touch/physical pads, handle L3+R3 Photo, Y+RT graphics, Y+LT view and dual-grip Action, then apply the active view's input path |
 | `src/LocomotionMath.h` | tested frame-independent vector, angle, step and heading maths |
 | `src/StereoMath.h` | floor-projected yaw extraction from the inverse HMD pose |
 
@@ -1033,12 +1077,25 @@ sidestep selection, jump-direction selection, and consistent steering in
 compression and forward flight. These checks validate math and state selection;
 they do not run the game engine or a headset.
 
+The wall camera sweep calls the game engine's `GetCollisionInfo`, so it also
+needs in-headset verification. Walking into a wall has been confirmed without
+clipping; the latest jump and pull-up changes have not yet been confirmed there.
+
 `tools/verify_addresses.py` passes all 427 PDB/address/layout checks and all 689
 checks when run with the matched retail images.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-09-22 UI-safe control-remap/roll-visibility build was built in
+The 2026-09-25 Release/x64 DLL is installed in the Steam game folder with the
+walking/jump camera clearance, interaction anchor and dual-grip Action mapping.
+Its SHA-256 is
+`9303F83ED3D020C5E96E1AD53CEF3A280C31B8350F3AD340DC4DDCCA77BD20CB`.
+The previous DLL is preserved there as
+`TombRaiderVR.dll.pre-jump-wall-clamp-20260925-002511`. The source build and
+`tests/build_selftest.cmd` passed; jump, pull-up and two-grip behavior still
+need an in-headset check.
+
+An earlier 2026-09-22 UI-safe control-remap/roll-visibility build was built in
 Release/x64 and installed in the Steam game folder. It always starts on the
 engine's original third-person path, uses L3+R3 for native Photo Mode, Y+RT for the native
 classic/remastered graphics toggle, and Y+LT for the complete first-person
@@ -1065,12 +1122,12 @@ body remains visible for all four manual directions. Earlier DLL backups use
 other existing settings are preserved. The neck-pivot setting uses its 0.15 m
 default when absent from the INI. The installed first-person anchor Z is tuned
 to 144 to move the viewpoint about 0.30 m forward relative to the earlier value
-of 16. This build completed with no warnings or errors.
+of 16. That earlier build completed with no warnings or errors.
 
 Headset testing has confirmed direct roomscale dragging, physical/artificial
-rotation, centring, body depth and HMD-forward jumping. The new side/back angle
-and single-frame root-motion scaling still need a headset pass; the sequence is in
-`docs/roomscale-testing.md`. Full-body tracking is unavailable, so the neck
+rotation, centring, body depth, HMD-forward jumping and walking wall clearance.
+The test sequence is in `docs/roomscale-testing.md`. Full-body tracking is
+unavailable, so the neck
 pivot remains an adjustable estimate. Physical drag is grounded only; a large
 tracking discontinuity requires END to recenter.
 

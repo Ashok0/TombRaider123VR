@@ -150,6 +150,11 @@ struct Config {
     int   firstPersonAnchorY    = -32;
     int   firstPersonAnchorZ    = 144;
 
+    // Hanging, climbing and block interactions place Lara immediately against
+    // collision geometry. Retract the avatar-fit forward offset to the original
+    // in-head position there so the viewpoint stays on Lara's side of the surface.
+    int   firstPersonInteractionAnchorZ = 16;
+
     // Legacy setting, retained for old ini files. First person now always uses
     // a stable tracking-to-world yaw, independent of the chase camera/body.
     bool  firstPersonYawFromLara = false;

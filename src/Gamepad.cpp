@@ -80,7 +80,7 @@ uint8_t Trig(float v) {
 //   Duck        LB                Equip   LT     Sprint L3
 //   Walk        LS + RB           System  X      Photo  L3 + R3
 //   D-pad       R3 + left stick   Graphics Y + RT
-//   View        Y + LT
+//   View        Y + LT           Action  LB + RB (both grips)
 //
 // Two of these are deliberately not the flat-screen defaults, because they suit
 // VR hands better:
@@ -93,7 +93,7 @@ uint8_t Trig(float v) {
 //   System is the left hand's lower face button, sending BACK. Touch has no
 //   Start or Back of its own, and putting either on a chord made it awkward to
 //   reach mid-play.
-void BuildState(XState& out, bool& shifted) {
+void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
     VRSystem::HandState h[2];
     VR().ReadControllers(h);
 
@@ -102,6 +102,7 @@ void BuildState(XState& out, bool& shifted) {
 
     const VRSystem::HandState& L = h[0];
     const VRSystem::HandState& R = h[1];
+    gripAction = gameplay && L.grip > 0.5f && R.grip > 0.5f;
 
     uint16_t b = 0;
     if (R.btnLower)   b |= XB_A;               // Jump
@@ -143,12 +144,14 @@ void BuildState(XState& out, bool& shifted) {
         b |= Cfg().gamepadMenuUsesBack ? XB_BACK : XB_START;
     }
 
-    // Duck.
-    if (L.grip > 0.5f) b |= XB_LEFT_SHOULDER;
+    // The two-grip gameplay chord is a second Action button. Do not send its
+    // constituent Duck/Walk buttons, or they can interrupt a block push.
+    if (!gripAction && L.grip > 0.5f) b |= XB_LEFT_SHOULDER;
 
     // Walk modifier. X is what the game binds Walk to; RIGHT_SHOULDER also
     // keeps the optional RT+RB pitch chord reachable.
-    if (R.grip > 0.5f) b |= static_cast<uint16_t>(XB_X | XB_RIGHT_SHOULDER);
+    if (!gripAction && R.grip > 0.5f)
+        b |= static_cast<uint16_t>(XB_X | XB_RIGHT_SHOULDER);
 
     out.Gamepad.wButtons      = b;
     out.Gamepad.bLeftTrigger  = Trig(L.trigger);    // Equip
@@ -195,7 +198,9 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
 
     XState mine{};
     bool shifted = false;
-    BuildState(mine, shifted);
+    const bool gameplay = !InInventory() && !InTitle() && !InCutscene();
+    bool gripAction = false;
+    BuildState(mine, shifted, gameplay, gripAction);
 
     // Merge a physical pad if one is plugged in, so it keeps working.
     if (g_original) {
@@ -234,7 +239,6 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     // classic/remastered graphics toggle. The view chord takes priority if
     // both triggers happen to be down. Consume the constituent actions so a
     // view/graphics switch cannot also use Action, draw guns or shoot.
-    const bool gameplay = !InInventory() && !InTitle() && !InCutscene();
     const bool yHeld = (mine.Gamepad.wButtons & XB_Y) != 0;
     const bool viewToggle = gameplay && yHeld && mine.Gamepad.bLeftTrigger > 30;
     const bool graphicsToggle = gameplay && !viewToggle && yHeld &&
@@ -249,6 +253,10 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
         mine.Gamepad.wButtons |= XB_START;
         mine.Gamepad.bRightTrigger = 0;
     }
+    // Add the grip Action after Y+trigger handling. Holding both grips while
+    // equipping or shooting must not switch the view or graphics mode.
+    if (gripAction && !viewToggle && !graphicsToggle)
+        mine.Gamepad.wButtons |= XB_Y;
 
     // Transform the MERGED state so a physical Xbox pad has the same heading
     // and cannot reintroduce the engine's right-stick camera orbit.
@@ -345,8 +353,9 @@ void GamepadUpdate() {
     if (!g_loggedOnce) {
         g_loggedOnce = true;
         LogF("pad: move=Lstick look=Rstick%s jump=A(R lower) roll=B(R upper) "
-             "action=Y(L upper) system=%s(L lower) walk=LS+RB(R grip) "
-             "duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=L3+R3 "
+             "action=Y(L upper)/LB+RB(both grips) system=%s(L lower) "
+             "walk=LS+RB(R grip) duck=LB(L grip) equip=LT shoot=RT "
+             "sprint=L3 photo=L3+R3 "
              "graphics=Y+RT view=Y+LT%s",
              Cfg().decoupledPitch
                  ? (Cfg().decoupledPitchChord

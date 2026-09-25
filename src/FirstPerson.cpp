@@ -174,6 +174,24 @@ bool CanWalk(const uint8_t* item) {
 template <typename T>
 T* Ptr(uint32_t rva) { return reinterpret_cast<T*>(g_boundBase + rva); }
 
+// PDB coll_info, shared by all three games. This is a private query object;
+// never reuse laracoll, whose old position belongs to the animation tick.
+struct RoomCollision {
+    int32_t floorSamples[18];
+    int32_t radius, badPos, badNeg, badCeiling;
+    int32_t shift[3], old[3];
+    int16_t oldState, oldAnim, oldFrame, facing, quadrant, type;
+    int16_t* trigger;
+    uint8_t tiltX, tiltZ, hitBaddie, hitStatic;
+    uint16_t flags;
+};
+static_assert(sizeof(RoomCollision) == 144);
+static_assert(offsetof(RoomCollision, facing) == 118);
+static_assert(offsetof(RoomCollision, trigger) == 128);
+using Fn_GetCollisionInfo = void(__cdecl*)(RoomCollision*, int32_t, int32_t,
+                                           int32_t, int16_t, int32_t);
+using Fn_UpdateLaraRoom = void(__cdecl*)(uint8_t*, int32_t);
+
 // Is this the ONE call that builds the scene view?
 //
 // phd_GenerateW2V is shared by the inventory, the pickup spin, shadows, photo
@@ -218,6 +236,53 @@ int32_t Lerp(int32_t prev, int32_t cur, int32_t frac) {
     return static_cast<int32_t>(prev + (int64_t(cur) - prev) * frac / 256);
 }
 
+// Lara's body collision can stop at a wall while the avatar-fit eye sits beyond
+// it. Trace from her collision origin toward the rendered head in short steps,
+// using the same room collision query as roomscale movement. Leave enough
+// space for both eyes and the near plane at the last clear point.
+void ClampHeadToCollision(const uint8_t* item, const int32_t body[3],
+                          int32_t head[3], bool airborne) {
+    const int32_t dx = head[0] - body[0], dz = head[2] - body[2];
+    const float distance = std::hypot(float(dx), float(dz));
+    if (distance < 1.0f) return;
+    if (distance > 512.0f) {
+        head[0] = body[0];
+        head[2] = body[2];
+        return;
+    }
+
+    const int steps = std::clamp(static_cast<int>(std::ceil(distance / 16.0f)), 1, 32);
+    int32_t clearX = body[0], clearZ = body[2];
+    const int16_t room = *reinterpret_cast<const int16_t*>(item + off::item_room_number);
+    for (int i = 1; i <= steps; ++i) {
+        const int32_t x = body[0] + static_cast<int32_t>(int64_t(dx) * i / steps);
+        const int32_t z = body[2] + static_cast<int32_t>(int64_t(dz) * i / steps);
+        RoomCollision coll{};
+        coll.radius = 64;
+        // Airborne Lara can be more than 384 units above the floor. Keep the
+        // wall query active without treating the drop below her as a wall.
+        coll.badPos = airborne ? 4096 : 384;
+        coll.badNeg = airborne ? -4096 : -384;
+        coll.badCeiling = 0;
+        coll.flags = 5;
+        coll.old[0] = clearX; coll.old[1] = body[1]; coll.old[2] = clearZ;
+        coll.facing = locomotion::Angle(std::atan2(float(x - clearX), float(z - clearZ)));
+        reinterpret_cast<Fn_GetCollisionInfo>(g_boundBase + g_boundDll->getCollisionInfo)(
+            &coll, x, body[1], z, room, 762);
+        if ((!airborne && (coll.floorSamples[0] < -384 ||
+                           coll.floorSamples[0] > 384 ||
+                           coll.floorSamples[1] >= 0)) ||
+            coll.type == 8 || coll.type == 16 || coll.type == 32 ||
+            coll.shift[0] || coll.shift[2]) {
+            head[0] = clearX;
+            head[2] = clearZ;
+            return;
+        }
+        clearX = x;
+        clearZ = z;
+    }
+}
+
 bool Anchor(PHD_3DPOS& pose) {
     auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
     if (!item) return false;
@@ -239,10 +304,17 @@ bool Anchor(PHD_3DPOS& pose) {
                               Lerp(posPrev.y_pos, posCur.y_pos, frac),
                               Lerp(posPrev.z_pos, posCur.z_pos, frac) };
 
+    const int state = *reinterpret_cast<const int16_t*>(item + off::item_anim_state);
+    const int anchorZ = locomotion::FirstPersonAnchorZ(
+        state, Cfg().firstPersonAnchorZ, Cfg().firstPersonInteractionAnchorZ);
+
     // A point inside the skull rather than the neck pivot the joint sits on.
+    // The avatar-fit forward offset is retracted while Lara is constrained
+    // against a ledge wall or movable block; those interactions own her body
+    // position, so the viewpoint must stay on her side of the contact plane.
     const int32_t local[3] = { Cfg().firstPersonAnchorX,
                                Cfg().firstPersonAnchorY,
-                               Cfg().firstPersonAnchorZ };
+                               anchorZ };
 
     int32_t head[3];
     for (int row = 0; row < 3; ++row) {
@@ -429,24 +501,6 @@ void TurnBodyToHead(uint8_t* item, float dt) {
     const float limit = std::max(0.0f, Cfg().firstPersonBodyTurnDegreesPerFrame) * 60 * dt * Pi / 180;
     pos.y_rot = Angle(Radians(pos.y_rot) + std::clamp(move, -limit, limit));
 }
-
-// PDB coll_info, shared by all three games. This is a private query object;
-// never reuse laracoll, whose old position belongs to the animation tick.
-struct RoomCollision {
-    int32_t floorSamples[18];
-    int32_t radius, badPos, badNeg, badCeiling;
-    int32_t shift[3], old[3];
-    int16_t oldState, oldAnim, oldFrame, facing, quadrant, type;
-    int16_t* trigger;
-    uint8_t tiltX, tiltZ, hitBaddie, hitStatic;
-    uint16_t flags;
-};
-static_assert(sizeof(RoomCollision) == 144);
-static_assert(offsetof(RoomCollision, facing) == 118);
-static_assert(offsetof(RoomCollision, trigger) == 128);
-using Fn_GetCollisionInfo = void(__cdecl*)(RoomCollision*, int32_t, int32_t,
-                                          int32_t, int16_t, int32_t);
-using Fn_UpdateLaraRoom = void(__cdecl*)(uint8_t*, int32_t);
 
 locomotion::Vec DragBody(uint8_t* item) {
     using namespace locomotion;
@@ -648,6 +702,41 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     g_lastHeadWorld = g_heading.World(VR().HeadYawRadians());
 }
 
+void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
+    const bool ground = CanWalk(item);
+    const int state = *reinterpret_cast<const int16_t*>(item + off::item_anim_state);
+    // Forward/standing jump, compression, wall impact, side/back jumps and
+    // their falling transitions need a clear eye after ground walking stops.
+    const bool jump = LaraWaterStatus() == 0 &&
+        *reinterpret_cast<const int16_t*>(item + off::item_hit_points) > 0 &&
+        (state == 3 || state == 9 || state == 12 || state == 15 ||
+         (state >= 25 && state <= 29));
+    if (!ground && !jump) return;
+
+    const auto& pos = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos);
+    const auto& prev = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos_prev);
+    const int frac = std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac), 0, 256);
+    const int32_t body[3] = {Lerp(prev.x_pos, pos.x_pos, frac),
+                             Lerp(prev.y_pos, pos.y_pos, frac),
+                             Lerp(prev.z_pos, pos.z_pos, frac)};
+
+    locomotion::Vec tracked{};
+    if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation) {
+        VR().HeadFloorOffset(tracked.x, tracked.z);
+        tracked = locomotion::Rotate(tracked, g_heading.base) * LiveWorldUnitsPerMetre();
+    }
+    const int32_t offsetX = static_cast<int32_t>(std::lround(tracked.x));
+    const int32_t offsetZ = static_cast<int32_t>(std::lround(tracked.z));
+    int32_t renderedHead[3] = {pose.x_pos + offsetX, pose.y_pos,
+                               pose.z_pos + offsetZ};
+    ClampHeadToCollision(item, body, renderedHead, !ground && state != 15);
+    // The stereo layer adds tracking after this scene pose. Move the anchor by
+    // the same amount in reverse so the actual eye centre stays on the clear
+    // side of the wall, even when the player physically leans toward it.
+    pose.x_pos = renderedHead[0] - offsetX;
+    pose.z_pos = renderedHead[2] - offsetZ;
+}
+
 void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
     if (pose && IsSceneCall(_ReturnAddress())) {
         auto* item = g_boundDll && g_boundBase
@@ -680,7 +769,10 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         }
 
         // Once per frame, before anything is drawn.
-        if (g_active) UpdateLocomotion(*pose);
+        if (g_active) {
+            UpdateLocomotion(*pose);
+            ClampRenderedHeadToCollision(item, *pose);
+        }
         else {
             g_haveHeading = false;
             g_haveManualInput = false;

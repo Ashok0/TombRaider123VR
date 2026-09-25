@@ -618,8 +618,20 @@ static void TestLocomotion() {
     Check(stationaryTurn, "physical rotation produces no duplicate camera/body neck arc through 360 degrees");
     Check(lateralDrag, "direct sideways drag remains lateral after physical and artificial turns");
     Check(jumpHeading, "compression and forward flight keep the HMD direction after every turn");
-    Check(!IsJumpSteeringState(13), "jump steering excludes hanging interactions");
+    Check(!IsJumpSteeringState(10), "jump steering excludes hanging interactions");
     CheckNear(DragRequest({.32f,0}, .02f).x, .30f, "body drag requests metres, not an analog strength");
+
+    for (int state : {10, 30, 31, 36, 37, 38, 56, 57, 58, 59, 60, 61,
+                      75, 82, 83}) {
+        Check(IsConstrainedInteractionState(state),
+              "hang and push/pull states use the collision-safe camera anchor");
+        Check(FirstPersonAnchorZ(state, 144, 16) == 16,
+              "constrained interaction retracts the avatar-fit forward offset");
+    }
+    Check(!IsConstrainedInteractionState(2) && FirstPersonAnchorZ(2, 144, 16) == 144,
+          "ordinary locomotion keeps the configured first-person anchor");
+    Check(FirstPersonAnchorZ(36, -12, 16) == -12,
+          "interaction safety never pushes a custom anchor farther forward");
 
     for (int rate : {30, 60, 90, 120, 360}) {
         float yaw = 0;

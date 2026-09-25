@@ -185,6 +185,8 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.firstPersonAnchorX  = GetInt  (L"FirstPersonAnchorX", g_cfg.firstPersonAnchorX, ini);
     g_cfg.firstPersonAnchorY  = GetInt  (L"FirstPersonAnchorY", g_cfg.firstPersonAnchorY, ini);
     g_cfg.firstPersonAnchorZ  = GetInt  (L"FirstPersonAnchorZ", g_cfg.firstPersonAnchorZ, ini);
+    g_cfg.firstPersonInteractionAnchorZ = GetInt(L"FirstPersonInteractionAnchorZ",
+                                                g_cfg.firstPersonInteractionAnchorZ, ini);
     g_cfg.firstPersonYawFromLara     = GetBool(L"FirstPersonYawFromLara",
                                                 g_cfg.firstPersonYawFromLara, ini);
     g_cfg.firstPersonHeadTranslation = GetBool(L"FirstPersonHeadTranslation",
@@ -385,10 +387,11 @@ void LoadConfig(const wchar_t* ini) {
          g_cfg.cullFarUnits, g_cfg.cullWidenBounds, g_cfg.cullObjects,
          g_cfg.skyAtInfinity ? "infinity" : "ENGINE (finite dome)");
     Log("config: startup camera=third person (always); Y+LT switches first/third person");
-    LogF("config: first person joint %d offset (%d,%d,%d), stable VR heading, "
-         "head translation %s, head %s",
+    LogF("config: first person joint %d offset (%d,%d,%d), interaction Z %d, "
+         "stable VR heading, head translation %s, head %s",
          g_cfg.firstPersonJoint, g_cfg.firstPersonAnchorX,
          g_cfg.firstPersonAnchorY, g_cfg.firstPersonAnchorZ,
+         g_cfg.firstPersonInteractionAnchorZ,
          g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)",
          g_cfg.firstPersonHideHead ? "hidden (mesh_bits bit 14)" : "DRAWN");
     LogF("config: first person body-follows-head=%s (dead zone %.0f deg, "

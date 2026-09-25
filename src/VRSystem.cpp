@@ -180,6 +180,17 @@ bool VRSystem::Init() {
     const auto& c = Cfg();
     if (c.eyeWidth  > 0) m_eyeW = static_cast<uint32_t>(c.eyeWidth);
     if (c.eyeHeight > 0) m_eyeH = static_cast<uint32_t>(c.eyeHeight);
+    // Some SteamVR runtime/driver combinations report zero here while the
+    // compositor is still starting. Propagating 0x0 makes StereoRenderer
+    // refuse its FBO and leaves the headset on the SteamVR grid with no frame
+    // to submit. Use a standard per-eye fallback; explicit INI dimensions still
+    // take precedence above.
+    if (m_eyeW == 0 || m_eyeH == 0) {
+        LogF("vr: runtime returned %ux%u render target; using 1512x1680 fallback",
+             m_eyeW, m_eyeH);
+        if (m_eyeW == 0) m_eyeW = 1512;
+        if (m_eyeH == 0) m_eyeH = 1680;
+    }
     m_eyeW = static_cast<uint32_t>(m_eyeW * c.superSample);
     m_eyeH = static_cast<uint32_t>(m_eyeH * c.superSample);
 

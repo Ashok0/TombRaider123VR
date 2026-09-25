@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 34994 bytes, 733 lines.
+// Source: TombRaiderVR.ini, 35572 bytes, 744 lines.
 #pragma once
 
 namespace tr {
@@ -305,6 +305,13 @@ FirstPersonAnchorX=0
 FirstPersonAnchorY=-32
 FirstPersonAnchorZ=144
 
+; Hanging, climbing and push/pull animations hold Lara directly against a wall
+; or block.
+; During those interactions only, retract the forward avatar-fit offset to this
+; in-head position so the viewpoint stays outside the contacted geometry.
+; This cannot move a custom FirstPersonAnchorZ farther forward.
+FirstPersonInteractionAnchorZ=16
+
 ; First person uses a stable tracking-to-world heading. Physical turns and the
 ; right stick steer that heading; the chase camera cannot steer it back.
 ; Legacy FirstPersonYawFromLara is ignored by this path.
@@ -320,7 +327,8 @@ FirstPersonRecenterKey=0x23
 ; per-frame rate is interpreted at 60 Hz and scaled by elapsed time.
 FirstPersonBodyFollowsHead=1
 FirstPersonBodyDeadzoneDegrees=0
-FirstPersonBodyTurnDegreesPerFrame=4
+)INI"
+           R"INI(FirstPersonBodyTurnDegreesPerFrame=4
 
 ; Smooth right-stick turning, independent of rendering/input polling rate.
 FirstPersonTurnDegreesPerSecond=120
@@ -328,8 +336,7 @@ FirstPersonTurnDeadzone=0.25
 
 ; Manual movement follows HMD world heading after physical and stick turns.
 ; Forward uses Lara's forward gait, back uses backpedal, and horizontal input
-)INI"
-           R"INI(; uses her native sidestep animations. Diagonals use their dominant axis.
+; uses her native sidestep animations. Diagonals use their dominant axis.
 FirstPersonMoveWithHead=1
 
 ; Physical movement directly drags Lara through native collision queries.
@@ -550,6 +557,7 @@ VideoFlipV=0
 ;   Move    left stick              Jump    A  (right hand, LOWER)
 ;   Look    right stick             Roll    B  (right hand, UPPER)
 ;   Action  Y  (left hand, UPPER)   System  X  (left hand, LOWER)
+;           LB + RB (both grips)
 ;   Walk    left stick + RIGHT GRIP Duck    LEFT GRIP
 ;   Equip   left trigger (hold)     Shoot   right trigger
 ;   Sprint  left stick click        Photo   L3 + R3
@@ -559,6 +567,9 @@ VideoFlipV=0
 ; Walk is the right grip rather than a face button so it can be held while the
 ; left thumb keeps moving. The game binds Walk to XInput X, so the grip emits X
 ; -- and RIGHT_SHOULDER as well, keeping the optional RT+RB pitch chord usable.
+; During gameplay, holding both grips sends Action (Y) instead of Walk and Duck,
+; which leaves the left thumb free to push or pull blocks. It does not activate
+; the Y+trigger view or graphics chords.
 ; Photo Mode receives the game's native L3+R3 chord. During gameplay, Y+RT is
 ; translated to the native Xbox Menu/Start graphics toggle and Y+LT switches
 ; first/third person. Y/trigger input is left untouched in menus and cutscenes.
@@ -607,7 +618,8 @@ DecoupledPitch=1
 ; binds Walk to and RIGHT_SHOULDER is what makes this pitch chord reachable.
 ; So this chord is right grip + right trigger, which in play reads as
 ; "walk and shoot" -- a combination people genuinely use, on a ledge especially,
-; and it WILL engage the chord. Set this to 0 if you would rather walk-and-shoot
+)INI"
+           R"INI(; and it WILL engage the chord. Set this to 0 if you would rather walk-and-shoot
 ; leave pitch alone.
 ;
 ; The chord only ever ADDS the suppression. Shoot and Walk still do their jobs
@@ -619,8 +631,7 @@ DecoupledPitchChord=1
 ;
 ; R3 is the modifier rather than L3 because L3 is Sprint, and sprint here is
 ; held WHILE running forward -- "hold L3, push the stick forward" is already a
-)INI"
-           R"INI(; gesture in play, so reusing it for D-pad up would mean choosing between them.
+; gesture in play, so reusing it for D-pad up would mean choosing between them.
 ; R3 was otherwise the only spare input on the pad.
 ;
 ; A plain R3 click, with the stick centred, still emits RIGHT_THUMB exactly as
