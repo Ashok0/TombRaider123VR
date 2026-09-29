@@ -39,8 +39,8 @@ rewrite also has independent maths tests and verifies its newly required
 - World-locked HUD and inventory rather than a flat overlay pinned to your face.
 - FMV cutscenes captured offscreen and replayed as real geometry, so they
   keystone and roll correctly instead of sitting flat.
-- Touch controllers presented to the game as an Xbox pad, with decoupled
-  head/aim pitch and a two-grip Action chord for blocks.
+- Touch controllers presented to the game as an Xbox pad, with optional
+  decoupled stick pitch and a two-grip Action chord for blocks.
 - Ceiling clearance clamp, so standing up in a crawlspace does not put your head
   through the ceiling.
 - Sky at optical infinity, so the HD dome does not sit a few metres away in
@@ -1109,7 +1109,7 @@ The wall camera sweep calls the game engine's `GetCollisionInfo`, so it also
 needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump and pull-up changes have not yet been confirmed there.
 
-`tools/verify_addresses.py` passes all 1116 PDB, retail and Gold address,
+`tools/verify_addresses.py` passes all 1,122 PDB, retail and Gold address,
 layout and hook-window checks.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
@@ -1350,19 +1350,19 @@ installed.
 ### Verification
 
 ```powershell
-python tools\port_build.py retail    # only for a new PDB-less build: derive rows
-python tools\verify_addresses.py     # 289 checks against the PDBs, plus ~200
-                                     # more for each PDB-less build directory
-tests\build_selftest.cmd             # matrix maths, consts bits, portal frustum,
-                                     # hook mechanism
+python tools\port_build.py path\to\new-build  # only for a new PDB-less build
+python tools\verify_addresses.py build\current-retail-verify build\current-gold-verify
+python tools\verify_locomotion.py build\current-retail-verify build\current-gold-verify
+.\tests\build_selftest.cmd
 ```
 
 `verify_addresses.py` re-derives every address, struct offset, structural
 relationship and hook prologue from the PDBs and diffs them against the source.
-For each build without PDBs (the directories named on the command line, default
-`retail\` and `gold\`), it checks that build's rows against `port_build.json` and against
-the images themselves. Run it after any game patch: if it passes, the addresses
-are still right; if it fails, it names what moved.
+For each build without PDBs named on the command line, it checks that build's
+rows against `port_build.json` and against the images themselves. The checked
+retail and Gold images in this repository are in
+`build\current-retail-verify` and `build\current-gold-verify`. Run the checks
+after any game patch: failures name what moved.
 
 ## Repository layout
 
