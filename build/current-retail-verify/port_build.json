@@ -324,6 +324,16 @@
     "new": 38944,
     "how": "function match"
    },
+   "AimWeapon": {
+    "old": 167440,
+    "new": 167856,
+    "how": "function match"
+   },
+   "CalculateLaraMatrices": {
+    "old": 78608,
+    "new": 78656,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 406918,
     "new": 406968,
@@ -510,6 +520,16 @@
     "new": 56960,
     "how": "function match"
    },
+   "AimWeapon": {
+    "old": 313872,
+    "new": 313920,
+    "how": "function match"
+   },
+   "CalculateLaraMatrices": {
+    "old": 118400,
+    "new": 118448,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 610006,
     "new": 608696,
@@ -694,6 +714,16 @@
    "GetFloor": {
     "old": 141328,
     "new": 141584,
+    "how": "function match"
+   },
+   "AimWeapon": {
+    "old": 436512,
+    "new": 437280,
+    "how": "function match"
+   },
+   "CalculateLaraMatrices": {
+    "old": 201360,
+    "new": 201568,
     "how": "function match"
    },
    "w2v_scene_return": {

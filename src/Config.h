@@ -206,6 +206,9 @@ struct Config {
     // mesh_bits bit -- the same mechanism the engine uses to hide a body part.
     // Her body stays drawn, so looking down still shows her.
     bool  firstPersonHideHead = true;
+    // Keep armed arms in the headset's forward view by feeding its yaw/pitch
+    // into the native weapon animation. Only active in first-person gameplay.
+    bool  firstPersonHeadAim = true;
 
     // Rotation-only head tracking. The safest possible first test: the camera
     // can pivot but can never be displaced into geometry, so a wrong world

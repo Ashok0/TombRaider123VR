@@ -46,6 +46,7 @@ public:
     // everything except a 64 mm baseline. In mono, EyeView IS this.
     // Absolute tracking-space yaw, positive right. NOT relative to game camera.
     float HeadYawRadians() const;
+    float HeadPitchRadians() const;
 
     // Forget where "still" is; the next valid pose becomes the new neutral.
     // Head translation is applied as a displacement FROM that point, so it does

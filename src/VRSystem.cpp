@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 namespace tr {
 namespace {
@@ -397,6 +398,12 @@ float VRSystem::HeadYawRadians() const {
     // Inverse pose ROW 2 is the headset's back axis in tracking space.
     // Project its negative onto the floor; roll cannot steer walking.
     return TrackingYaw(m_headFromTracking);
+}
+
+float VRSystem::HeadPitchRadians() const {
+    if (!m_system || !m_poseValid) return 0.0f;
+    // Native weapon angles use positive pitch for looking up (world Y-down).
+    return -std::asin(std::clamp(m_headFromTracking.r[2][1], -1.0f, 1.0f));
 }
 
 Affine VRSystem::HeadView(bool headTranslation) const {

@@ -157,7 +157,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
           'DrawCreatureHD', 'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
           'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom',
-          'GetFloor']
+          'GetFloor', 'CalculateLaraMatrices']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -213,9 +213,19 @@ for dll, stamp, vals in rows:
 
     size, f = udt(dll, 'lara_info')
     check('%s sizeof(lara_info)' % dll, 432, size)
+    check('%s lara_info::gun_status' % dll, 2, f.get('gun_status'))
+    check('%s lara_info::target' % dll, 240, f.get('target'))
     check('%s lara_info::water_status' % dll, 12, f.get('water_status'))
     check('%s lara_info::turn_rate' % dll, 252, f.get('turn_rate'))
     check('%s lara_info::move_angle' % dll, 254, f.get('move_angle'))
+    check('%s lara_info::left_arm' % dll, 272, f.get('left_arm'))
+    check('%s lara_info::right_arm' % dll, 296, f.get('right_arm'))
+    size, f = udt(dll, 'lara_arm')
+    check('%s sizeof(lara_arm)' % dll, 24, size)
+    check('%s lara_arm::lock' % dll, 12, f.get('lock'))
+    check('%s lara_arm::y_rot' % dll, 14, f.get('y_rot'))
+    check('%s lara_arm::x_rot' % dll, 16, f.get('x_rot'))
+    check('%s lara_arm::z_rot' % dll, 18, f.get('z_rot'))
     size, f = udt(dll, 'coll_info')
     check('%s sizeof(coll_info)' % dll, 144, size)
     for fld, want in [('radius',72), ('bad_pos',76), ('bad_neg',80), ('bad_ceiling',84), ('shift',88), ('old',100), ('facing',118), ('coll_type',122), ('trigger',128), ('slopes_are_walls',140)]:
@@ -389,7 +399,9 @@ try:
         check_prologues(dll, 'FirstPerson.cpp',
                         {'GenerateW2V': 'phd_GenerateW2V',
                          'DrawCreatureHD': 'DrawCreatureHD',
-                         'DrawHair': 'DrawHair'})
+                         'DrawHair': 'DrawHair',
+                         ('LaraMatricesTR1' if dll == 'tomb1.dll' else
+                          'LaraMatricesTR23'): 'CalculateLaraMatrices'})
         row = [r for r in rows if r[0] == dll]
         if row:
             t = dict(zip(LAYOUT, row[0][2]))
@@ -559,7 +571,9 @@ try:
             check_prologues(dll, 'FirstPerson.cpp',
                             {'GenerateW2V': 'phd_GenerateW2V',
                              'DrawCreatureHD': 'DrawCreatureHD',
-                             'DrawHair': 'DrawHair'},
+                             'DrawHair': 'DrawHair',
+                             ('LaraMatricesTR1' if dll == 'tomb1.dll' else
+                              'LaraMatricesTR23'): 'CalculateLaraMatrices'},
                             image_dir=d, table=DR, tag=tag)
             check_call_site(dll, d, DR, tag)
 

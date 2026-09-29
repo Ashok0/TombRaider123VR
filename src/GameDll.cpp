@@ -73,7 +73,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* AnimateLara     */ 0x00029E70,
           /* GetCollisionInfo*/ 0x00006690,
           /* UpdateLaraRoom  */ 0x00007590,
-          /* GetFloor        */ 0x00009800 },
+          /* GetFloor        */ 0x00009800,
+          /* CalculateLaraMatrices */ 0x00013310 },
 
         { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
           /* lara            */ 0x0037AD40,
@@ -110,7 +111,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* AnimateLara     */ 0x00054290,
           /* GetCollisionInfo*/ 0x0000A3C0,
           /* UpdateLaraRoom  */ 0x0000B370,
-          /* GetFloor        */ 0x0000DE90 },
+          /* GetFloor        */ 0x0000DE90,
+          /* CalculateLaraMatrices */ 0x0001CE80 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
           /* lara            */ 0x003D1C40,
@@ -147,7 +149,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* AnimateLara     */ 0x00076F90,
           /* GetCollisionInfo*/ 0x00016D30,
           /* UpdateLaraRoom  */ 0x00017F20,
-          /* GetFloor        */ 0x00022810 },
+          /* GetFloor        */ 0x00022810,
+          /* CalculateLaraMatrices */ 0x00031290 },
     },
 
     // Aspyr retail build, shipped without PDBs (exe row: kBuildAspyrRetail in
@@ -192,7 +195,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* AnimateLara     */ 0x0002A010,
           /* GetCollisionInfo*/ 0x00006690,
           /* UpdateLaraRoom  */ 0x00007570,
-          /* GetFloor        */ 0x00009820 },
+          /* GetFloor        */ 0x00009820,
+          /* CalculateLaraMatrices */ 0x00013340 },
 
         { L"tomb2.dll", "Tomb Raider II", 0x6A4B7C3F,
           /* lara            */ 0x0037AC80,
@@ -229,7 +233,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* AnimateLara     */ 0x00054300,
           /* GetCollisionInfo*/ 0x0000A3C0,
           /* UpdateLaraRoom  */ 0x0000B350,
-          /* GetFloor        */ 0x0000DE80 },
+          /* GetFloor        */ 0x0000DE80,
+          /* CalculateLaraMatrices */ 0x0001CEB0 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B7C37,
           /* lara            */ 0x003D4B80,
@@ -266,7 +271,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* AnimateLara     */ 0x00076F50,
           /* GetCollisionInfo*/ 0x00016F20,
           /* UpdateLaraRoom  */ 0x00018110,
-          /* GetFloor        */ 0x00022910 },
+          /* GetFloor        */ 0x00022910,
+          /* CalculateLaraMatrices */ 0x00031360 },
     },
 };
 

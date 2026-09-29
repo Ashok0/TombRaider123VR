@@ -355,6 +355,9 @@ FirstPersonRoomscaleNeckMetres=0.15
 ; Optional simulation heading, jump-state and requested/accepted drag log.
 FirstPersonDriftLog=0
 FirstPersonHideHead=1
+; Pose equipped gun arms toward the headset only when no target is selected.
+; Native auto-targeting, firing state, and third person retain original behavior.
+FirstPersonHeadAim=1
 
 ; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
 ; eyes, so the only remaining difference is the frustum shear -- a constant

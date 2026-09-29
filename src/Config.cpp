@@ -193,6 +193,8 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonHeadTranslation, ini);
     g_cfg.firstPersonHideHead        = GetBool(L"FirstPersonHideHead",
                                                 g_cfg.firstPersonHideHead, ini);
+    g_cfg.firstPersonHeadAim         = GetBool(L"FirstPersonHeadAim",
+                                                g_cfg.firstPersonHeadAim, ini);
     g_cfg.firstPersonRecenterKey     = GetIntAuto(L"FirstPersonRecenterKey",
                                                 g_cfg.firstPersonRecenterKey, ini);
     g_cfg.firstPersonBodyFollowsHead = GetBool (L"FirstPersonBodyFollowsHead",
@@ -394,6 +396,8 @@ void LoadConfig(const wchar_t* ini) {
          g_cfg.firstPersonInteractionAnchorZ,
          g_cfg.firstPersonHeadTranslation ? "ON" : "off (rotation only)",
          g_cfg.firstPersonHideHead ? "hidden (mesh_bits bit 14)" : "DRAWN");
+    LogF("config: first person armed head aim=%s",
+         g_cfg.firstPersonHeadAim ? "on" : "OFF");
     LogF("config: first person body-follows-head=%s (dead zone %.0f deg, "
          "%.1f deg/frame), move-with-head=%s",
          g_cfg.firstPersonBodyFollowsHead ? "on" : "OFF",

@@ -105,6 +105,7 @@ struct GameDllLayout {
     uint32_t getCollisionInfo;
     uint32_t updateLaraRoom;
     uint32_t getFloor;          // resolves the first-person eye's room for culling
+    uint32_t calculateLaraMatrices; // consumes those angles for the visible joints
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

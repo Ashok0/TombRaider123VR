@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstddef>
+#include <cstring>
 
 namespace tr {
 namespace {
@@ -44,6 +45,15 @@ constexpr uint32_t item_pos_prev    = 108;   // PHD_3DPOS, the previous tick
 constexpr uint32_t item_joints_prev = 0x1F0;
 constexpr uint32_t item_joints_cur  = 0x820;
 constexpr uint32_t joint_stride     = 48;
+// lara_info (432 bytes) and lara_arm (24 bytes), identical in TR1/2/3.
+constexpr uint32_t lara_left_arm    = 272;
+constexpr uint32_t lara_right_arm   = 296;
+constexpr uint32_t lara_gun_status  = 2;
+constexpr uint32_t lara_target      = 240;
+constexpr uint32_t arm_lock         = 12;
+constexpr uint32_t arm_y_rot        = 14;
+constexpr uint32_t arm_x_rot        = 16;
+constexpr uint32_t arm_z_rot        = 18;
 // camera_info, 128 bytes
 constexpr uint32_t camera_type      = 32;    // int32
 // object_info, 2304 bytes: the geometry a draw is about to use. DrawLaraHD
@@ -76,12 +86,14 @@ typedef void (__cdecl* Fn_DrawCreatureHD)(void*, int32_t);
 typedef void (__cdecl* Fn_DrawHair)(int32_t);
 typedef void (__cdecl* Fn_LaraAboveWater)(uint8_t*, void*);
 typedef void (__cdecl* Fn_AnimateLara)(uint8_t*);
+typedef void (__cdecl* Fn_CalculateLaraMatrices)(uint8_t*);
 
 hook::InlineHook g_hGenerateW2V;
 hook::InlineHook g_hDrawCreatureHD;
 hook::InlineHook g_hDrawHair;
 hook::InlineHook g_hLaraAboveWater;
 hook::InlineHook g_hAnimateLara;
+hook::InlineHook g_hCalculateLaraMatrices;
 
 // Lara's head is mesh 14 of 15 in all three games -- the same index the camera
 // anchors to, because the HD skeleton's first meshes line up with the classic
@@ -99,6 +111,8 @@ const uint8_t kGenerateW2VPrologue[] = { 0x48, 0x89, 0x5C, 0x24, 0x08 };
 // -- it differs in every DLL -- which is one reason the head is hidden through
 // mesh_bits and this function rather than by hooking DrawLara.)
 const uint8_t kDrawCreatureHDPrologue[] = { 0x48, 0x89, 0x5C, 0x24, 0x10 };
+const uint8_t kLaraMatricesTR1Prologue[] = { 0x40, 0x55, 0x56, 0x41, 0x56 };
+const uint8_t kLaraMatricesTR23Prologue[] = { 0x48, 0x89, 0x5C, 0x24, 0x10 };
 
 // DrawHair is the one hook in this mod whose window is not position
 // independent:
@@ -127,6 +141,7 @@ unsigned g_headDraws   = 0;       // Lara draws routed through the mesh_bits pat
 unsigned g_headSkips   = 0;       // face / sunglasses draws dropped
 unsigned g_hairSkips   = 0;       // braid draws dropped
 bool     g_loggedFirst = false;
+bool     g_loggedVisibleGunAim = false;
 bool     g_neutralTaken = false;   // the neutral is taken once first person is live
 bool     g_loggedLost  = false;
 unsigned g_anchored    = 0;
@@ -377,12 +392,13 @@ bool Anchor(PHD_3DPOS& pose) {
 // Visibility overrides compose: first person clears only the head bit, while a
 // roll clears the full mask. The original mask is restored when both overrides
 // end so switching views during a roll cannot leave Lara partly hidden.
-void ApplyMeshVisibility() {
+void SetMeshVisibility(bool hideHead, bool hideRoll) {
     if (!g_boundDll || !g_boundBase) return;
     auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
     if (!item) {
         g_meshOverride = false;
         g_meshItem = nullptr;
+        g_headHidden = g_rollHidden = false;
         return;
     }
     if (g_meshOverride && item != g_meshItem) {
@@ -393,27 +409,34 @@ void ApplyMeshVisibility() {
     }
 
     auto& bits = *reinterpret_cast<uint32_t*>(item + off::item_mesh_bits);
-    if (!g_headHidden && !g_rollHidden) {
+    if (!hideHead && !hideRoll) {
         if (g_meshOverride && item == g_meshItem) bits = g_meshBaseBits;
         g_meshOverride = false;
         g_meshItem = nullptr;
+        g_headHidden = g_rollHidden = false;
         return;
     }
     if (!g_meshOverride) {
         g_meshOverride = true;
         g_meshItem = item;
         g_meshBaseBits = bits;
+    } else if (!g_rollHidden) {
+        // The game can change Lara's mesh mask when weapons are drawn or
+        // holstered. Preserve those native changes instead of replaying the
+        // mask captured when first person was first entered. During a roll our
+        // zero mask owns every bit, so keep the last pre-roll snapshot.
+        const uint32_t expected = g_headHidden
+            ? g_meshBaseBits & ~kHeadMeshBit : g_meshBaseBits;
+        if (bits != expected)
+            g_meshBaseBits = (bits & ~kHeadMeshBit)
+                           | (g_meshBaseBits & kHeadMeshBit);
     }
+    g_headHidden = hideHead;
+    g_rollHidden = hideRoll;
     uint32_t visible = g_meshBaseBits;
-    if (g_headHidden) visible &= ~kHeadMeshBit;
-    if (g_rollHidden) visible = 0;
+    if (hideHead) visible &= ~kHeadMeshBit;
+    if (hideRoll) visible = 0;
     bits = visible;
-}
-
-void SetHeadHidden(bool hide) {
-    if (hide == g_headHidden) return;
-    g_headHidden = hide;
-    ApplyMeshVisibility();
 }
 
 bool IsRollState(const uint8_t* item) {
@@ -426,10 +449,49 @@ bool IsRollState(const uint8_t* item) {
     }
 }
 
-void SetRollHidden(bool hide) {
-    if (hide == g_rollHidden) return;
-    g_rollHidden = hide;
-    ApplyMeshVisibility();
+bool HeadAimFor(uint8_t* item) {
+    return item && Cfg().firstPersonHeadAim && g_active && g_haveHeading &&
+           Gate() && item == g_headingItem &&
+           item == *Ptr<uint8_t*>(g_boundDll->laraItem);
+}
+
+void WriteHeadAim(uint8_t* item) {
+    uint8_t* lara = Ptr<uint8_t>(g_boundDll->lara);
+    const auto& pos = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos);
+    const int16_t yaw = locomotion::Angle(
+        g_heading.World(VR().HeadYawRadians()) - locomotion::Radians(pos.y_rot));
+    const int16_t pitch = locomotion::Angle(VR().HeadPitchRadians());
+    for (const uint32_t offset : { off::lara_left_arm, off::lara_right_arm }) {
+        uint8_t* a = lara + offset;
+        *reinterpret_cast<int16_t*>(a + off::arm_lock) = 1;
+        *reinterpret_cast<int16_t*>(a + off::arm_y_rot) = yaw;
+        *reinterpret_cast<int16_t*>(a + off::arm_x_rot) = pitch;
+        *reinterpret_cast<int16_t*>(a + off::arm_z_rot) = 0;
+    }
+}
+
+void __cdecl Detour_CalculateLaraMatrices(uint8_t* item) {
+    if (g_boundDll && g_boundBase && HeadAimFor(item) &&
+        *Ptr<int16_t>(g_boundDll->lara + off::lara_gun_status) == 4 &&
+        !*Ptr<uint8_t*>(g_boundDll->lara + off::lara_target)) {
+        // This pose is visual only. Native target tracking reads arm.lock, and
+        // forcing that lock in the weapon simulation changes auto-targeting.
+        // Restore native arm state before the next weapon simulation tick.
+        uint8_t* lara = Ptr<uint8_t>(g_boundDll->lara);
+        uint64_t left, right;
+        std::memcpy(&left, lara + off::lara_left_arm + off::arm_lock, sizeof(left));
+        std::memcpy(&right, lara + off::lara_right_arm + off::arm_lock, sizeof(right));
+        WriteHeadAim(item);
+        g_hCalculateLaraMatrices.Original<Fn_CalculateLaraMatrices>()(item);
+        std::memcpy(lara + off::lara_left_arm + off::arm_lock, &left, sizeof(left));
+        std::memcpy(lara + off::lara_right_arm + off::arm_lock, &right, sizeof(right));
+        if (!g_loggedVisibleGunAim) {
+            g_loggedVisibleGunAim = true;
+            Log("firstperson: no-target gun pose follows HMD; native auto-aim preserved");
+        }
+        return;
+    }
+    g_hCalculateLaraMatrices.Original<Fn_CalculateLaraMatrices>()(item);
 }
 
 // Is this draw about to use one of the head geometries?
@@ -752,7 +814,6 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         // scene. The title, inventory and other UI scenes reuse this camera
         // path and Lara's last animation state, so evaluating the state before
         // Gate() could leak a zero mesh mask into their visual passes.
-        SetRollHidden(g_active && IsRollState(item));
         // WHEN THE NEUTRAL IS TAKEN.
         //
         // Not at the first pose the runtime produces -- that is usually while
@@ -779,8 +840,8 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_dragPrevious = g_dragCurrent = g_dragShown = {};
             g_neutralTaken = false;
         }
-        SetHeadHidden(g_active && Cfg().firstPersonHideHead);
-        ApplyMeshVisibility();
+        SetMeshVisibility(g_active && Cfg().firstPersonHideHead,
+                          g_active && IsRollState(item));
     }
     g_hGenerateW2V.Original<Fn_GenerateW2V>()(pose);
 }
@@ -789,7 +850,8 @@ bool Install(const GameDllLayout& d, uint64_t base) {
     if (d.phdGenerateW2V == 0 || d.w2vSceneReturn == 0 ||
         d.frameFrac == 0 || d.laraItem == 0 || d.analogInput == 0 ||
         !d.input || !d.laraAboveWater || !d.animateLara ||
-        !d.getCollisionInfo || !d.updateLaraRoom)
+        !d.getCollisionInfo || !d.updateLaraRoom ||
+        !d.calculateLaraMatrices)
         return false;
     const uint8_t movementPrologue[] = {0x48, 0x89, 0x5C, 0x24,
         static_cast<uint8_t>(d.module[4] == L'1' ? 0x08 : d.module[4] == L'2' ? 0x10 : 0x18)};
@@ -810,6 +872,19 @@ bool Install(const GameDllLayout& d, uint64_t base) {
     if (!g_hAnimateLara.Install(reinterpret_cast<void*>(base + d.animateLara),
             reinterpret_cast<void*>(&Detour_AnimateLara), animateBytes,
             animatePrologue, animateBytes, "AnimateLara")) return false;
+    if (d.module[4] == L'1') {
+        if (!g_hCalculateLaraMatrices.Install(
+                reinterpret_cast<void*>(base + d.calculateLaraMatrices),
+                reinterpret_cast<void*>(&Detour_CalculateLaraMatrices), 5,
+                kLaraMatricesTR1Prologue, sizeof(kLaraMatricesTR1Prologue),
+                "CalculateLaraMatrices")) return false;
+    } else {
+        if (!g_hCalculateLaraMatrices.Install(
+                reinterpret_cast<void*>(base + d.calculateLaraMatrices),
+                reinterpret_cast<void*>(&Detour_CalculateLaraMatrices), 5,
+                kLaraMatricesTR23Prologue, sizeof(kLaraMatricesTR23Prologue),
+                "CalculateLaraMatrices")) return false;
+    }
     if (!g_hGenerateW2V.Install(
             reinterpret_cast<void*>(base + d.phdGenerateW2V),
             reinterpret_cast<void*>(&Detour_GenerateW2V),
@@ -841,10 +916,10 @@ bool Install(const GameDllLayout& d, uint64_t base) {
 }
 
 void Remove() {
-    SetRollHidden(false);
-    SetHeadHidden(false);          // give her complete mesh back before letting go
+    SetMeshVisibility(false, false); // give her complete mesh back before letting go
     g_hLaraAboveWater.Remove();
     g_hAnimateLara.Remove();
+    g_hCalculateLaraMatrices.Remove();
     g_hDrawHair.Remove();
     g_hDrawCreatureHD.Remove();
     g_hGenerateW2V.Remove();
@@ -925,8 +1000,7 @@ void FirstPersonToggle() {
     // A view change starts with a clean heading and roomscale neutral. This is
     // also the immediate stand-down path: no simulation tick between the chord
     // and the next camera draw can inherit first-person steering.
-    SetRollHidden(false);
-    SetHeadHidden(false);
+    SetMeshVisibility(false, false);
     g_active = false;
     g_haveHeading = false;
     g_headingItem = nullptr;
@@ -944,6 +1018,7 @@ void FirstPersonToggle() {
 void FirstPersonShutdown() {
     if (g_boundDll) Remove();
     g_loggedFirst = false;
+    g_loggedVisibleGunAim = false;
     g_loggedLost  = false;
     g_neutralTaken = false;
     g_failedBase  = 0;

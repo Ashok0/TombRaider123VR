@@ -775,6 +775,19 @@ firstperson: unhooking tomb1.dll (anchored 41233 frames, stood down 120,
              41233 mesh_bits draws, 82466 face/glasses skipped, 41233 braid skipped)
 ```
 
+**Equipped arms and guns.** TR1-3's native `AimWeapon` lowers the arms toward
+their unarmed direction when there is no target. In first person with no
+selected target, the `CalculateLaraMatrices` hook temporarily poses both gun
+arms toward the headset before the normal or interpolated joint matrices are
+built, then restores the native arm state. This keeps the ready pose visible
+and lets it tilt up and down without firing. When an auto-target is selected,
+native arm aiming builds the visible pose. The earlier simulation-time
+`AimWeapon` override forced `arm.lock` every tick, which changed native
+target tracking; it has been removed. Native weapon mesh-mask
+changes remain visible while Lara's head is hidden. Third person retains the
+game's original aiming and mesh visibility. `FirstPersonHeadAim=0` disables
+the no-target visual pose.
+
 #### A hook window that is not position independent
 
 `DrawHair` is the first hook in this mod whose stolen bytes cannot simply be
@@ -812,6 +825,7 @@ identical across all of them. Going through `mesh_bits` avoids needing it.
 | `FirstPersonYawFromLara` | `0` | obsolete; stable VR heading now owns first-person yaw |
 | `FirstPersonHeadTranslation` | `1` | lets your own leaning move the viewpoint relative to neutral |
 | `FirstPersonHideHead` | `1` | hide the head mesh, the face, the sunglasses and the braid |
+| `FirstPersonHeadAim` | `1` | pose equipped gun arms toward the headset in first person when no auto-target is selected |
 
 #### Still not implemented: controller-driven arms
 
@@ -1063,6 +1077,7 @@ forward jump, `head` and `cam` should agree even after turning.
 | `FirstPerson` | `0` | legacy setting; every launch starts in third person and Y+LT toggles the full mode |
 | `PositionalTracking` | `1` | required for leaning and physical-step movement |
 | `FirstPersonHeadTranslation` | `1` | track displacement from the captured neutral |
+| `FirstPersonHeadAim` | `1` | pose equipped gun arms toward the headset in first person when no auto-target is selected |
 | `FirstPersonRecenterKey` | `0x23` | END resets position without changing world heading |
 | `FirstPersonBodyFollowsHead` | `1` | follow HMD heading while idle or physically dragging on the ground |
 | `FirstPersonBodyDeadzoneDegrees` | `0` | permitted body/head yaw difference |
@@ -1094,23 +1109,30 @@ The wall camera sweep calls the game engine's `GetCollisionInfo`, so it also
 needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump and pull-up changes have not yet been confirmed there.
 
-`tools/verify_addresses.py` passes all 463 PDB/address/layout checks, 752 checks
-with the matched retail images, and 1041 checks with retail and Gold images.
+`tools/verify_addresses.py` passes all 1116 PDB, retail and Gold address,
+layout and hook-window checks.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
 The 2026-09-25 Release/x64 DLL is installed in the Steam game folder with the
 walking/jump camera clearance, interaction anchor, dual-grip Action mapping,
-and first-person eye-room culling seed.
+first-person eye-room culling seed, and a `CalculateLaraMatrices` hook that
+poses the visible guns toward the headset only when no auto-target is selected.
+It restores native arm state before returning, so target tracking retains
+the game's lock and aim values.
 Its SHA-256 is
-`1704CC3ED8643FC6A6936493932AF01EB8D9357B7127180DC82EE7937968D532`.
-The previous DLL is preserved there as
-`TombRaiderVR.dll.pre-port-verification-20260925-172526`. The source build,
-`tests/build_selftest.cmd`, address verification and locomotion verification
-passed. A TR1 startup smoke test loaded the culling hook, initialized SteamVR,
-created the stereo target, and submitted the first stereo frame. The eye-room
-change still needs an in-headset check near doorways and stacked rooms. Jump,
-pull-up and two-grip behavior also await an in-headset check.
+`5027B471FE34BA668A3D928167E440E865AD15BC8F700968C44E497527F1D51F`.
+The preceding gun-pitch DLL is preserved there as
+`TombRaiderVR.dll.pre-autoaim-fix-20260925-230255`; earlier backups include
+`TombRaiderVR.dll.pre-visible-gun-pitch-20260925-181944` and
+`TombRaiderVR.dll.pre-armed-arms-20260925-175816`. The source build,
+`tests/build_selftest.cmd`, 1,122 address checks across stock, retail and Gold,
+and locomotion verification passed. A TR1 startup smoke test loaded the
+`CalculateLaraMatrices` hook, initialized SteamVR, created
+the stereo target, and submitted the first stereo frame. The armed idle pose
+and auto-target behavior still need an in-headset gameplay check. The eye-room
+change also needs an in-headset check near doorways and stacked rooms. Jump,
+pull-up and two-grip behavior await an in-headset check.
 
 An earlier 2026-09-22 UI-safe control-remap/roll-visibility build was built in
 Release/x64 and installed in the Steam game folder. It always starts on the
