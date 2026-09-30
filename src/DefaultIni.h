@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 35572 bytes, 744 lines.
+// Source: TombRaiderVR.ini, 36291 bytes, 760 lines.
 #pragma once
 
 namespace tr {
@@ -334,6 +334,22 @@ FirstPersonBodyDeadzoneDegrees=0
 FirstPersonTurnDegreesPerSecond=120
 FirstPersonTurnDeadzone=0.25
 
+; Smooth the native gait's horizontal root motion toward stick direction and
+; cancel residual walking motion immediately when the stick is released.
+FirstPersonMovementStabilization=1
+
+; Optional HD motion guns. Each controller places its equipped hand; shots
+; use that controller's barrel. LT tap fires the left dual gun on release,
+; RT fires the right; hold LT for 0.5 s to draw/holster. Long guns keep RT.
+; Requires first person, HD graphics and positional tracking.
+FirstPersonMotionGuns=0
+FirstPersonMotionGunGripForwardMetres=0.1778
+FirstPersonMotionGunRaiseMetres=0.0254
+FirstPersonMotionGunRightMetres=0
+FirstPersonMotionGunPitchDegrees=-30
+FirstPersonMotionGunYawDegrees=0
+FirstPersonMotionGunRollDegrees=0
+
 ; Manual movement follows HMD world heading after physical and stick turns.
 ; Forward uses Lara's forward gait, back uses backpedal, and horizontal input
 ; uses her native sidestep animations. Diagonals use their dominant axis.
@@ -355,9 +371,6 @@ FirstPersonRoomscaleNeckMetres=0.15
 ; Optional simulation heading, jump-state and requested/accepted drag log.
 FirstPersonDriftLog=0
 FirstPersonHideHead=1
-; Pose equipped gun arms toward the headset only when no target is selected.
-; Native auto-targeting, firing state, and third person retain original behavior.
-FirstPersonHeadAim=1
 
 ; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
 ; eyes, so the only remaining difference is the frustum shear -- a constant
@@ -609,7 +622,8 @@ DecoupledPitch=1
 ;
 ; This only ever hands pitch back -- it never takes it away. With
 ; DecoupledPitch=0 the stick already pitches and the chord does nothing at all;
-; with DecoupledPitch=1 you keep the comfortable head-only default and can still
+)INI"
+           R"INI(; with DecoupledPitch=1 you keep the comfortable head-only default and can still
 ; reach for the stick for the one shot that wants it, then let go.
 ;
 ; A momentary control has to mean ONE thing. An earlier version inverted the
@@ -621,8 +635,7 @@ DecoupledPitch=1
 ; binds Walk to and RIGHT_SHOULDER is what makes this pitch chord reachable.
 ; So this chord is right grip + right trigger, which in play reads as
 ; "walk and shoot" -- a combination people genuinely use, on a ledge especially,
-)INI"
-           R"INI(; and it WILL engage the chord. Set this to 0 if you would rather walk-and-shoot
+; and it WILL engage the chord. Set this to 0 if you would rather walk-and-shoot
 ; leave pitch alone.
 ;
 ; The chord only ever ADDS the suppression. Shoot and Walk still do their jobs

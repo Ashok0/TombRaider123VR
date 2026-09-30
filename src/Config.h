@@ -8,6 +8,7 @@
 // likely thing to be wrong on first run -- so it is a config toggle rather than
 // a recompile.
 #pragma once
+#include "MotionGunMath.h"
 
 namespace tr {
 
@@ -184,6 +185,7 @@ struct Config {
     float firstPersonBodyTurnDegreesPerFrame = 4.0f;
     float firstPersonTurnDegreesPerSecond = 120.0f;
     float firstPersonTurnDeadzone = 0.25f;
+    bool  firstPersonMovementStabilization = true;
     bool  firstPersonDriftLog = false;
 
     // Rotate the movement stick into the direction the player is looking, so
@@ -209,6 +211,8 @@ struct Config {
     // Keep armed arms in the headset's forward view by feeding its yaw/pitch
     // into the native weapon animation. Only active in first-person gameplay.
     bool  firstPersonHeadAim = true;
+    bool  firstPersonMotionGuns = false; // HD tracked-hand mode, opt in
+    motiongun::Calibration firstPersonMotionGunCalibration{};
 
     // Rotation-only head tracking. The safest possible first test: the camera
     // can pivot but can never be displaced into geometry, so a wrong world

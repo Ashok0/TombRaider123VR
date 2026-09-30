@@ -53,14 +53,28 @@ DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
               'outside_top', 'outside_bottom', 'PrintRoomsList',
               'S_GetObjectBounds', 'DrawSkyHD', 'S_InitialisePolyList',
               'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
-              'DrawCreatureHD', 'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
+              'DrawCreatureHD', 'GetJoints', 'joints', 'LaraGun', 'FireWeapon', 'fire_w2v_return',
+              'right_fire_return', 'left_fire_return',
+              'GetTargetOnLOS', 'hit_los_return', 'miss_los_return',
+              'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
           'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom',
-          'GetFloor', 'CalculateLaraMatrices']
+          'GetFloor', 'CalculateLaraMatrices', 'DrawActionIndicators',
+          'nActionIndicator', 'ActionIndicator', 'phd_persp', 'phd_centerx',
+          'phd_centery', 'phd_znear', 'phd_zfar', 'next_item_free', 'items',
+          'FireHarpoon', 'FireRocket', 'FireGrenade', 'ItemNewRoom',
+              'AnimateShotgun', 'DrawGunFlash']
 # Not a symbol: the return address of the ONE phd_GenerateW2V call that builds
 # the main scene view, inside S_InitialisePolyList. FirstPerson.cpp gates on it
 # so it rewrites the scene camera and nothing else (inventory, shadows, pickup
 # spin, photo mode all call the same function).
-DERIVED = {'w2v_scene_return': ('S_InitialisePolyList', 'phd_GenerateW2V')}
+DERIVED = {
+    'w2v_scene_return': ('S_InitialisePolyList', 'phd_GenerateW2V', 0),
+    'fire_w2v_return': ('FireWeapon', 'phd_GenerateW2V', 0),
+    'right_fire_return': ('AnimatePistols', 'FireWeapon', 0),
+    'left_fire_return': ('AnimatePistols', 'FireWeapon', 1),
+    'hit_los_return': ('FireWeapon', 'GetTargetOnLOS', 0),
+    'miss_los_return': ('FireWeapon', 'GetTargetOnLOS', 1),
+}
 # Referenced from the self-checks in verify_addresses.py.
 EXE_EXTRA = ['vidInit', 'init_ogl', 'appInit', 'vid_setViewMatrix', 'WinMain',
              '_XInputSetState', 'mShadow']
@@ -254,6 +268,28 @@ def resolve(image, newdir):
         else:
             out[name] = dict(old=rva, new=None, how='UNRESOLVED')
 
+    # ItemNewRoom is a small sibling of EffectNewRoom in TR2/3. The matcher
+    # cannot reliably pair the two, but their shared argument-decoding bytes
+    # occur twice, in the same order, in both stock and retail. Match that
+    # ordered signature and retain the function's stock ordinal.
+    if image in ('tomb2.dll', 'tomb3.dll') and out['ItemNewRoom']['new'] is None:
+        rva = syms['ItemNewRoom'][0]
+        signature = bytes(old.data[rva + 7:rva + 15])
+        def candidates(data):
+            found = []
+            start = 0
+            while True:
+                hit = data.find(signature, start)
+                if hit < 0:
+                    return found
+                found.append(hit - 7)
+                start = hit + 1
+        before, after = candidates(old.data), candidates(new.data)
+        if rva in before and len(before) == len(after) == 2:
+            resolved = after[before.index(rva)]
+            out['ItemNewRoom'] = dict(old=rva, new=resolved,
+                                      how='ordered argument-decoding signature')
+
     # Fallback for a global nothing references RIP-relatively in a matched
     # function (mView_packed is only ever reached as vid_state.view): if the
     # nearest resolved data symbols below AND above it both moved by the same
@@ -277,7 +313,7 @@ def resolve(image, newdir):
     # found by scanning the old image inside the symbol's full extent; the new
     # one is then read off the instruction alignment of whichever matched chunk
     # pair contains it.
-    for name, (caller, callee) in DERIVED.items():
+    for name, (caller, callee, ordinal) in DERIVED.items():
         if name not in want:
             continue          # not part of this image's table (the exe has none)
         if caller not in syms or callee not in syms:
@@ -288,10 +324,11 @@ def resolve(image, newdir):
         sites = [(c, i) for c in old.funcs
                  for i in old.funcs[c]['ins']
                  if i[2] == target and lo <= i[0] < lo + size]
-        if len(sites) != 1:
+        sites.sort(key=lambda entry: entry[1][0])
+        if len(sites) <= ordinal:
             out[name] = dict(new=None, how='UNRESOLVED (%d call sites in %s)' % (len(sites), caller))
             continue
-        chunk, ins = sites[0]
+        chunk, ins = sites[ordinal]
         if chunk not in fmap:
             out[name] = dict(new=None, how='UNRESOLVED (chunk 0x%X unmatched)' % chunk)
             continue

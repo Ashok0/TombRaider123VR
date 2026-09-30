@@ -10,6 +10,7 @@
 // physical movement drags the body through native collision queries; the
 // engine keeps animation and movement triggers.
 #pragma once
+#include <cstdint>
 
 namespace tr {
 
@@ -31,6 +32,7 @@ void FirstPersonShutdown();
 // inventory, during fixed and cinematic cameras, and whenever the anchor could
 // not be resolved.
 bool FirstPersonActive();
+void FirstPersonGunTriggers(uint8_t& left, uint8_t& right, bool chordConsumed);
 
 // Called after merging physical and VR pads. Records manual intent for the
 // simulation hook and applies HMD-relative steering through jump preparation

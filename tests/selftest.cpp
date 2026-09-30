@@ -23,6 +23,12 @@
 #include "InlineHook.h"
 #include "Log.h"
 #include "LocomotionMath.h"
+#include "FirstPersonStabilization.h"
+#include "FirstPersonClearance.h"
+#include "FirstPersonVisibility.h"
+#include "FirstPersonActionIcon.h"
+#include "MotionGunMath.h"
+#include "MotionGunInput.h"
 
 #include <windows.h>
 #include <cstdio>
@@ -547,6 +553,25 @@ static void TestLocomotion() {
               "combined physical and stick turn cannot orbit the eye around Lara");
     CheckNear(Length(PivotFloorOffset(rawEye, neckArc, 2 * Pi) - rawEye), 0,
               "full artificial rotation returns the same floor offset");
+    const Vec stillRaw{0.12f,0.18f};
+    const Vec neutralNeck=NeckToHead(0,0.15f);
+    bool stableEye=true, compensatedBody=false, stableController=true;
+    const Vec fixedController{0.35f,0.27f};
+    for (float yaw : {-Pi,-Pi/2,0.f,Pi/2,Pi}) {
+        const Vec arc=NeckToHead(yaw,0.15f)-neutralNeck;
+        const Vec view=ViewFloorOffset(stillRaw,arc,true);
+        const Vec body=ViewFloorOffset(stillRaw,arc,false);
+        stableEye &= Length(view-stillRaw)<1e-5f;
+        compensatedBody |= Length(body-stillRaw)>0.01f;
+        stableController &= Length(view+(fixedController-stillRaw)-fixedController)<1e-5f;
+    }
+    Check(stableEye && compensatedBody && stableController,
+          "physical head turns leave world and controller fixed while body keeps neck compensation");
+    CheckNear(Length(ViewFloorOffset(stillRaw,neckArc,false)-
+                     NeckFloorOffset(stillRaw,neckArc)),0,
+              "stabilization opt-out retains the legacy rendered-eye offset");
+    CheckNear(Length(Rotate(Rotate(stillRaw,-Pi/2),Pi/2)-stillRaw),0,
+              "artificial turn pivots the raw stabilized eye offset");
     Check(MovementAction({0, 1}) == Forward, "forward stick selects native forward movement");
     Check(MovementAction({0, -1}) == (Back | Walk),
           "back stick selects native backpedal instead of fast-back hop");
@@ -632,6 +657,26 @@ static void TestLocomotion() {
           "ordinary locomotion keeps the configured first-person anchor");
     Check(FirstPersonAnchorZ(36, -12, 16) == -12,
           "interaction safety never pushes a custom anchor farther forward");
+    Check(!IsClimbingCameraState(19) && IsClimbingCameraState(56) &&
+          IsClimbingCameraState(61) && !IsClimbingCameraState(10) &&
+          !IsClimbingCameraState(36),
+          "wall-climb camera sweep excludes pull-up, hanging and blocks");
+    for (int state : {10, 30, 31, 75, 82, 83})
+        Check(IsLedgeHangState(state),
+              "hanging retains Lara's arms in first person");
+    for (int state : {2, 19, 36, 56, 61})
+        Check(!IsLedgeHangState(state),
+              "pull-up, walking, blocks and wall climbing leave the hanging arm mask");
+    using tr::firstperson::HdDrawMeshBits;
+    Check(HdDrawMeshBits(0, false, true) == tr::firstperson::ArmMeshBits &&
+          HdDrawMeshBits(0x400, false, true) == tr::firstperson::ArmMeshBits,
+          "unmasked HD hang body draws both complete arms despite stale item mask");
+    Check(HdDrawMeshBits(0x600, true, true) == 0x600 &&
+          HdDrawMeshBits(0x3000, true, true) == 0x3000,
+          "native masked right and left hand passes keep their own joints");
+    Check(HdDrawMeshBits(0, false, false) == ~tr::firstperson::HeadMeshBit &&
+          HdDrawMeshBits(0x600, true, false) == 0x600,
+          "pull-up restores native HD body and hand passes except the head");
 
     for (int rate : {30, 60, 90, 120, 360}) {
         float yaw = 0;
@@ -640,6 +685,147 @@ static void TestLocomotion() {
     }
     CheckNear(StickTurn(0.1f, 0.25f, 120, 0.01f), 0, "stick drift cannot turn view");
     CheckNear(StickTurn(1, 0.25f, 120, 20) * 180 / Pi, 6, "pause cannot queue a large turn");
+
+    for (int polls : {30, 180}) {
+        tr::stabilization::RenderTurn turn;
+        float yaw = 0;
+        turn.Sample(120 * Pi / 180, 0);
+        for (int frame = 1; frame <= 90; ++frame) {
+            const double time = double(frame) / 90;
+            for (int poll = 1; poll <= polls; ++poll) {
+                const double pollTime = double(poll) / polls;
+                if (pollTime > double(frame - 1) / 90 && pollTime <= time)
+                    turn.Sample(120 * Pi / 180, pollTime);
+            }
+            yaw += turn.Step(time);
+        }
+        CheckNear(yaw * 180 / Pi, 120,
+                  "render turn independent of controller poll rate", 1e-4f);
+    }
+    tr::stabilization::RenderTurn released;
+    released.Sample(Pi, 0);
+    CheckNear(released.Step(0.01), Pi * 0.01f, "render turn advances on scene view");
+    released.Sample(0, 0.02);
+    CheckNear(released.Step(0.03), 0, "released stick has no render-turn tail");
+    released.Sample(Pi, 0.04);
+    CheckNear(released.Step(0.20), 0, "stale input poll cannot keep turning");
+
+    tr::stabilization::RootMotion root;
+    tr::locomotion::Vec corrected{};
+    Check(root.Step({0, 20}, {1, 0}, 1, 1, corrected) &&
+          corrected.x == 20 && corrected.z == 0,
+          "walking root follows requested horizontal direction");
+    Check(root.Step({0, 28}, {1, 0}, 1, 1, corrected) &&
+          corrected.x == 22,
+          "same-gait root speed changes smoothly");
+    Check(root.Step({0, 20}, {-1, 0}, 1, 1, corrected) &&
+          corrected.x == -20,
+          "direction reversal starts at native speed");
+    Check(root.Step({0, 0}, {1, 0}, 1, 1, corrected) &&
+          corrected.x == 0 && corrected.z == 0 && !root.valid,
+          "zero native root motion stops without a tail");
+
+    using namespace tr::motiongun;
+    const float controller[3][4]={{1,0,0,0},{0,1,0,0},{0,0,1,0}};
+    const auto gun=GunBasis(ControllerBasis(controller,0));
+    const auto barrel=Transform(gun,{0,1,0});
+    CheckNear(barrel.z,1,"tracked barrel points along controller forward");
+    int32_t flash[12]={16384,0,0,1600, 0,16384,0,3200,
+                       0,0,16384,4800};
+    const int32_t view[12]={0,0,16384,0, 0,16384,0,0,
+                            -16384,0,0,0};
+    Check(RetargetFlashMatrix(flash,view,gun,{10,20,30}) &&
+          flash[0]==0 && flash[1]==16384 && flash[2]==0 &&
+          flash[3]==1600+30*16384 && flash[7]==3200+20*16384 &&
+          flash[11]==4800-10*16384,
+          "muzzle flash follows the tracked gun in the scene view");
+    const Basis identity{{{1,0,0},{0,1,0},{0,0,1}}};
+    const Frame wrist{identity,{100,-500,200}};
+    Frame inverseBind{},correction{};
+    Check(Inverse(wrist,inverseBind) &&
+          PaletteCorrection(Multiply(wrist,inverseBind),inverseBind,
+                            {gun,{130,-520,240}},correction),
+          "tracked wrist correction accepts nonzero bind pivot");
+    CheckNear(Transform(Multiply(correction,Multiply(wrist,inverseBind)),
+                        Transform(wrist,{0,0,0})).x,130,
+              "corrected skin palette places wrist at controller");
+    Check(HandOnlyMask(0x600)==0x400 && HandOnlyMask(0x3000)==0x2000 &&
+          HandOnlyMask(0x3600)==0x2400,
+          "tracked render keeps equipped hands and removes forearms");
+    tr::motiongun::Vec assisted{};
+    Check(AssistedDirection({0,0,0},{0,0,1},{30,0,600},assisted) &&
+          !AssistedDirection({0,0,0},{0,0,1},{300,0,600},assisted),
+          "native selected target assists only inside narrow barrel cone");
+    TriggerInput trigger;
+    trigger.Update(true,true,false,false,0);
+    trigger.Update(true,true,true,false,100);
+    trigger.Update(true,true,false,false,200);
+    Check(trigger.Consume(0) && !trigger.Consume(1),
+          "left trigger tap queues only the left gun");
+    trigger.Update(true,true,true,false,1000);
+    trigger.Update(true,true,true,false,1600);
+    Check(trigger.Equip(1600) && !trigger.WantsShot(),
+          "long left hold requests equip without firing");
+    EquipInput nativeEquip;
+    Check(nativeEquip.Update(true,0,true) &&
+          nativeEquip.Update(true,2,false) &&
+          nativeEquip.Update(true,4,false) &&
+          nativeEquip.Update(true,4,false),
+          "modern native draw stays held through ready after LT release");
+    Check(!nativeEquip.Update(true,4,true) &&
+          !nativeEquip.Update(true,3,false) &&
+          !nativeEquip.Update(true,0,false),
+          "next equip gesture releases native hold to holster");
+    EquipInput unfocusedEquip;
+    const bool vrPoll=VrGunInputEnabled(false,true,false);
+    Check(vrPoll && unfocusedEquip.Update(true,0,true) &&
+          VrGunInputEnabled(false,true,false) &&
+          unfocusedEquip.Update(true,2,false) &&
+          unfocusedEquip.Update(true,4,false) &&
+          !VrGunInputEnabled(true,true,false) &&
+          !VrGunInputEnabled(false,false,false),
+          "SteamVR LT stays armed after desktop mirror loses foreground focus");
+
+    int32_t samples[18];
+    for (int i = 0; i < 18; i += 3) {
+        samples[i] = 900; samples[i + 1] = -900; samples[i + 2] = 0;
+    }
+    Check(!tr::firstperson::AirborneEyeBlocked(samples, 0, -500, false),
+          "airborne eye may see over a floor drop");
+    samples[3] = -480;
+    Check(tr::firstperson::AirborneEyeBlocked(samples, 0, -500, false),
+          "raised crate floor blocks airborne eye at its height");
+    samples[3] = 900;
+    Check(!tr::firstperson::AirborneEyeBlocked(samples, 0, -1000, false),
+          "airborne eye above crate clears its top");
+    Check(tr::firstperson::AirborneEyeBlocked(samples, 0, -500, true),
+          "static obstacle blocks airborne eye");
+
+    tr::stabilization::GroundEye standing;
+    const auto firstEye = standing.Apply({100, 0, 200}, 0, {110, -700, 220});
+    const auto heldEye = standing.Apply({100, 0, 200}, 0, {140, -675, 245});
+    CheckNear(firstEye.x, heldEye.x, "animated ground-head sway is stabilized");
+    CheckNear(firstEye.y, heldEye.y, "animated ground-head bounce is stabilized");
+    const auto steppedEye = standing.Apply({125, 0, 200}, 0, {165, -675, 245});
+    CheckNear(steppedEye.x - heldEye.x, 25, "body root motion remains unfiltered");
+    const auto turnedEye = standing.Apply({125, 0, 200}, Pi / 2, {165, -675, 245});
+    CheckNear(turnedEye.x, 145, "artificial turn pivots standing eye reference");
+    CheckNear(turnedEye.z, 190, "artificial turn rotates the forward eye offset");
+
+    const int32_t viewMatrix[12] = {
+        16384,0,0,0, 0,16384,0,0, 0,0,16384,0
+    };
+    tr::actionicon::Point prompt{80, -80, 50};
+    Check(tr::actionicon::Place(prompt, viewMatrix, 320, 640, 360, 32, 30000)
+              && prompt.z >= 256,
+          "nearby native Action prompt moves in front of first-person eye");
+    tr::actionicon::Point normalPrompt{10, 0, 1000};
+    Check(!tr::actionicon::Place(normalPrompt, viewMatrix, 320, 640, 360, 32, 30000)
+              && normalPrompt.z == 1000,
+          "visible Action prompt retains native world position");
+    tr::actionicon::Point distantPrompt{10, 0, 1500};
+    Check(!tr::actionicon::Place(distantPrompt, viewMatrix, 320, 640, 360, 32, 30000),
+          "distant Action prompt is not pulled into view");
 }
 
 int main() {

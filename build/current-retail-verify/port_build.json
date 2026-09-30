@@ -264,6 +264,31 @@
     "new": 441968,
     "how": "function match"
    },
+   "GetJoints": {
+    "old": 439152,
+    "new": 440192,
+    "how": "function match"
+   },
+   "joints": {
+    "old": 3131712,
+    "new": 3135616,
+    "how": "9/9 votes"
+   },
+   "LaraGun": {
+    "old": 163168,
+    "new": 163584,
+    "how": "function match"
+   },
+   "FireWeapon": {
+    "old": 167952,
+    "new": 168368,
+    "how": "function match"
+   },
+   "GetTargetOnLOS": {
+    "old": 167616,
+    "new": 168032,
+    "how": "function match"
+   },
    "DrawLaraHD": {
     "old": 448928,
     "new": 449968,
@@ -324,20 +349,117 @@
     "new": 38944,
     "how": "function match"
    },
-   "AimWeapon": {
-    "old": 167440,
-    "new": 167856,
-    "how": "function match"
-   },
    "CalculateLaraMatrices": {
     "old": 78608,
     "new": 78656,
+    "how": "function match"
+   },
+   "DrawActionIndicators": {
+    "old": 469088,
+    "new": 470240,
+    "how": "function match"
+   },
+   "nActionIndicator": {
+    "old": 4022272,
+    "new": 4026176,
+    "how": "7/7 votes"
+   },
+   "ActionIndicator": {
+    "old": 4072992,
+    "new": 4076896,
+    "how": "1/1 votes"
+   },
+   "phd_persp": {
+    "old": 2919536,
+    "new": 2923440,
+    "how": "10/10 votes"
+   },
+   "phd_centerx": {
+    "old": 2919460,
+    "new": 2923364,
+    "how": "5/5 votes"
+   },
+   "phd_centery": {
+    "old": 2919464,
+    "new": 2923368,
+    "how": "5/5 votes"
+   },
+   "phd_znear": {
+    "old": 2919348,
+    "new": 2923252,
+    "how": "7/7 votes"
+   },
+   "phd_zfar": {
+    "old": 2919420,
+    "new": 2923324,
+    "how": "4/4 votes"
+   },
+   "next_item_free": {
+    "old": 4119020,
+    "new": 4122924,
+    "how": "17/17 votes"
+   },
+   "items": {
+    "old": 4317336,
+    "new": 4321240,
+    "how": "172/172 votes"
+   },
+   "FireHarpoon": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "FireRocket": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "FireGrenade": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "ItemNewRoom": {
+    "old": 133120,
+    "new": 133440,
+    "how": "function match"
+   },
+   "AnimateShotgun": {
+    "old": 157936,
+    "new": 158288,
+    "how": "function match"
+   },
+   "DrawGunFlash": {
+    "old": 65600,
+    "new": 65648,
     "how": "function match"
    },
    "w2v_scene_return": {
     "old": 406918,
     "new": 406968,
     "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
+   },
+   "fire_w2v_return": {
+    "old": 168427,
+    "new": 168851,
+    "how": "return address of the phd_GenerateW2V call in FireWeapon"
+   },
+   "right_fire_return": {
+    "old": 162617,
+    "new": 163019,
+    "how": "return address of the FireWeapon call in AnimatePistols"
+   },
+   "left_fire_return": {
+    "old": 163014,
+    "new": 163418,
+    "how": "return address of the FireWeapon call in AnimatePistols"
+   },
+   "hit_los_return": {
+    "old": 168844,
+    "new": 169260,
+    "how": "return address of the GetTargetOnLOS call in FireWeapon"
+   },
+   "miss_los_return": {
+    "old": 169262,
+    "new": 169680,
+    "how": "return address of the GetTargetOnLOS call in FireWeapon"
    }
   }
  },
@@ -460,6 +582,31 @@
     "new": 645264,
     "how": "function match"
    },
+   "GetJoints": {
+    "old": 643808,
+    "new": 643488,
+    "how": "function match"
+   },
+   "joints": {
+    "old": 3390080,
+    "new": 3389888,
+    "how": "9/9 votes"
+   },
+   "LaraGun": {
+    "old": 308208,
+    "new": 308256,
+    "how": "function match"
+   },
+   "FireWeapon": {
+    "old": 314864,
+    "new": 314912,
+    "how": "function match"
+   },
+   "GetTargetOnLOS": {
+    "old": 314048,
+    "new": 314096,
+    "how": "function match"
+   },
    "DrawLaraHD": {
     "old": 654464,
     "new": 654144,
@@ -520,20 +667,118 @@
     "new": 56960,
     "how": "function match"
    },
-   "AimWeapon": {
-    "old": 313872,
-    "new": 313920,
-    "how": "function match"
-   },
    "CalculateLaraMatrices": {
     "old": 118400,
     "new": 118448,
+    "how": "function match"
+   },
+   "DrawActionIndicators": {
+    "old": 676256,
+    "new": 676048,
+    "how": "function match"
+   },
+   "nActionIndicator": {
+    "old": 4289696,
+    "new": 4289504,
+    "how": "8/8 votes"
+   },
+   "ActionIndicator": {
+    "old": 4340384,
+    "new": 4340192,
+    "how": "1/1 votes"
+   },
+   "phd_persp": {
+    "old": 3177872,
+    "new": 3177680,
+    "how": "12/12 votes"
+   },
+   "phd_centerx": {
+    "old": 3177812,
+    "new": 3177620,
+    "how": "7/7 votes"
+   },
+   "phd_centery": {
+    "old": 3177816,
+    "new": 3177624,
+    "how": "7/7 votes"
+   },
+   "phd_znear": {
+    "old": 3177748,
+    "new": 3177556,
+    "how": "7/7 votes"
+   },
+   "phd_zfar": {
+    "old": 3177808,
+    "new": 3177616,
+    "how": "6/6 votes"
+   },
+   "next_item_free": {
+    "old": 4377096,
+    "new": 4376904,
+    "how": "24/24 votes"
+   },
+   "items": {
+    "old": 5442112,
+    "new": 5441920,
+    "how": "226/226 votes"
+   },
+   "FireHarpoon": {
+    "old": 290528,
+    "new": 290480,
+    "how": "function match"
+   },
+   "FireRocket": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "FireGrenade": {
+    "new": 0,
+    "how": "absent from the PDB"
+   },
+   "ItemNewRoom": {
+    "old": 255328,
+    "new": 255216,
+    "how": "ordered argument-decoding signature"
+   },
+   "AnimateShotgun": {
+    "old": 295584,
+    "new": 295584,
+    "how": "function match"
+   },
+   "DrawGunFlash": {
+    "old": 99168,
+    "new": 99216,
     "how": "function match"
    },
    "w2v_scene_return": {
     "old": 610006,
     "new": 608696,
     "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
+   },
+   "fire_w2v_return": {
+    "old": 315344,
+    "new": 315394,
+    "how": "return address of the phd_GenerateW2V call in FireWeapon"
+   },
+   "right_fire_return": {
+    "old": 301385,
+    "new": 301434,
+    "how": "return address of the FireWeapon call in AnimatePistols"
+   },
+   "left_fire_return": {
+    "old": 302091,
+    "new": 302142,
+    "how": "return address of the FireWeapon call in AnimatePistols"
+   },
+   "hit_los_return": {
+    "old": 315733,
+    "new": 315797,
+    "how": "return address of the GetTargetOnLOS call in FireWeapon"
+   },
+   "miss_los_return": {
+    "old": 315908,
+    "new": 315973,
+    "how": "return address of the GetTargetOnLOS call in FireWeapon"
    }
   }
  },
@@ -656,6 +901,31 @@
     "new": 956880,
     "how": "function match"
    },
+   "GetJoints": {
+    "old": 947664,
+    "new": 955104,
+    "how": "function match"
+   },
+   "joints": {
+    "old": 3664224,
+    "new": 3676320,
+    "how": "12/12 votes"
+   },
+   "LaraGun": {
+    "old": 430624,
+    "new": 431376,
+    "how": "function match"
+   },
+   "FireWeapon": {
+    "old": 437216,
+    "new": 438000,
+    "how": "function match"
+   },
+   "GetTargetOnLOS": {
+    "old": 436688,
+    "new": 437456,
+    "how": "fuzzy 0.97"
+   },
    "DrawLaraHD": {
     "old": 958368,
     "new": 965808,
@@ -716,20 +986,120 @@
     "new": 141584,
     "how": "function match"
    },
-   "AimWeapon": {
-    "old": 436512,
-    "new": 437280,
-    "how": "function match"
-   },
    "CalculateLaraMatrices": {
     "old": 201360,
     "new": 201568,
+    "how": "function match"
+   },
+   "DrawActionIndicators": {
+    "old": 980608,
+    "new": 988144,
+    "how": "function match"
+   },
+   "nActionIndicator": {
+    "old": 4633632,
+    "new": 4645728,
+    "how": "7/7 votes"
+   },
+   "ActionIndicator": {
+    "old": 4684320,
+    "new": 4696416,
+    "how": "1/1 votes"
+   },
+   "phd_persp": {
+    "old": 3533912,
+    "new": 3546008,
+    "how": "12/12 votes"
+   },
+   "phd_centerx": {
+    "old": 3533904,
+    "new": 3546000,
+    "how": "7/7 votes"
+   },
+   "phd_centery": {
+    "old": 3533908,
+    "new": 3546004,
+    "how": "7/7 votes"
+   },
+   "phd_znear": {
+    "old": 3533812,
+    "new": 3545908,
+    "how": "7/7 votes"
+   },
+   "phd_zfar": {
+    "old": 3533864,
+    "new": 3545960,
+    "how": "6/6 votes"
+   },
+   "next_item_free": {
+    "old": 4727464,
+    "new": 4739560,
+    "how": "10/10 votes"
+   },
+   "items": {
+    "old": 4964424,
+    "new": 4976520,
+    "how": "279/279 votes"
+   },
+   "FireHarpoon": {
+    "old": 404832,
+    "new": 405376,
+    "how": "function match"
+   },
+   "FireRocket": {
+    "old": 408048,
+    "new": 408656,
+    "how": "function match"
+   },
+   "FireGrenade": {
+    "old": 412432,
+    "new": 413088,
+    "how": "function match"
+   },
+   "ItemNewRoom": {
+    "old": 341568,
+    "new": 341968,
+    "how": "ordered argument-decoding signature"
+   },
+   "AnimateShotgun": {
+    "old": 416656,
+    "new": 417360,
+    "how": "function match"
+   },
+   "DrawGunFlash": {
+    "old": 178336,
+    "new": 178544,
     "how": "function match"
    },
    "w2v_scene_return": {
     "old": 914182,
     "new": 920648,
     "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
+   },
+   "fire_w2v_return": {
+    "old": 437640,
+    "new": 438426,
+    "how": "return address of the phd_GenerateW2V call in FireWeapon"
+   },
+   "right_fire_return": {
+    "old": 422600,
+    "new": 423352,
+    "how": "return address of the FireWeapon call in AnimatePistols"
+   },
+   "left_fire_return": {
+    "old": 423339,
+    "new": 424091,
+    "how": "return address of the FireWeapon call in AnimatePistols"
+   },
+   "hit_los_return": {
+    "old": 437937,
+    "new": 438721,
+    "how": "return address of the GetTargetOnLOS call in FireWeapon"
+   },
+   "miss_los_return": {
+    "old": 438496,
+    "new": 439282,
+    "how": "return address of the GetTargetOnLOS call in FireWeapon"
    }
   }
  }

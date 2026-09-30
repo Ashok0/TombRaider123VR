@@ -88,6 +88,16 @@ struct GameDllLayout {
     // the engine's own way of hiding a body part, which is what first person
     // borrows to hide the head.
     uint32_t drawCreatureHD;
+    uint32_t getJoints;         // void GetJoints(ITEM_INFO*)
+    uint32_t joints;            // float[32][12], GetJoints' global output palette
+    uint32_t laraGun;           // void LaraGun(void), consumes native Draw Guns input
+    uint32_t fireWeapon;        // native hitscan and ammo/hit accounting
+    uint32_t fireW2VReturn;     // its one weapon view-matrix call
+    uint32_t rightFireReturn;   // first AnimatePistols FireWeapon call
+    uint32_t leftFireReturn;    // second AnimatePistols FireWeapon call
+    uint32_t getTargetOnLOS;
+    uint32_t hitLosReturn;      // FireWeapon's sphere-hit LOS call
+    uint32_t missLosReturn;     // FireWeapon's full-range LOS call
     uint32_t drawLaraHD;        // void(ITEM_INFO*): scope for Lara-only physics
 
     // The rest of Lara's head, which is NOT part of her body mesh and so is not
@@ -106,6 +116,23 @@ struct GameDllLayout {
     uint32_t updateLaraRoom;
     uint32_t getFloor;          // resolves the first-person eye's room for culling
     uint32_t calculateLaraMatrices; // consumes those angles for the visible joints
+    uint32_t drawActionIndicators; // draw-local world positions for native prompts
+    uint32_t nActionIndicator;
+    uint32_t actionIndicator;     // PHD_VECTOR[20]
+    uint32_t phdPersp;
+    uint32_t phdCenterX;
+    uint32_t phdCenterY;
+    uint32_t phdZNear;
+    uint32_t phdZFar;
+    // Native projectile spawners (TR2/3 only). Zero when the game lacks one.
+    uint32_t nextItemFree;
+    uint32_t items;
+    uint32_t fireHarpoon;
+    uint32_t fireRocket;
+    uint32_t fireGrenade;
+    uint32_t itemNewRoom;
+    uint32_t animateShotgun; // TR2 inlines its grenade launcher in this routine
+    uint32_t drawGunFlash; // void DrawGunFlash(int gun, int unused, int joint)
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

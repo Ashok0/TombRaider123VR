@@ -195,6 +195,31 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonHideHead, ini);
     g_cfg.firstPersonHeadAim         = GetBool(L"FirstPersonHeadAim",
                                                 g_cfg.firstPersonHeadAim, ini);
+    g_cfg.firstPersonMotionGuns      = GetBool(L"FirstPersonMotionGuns",
+                                                g_cfg.firstPersonMotionGuns, ini);
+    auto& gunCal=g_cfg.firstPersonMotionGunCalibration;
+    gunCal.rightMetres=GetFloat(L"FirstPersonMotionGunRightMetres",
+                                gunCal.rightMetres,ini);
+    gunCal.raiseMetres=GetFloat(L"FirstPersonMotionGunRaiseMetres",
+                                gunCal.raiseMetres,ini);
+    gunCal.gripForwardMetres=GetFloat(L"FirstPersonMotionGunGripForwardMetres",
+                                      gunCal.gripForwardMetres,ini);
+    gunCal.pitchDegrees=GetFloat(L"FirstPersonMotionGunPitchDegrees",
+                                 gunCal.pitchDegrees,ini);
+    gunCal.yawDegrees=GetFloat(L"FirstPersonMotionGunYawDegrees",
+                               gunCal.yawDegrees,ini);
+    gunCal.rollDegrees=GetFloat(L"FirstPersonMotionGunRollDegrees",
+                                gunCal.rollDegrees,ini);
+    auto safe=[](float value,float low,float high,float fallback) {
+        return std::isfinite(value) ? std::fmax(low,std::fmin(high,value))
+                                    : fallback;
+    };
+    gunCal.rightMetres=safe(gunCal.rightMetres,-.5f,.5f,0);
+    gunCal.raiseMetres=safe(gunCal.raiseMetres,-.5f,.5f,.0254f);
+    gunCal.gripForwardMetres=safe(gunCal.gripForwardMetres,-.5f,.5f,.1778f);
+    gunCal.pitchDegrees=safe(gunCal.pitchDegrees,-90,90,-30);
+    gunCal.yawDegrees=safe(gunCal.yawDegrees,-90,90,0);
+    gunCal.rollDegrees=safe(gunCal.rollDegrees,-180,180,0);
     g_cfg.firstPersonRecenterKey     = GetIntAuto(L"FirstPersonRecenterKey",
                                                 g_cfg.firstPersonRecenterKey, ini);
     g_cfg.firstPersonBodyFollowsHead = GetBool (L"FirstPersonBodyFollowsHead",
@@ -207,6 +232,9 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonTurnDegreesPerSecond, ini);
     g_cfg.firstPersonTurnDeadzone = GetFloat(L"FirstPersonTurnDeadzone",
                                                 g_cfg.firstPersonTurnDeadzone, ini);
+    g_cfg.firstPersonMovementStabilization =
+        GetBool(L"FirstPersonMovementStabilization",
+                g_cfg.firstPersonMovementStabilization, ini);
     g_cfg.firstPersonDriftLog = GetBool(L"FirstPersonDriftLog", g_cfg.firstPersonDriftLog, ini);
     g_cfg.firstPersonRoomscaleMove   = GetBool (L"FirstPersonRoomscaleMove",
                                                 g_cfg.firstPersonRoomscaleMove, ini);

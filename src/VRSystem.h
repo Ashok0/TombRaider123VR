@@ -55,10 +55,11 @@ public:
     void RecenterHead();
 
     // Horizontal body request in tracking metres (+x right, +z FORWARD),
-    // corrected for the estimated neck-to-HMD arc. First-person rendering uses
-    // the same horizontal correction because Lara's animated head already
-    // supplies that arc; vertical tracking remains raw.
+    // corrected for the estimated neck-to-HMD arc. The stabilized rendered eye
+    // uses raw tracked displacement; vertical tracking remains raw.
     void HeadFloorOffset(float& right, float& forward) const;
+    void FirstPersonViewOffset(float& right, float& forward) const;
+    float HeadVerticalOffset() const;
     void ConsumeHeadFloorOffset(float right, float forward);
     // Keep the current eye position fixed while turning the virtual world.
     void PivotHeadFloorOffset(float yawDelta);
@@ -117,6 +118,9 @@ public:
     };
     // [0] = left hand, [1] = right hand.
     void ReadControllers(HandState out[2]) const;
+    bool ControllerPose(int hand, vr::HmdMatrix34_t& out) const;
+    bool FirstPersonControllerOffset(int hand, float& right, float& down,
+                                     float& forward) const;
 
     bool poseValid() const { return m_poseValid; }
 
@@ -138,6 +142,8 @@ private:
     Affine m_eyeFromHead[2]   = { Affine::Identity(), Affine::Identity() };
     float  m_rawProj[2][4]    = {};                  // l, r, t, b per eye
     bool   m_poseValid        = false;
+    vr::HmdMatrix34_t m_controllerPose[2]{};
+    bool   m_controllerPoseValid[2]{};
     unsigned m_poseLogTick    = 0;
 
     uint32_t m_eyeW = 0, m_eyeH = 0;

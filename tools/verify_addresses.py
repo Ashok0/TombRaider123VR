@@ -155,15 +155,29 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'outside_bottom',
           'PrintRoomsList', 'S_GetObjectBounds', 'DrawSkyHD',
           'phd_GenerateW2V', 'w2v_scene_return', 'frame_frac', 'lara_item',
-          'DrawCreatureHD', 'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
+          'DrawCreatureHD', 'GetJoints', 'joints', 'LaraGun', 'FireWeapon', 'fire_w2v_return',
+          'right_fire_return', 'left_fire_return',
+          'GetTargetOnLOS', 'hit_los_return', 'miss_los_return',
+          'DrawLaraHD', 'DrawHair', 'gLaraHead', 'gActorHead', 'objects', 'analogInput',
           'input', 'LaraAboveWater', 'AnimateLara', 'GetCollisionInfo', 'UpdateLaraRoom',
-          'GetFloor', 'CalculateLaraMatrices']
+          'GetFloor', 'CalculateLaraMatrices', 'DrawActionIndicators',
+          'nActionIndicator', 'ActionIndicator', 'phd_persp', 'phd_centerx',
+          'phd_centery', 'phd_znear', 'phd_zfar', 'next_item_free', 'items',
+          'FireHarpoon', 'FireRocket', 'FireGrenade', 'ItemNewRoom',
+          'AnimateShotgun', 'DrawGunFlash']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
 # phd_GenerateW2V inside S_InitialisePolyList -- the same property at runtime
 # that makes the gate exact.
-DERIVED = {'w2v_scene_return': ('S_InitialisePolyList', 'phd_GenerateW2V')}
+DERIVED = {
+    'w2v_scene_return': 'phd_GenerateW2V',
+    'fire_w2v_return': 'phd_GenerateW2V',
+    'right_fire_return': 'FireWeapon',
+    'left_fire_return': 'FireWeapon',
+    'hit_los_return': 'GetTargetOnLOS',
+    'miss_los_return': 'GetTargetOnLOS',
+}
 
 def pe_stamp(path):
     with open(path, 'rb') as f:
@@ -314,21 +328,22 @@ try:
         return arrays, stolen, fixups
 
     def check_call_site(image, image_dir, table, tag=''):
-        """The 5 bytes before w2v_scene_return must call phd_GenerateW2V."""
+        """Every derived return must follow a call to its declared target."""
         global checks
-        ret = table.get('w2v_scene_return')
-        target = table.get('phd_GenerateW2V')
-        label = '%s%s!w2v_scene_return' % (tag, image)
-        if not ret or not target:
-            fails.append('%-46s missing from the row' % label); checks += 1; return
         pe = pefile.PE(os.path.join(image_dir, image), fast_load=True)
         data = pe.get_memory_mapped_image()
-        site = ret - 5
-        if data[site] != 0xE8:
-            check('%s is preceded by E8 rel32' % label, hex(data[site]), '0xe8')
-            return
-        rel = int.from_bytes(data[site + 1:site + 5], 'little', signed=True)
-        check('%s calls phd_GenerateW2V' % label, hex(ret + rel), hex(target))
+        for name, callee in DERIVED.items():
+            ret = table.get(name)
+            target = table.get(callee)
+            label = '%s%s!%s' % (tag, image, name)
+            if not ret or not target:
+                fails.append('%-46s missing from the row' % label); checks += 1; continue
+            site = ret - 5
+            if data[site] != 0xE8:
+                check('%s is preceded by E8 rel32' % label, hex(data[site]), '0xe8')
+                continue
+            rel = int.from_bytes(data[site + 1:site + 5], 'little', signed=True)
+            check('%s calls %s' % (label, callee), hex(ret + rel), hex(target))
 
     def check_prologues(image, src, targets, image_dir=PDB, table=None, tag=''):
         global checks
@@ -399,7 +414,19 @@ try:
         check_prologues(dll, 'FirstPerson.cpp',
                         {'GenerateW2V': 'phd_GenerateW2V',
                          'DrawCreatureHD': 'DrawCreatureHD',
+                         'GetJoints': 'GetJoints',
+                         ('DrawGunFlashTR1' if dll == 'tomb1.dll' else
+                          'DrawGunFlashTR23'): 'DrawGunFlash',
+                         'LaraGunTR%d' % int(dll[4]): 'LaraGun',
+                         **({'FireHarpoonStock': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
+                         **({'AnimateShotgun': 'AnimateShotgun'} if dll == 'tomb2.dll' else {}),
+                         **({'FireExplosive': 'FireRocket',
+                             'FireGrenade': 'FireGrenade'} if dll == 'tomb3.dll' else {}),
+                         'FireWeaponTR%d' % int(dll[4]): 'FireWeapon',
+                         ('TargetLOSTR3' if dll == 'tomb3.dll' else
+                          'TargetLOSTR12'): 'GetTargetOnLOS',
                          'DrawHair': 'DrawHair',
+                         'ActionIndicators': 'DrawActionIndicators',
                          ('LaraMatricesTR1' if dll == 'tomb1.dll' else
                           'LaraMatricesTR23'): 'CalculateLaraMatrices'})
         row = [r for r in rows if r[0] == dll]
@@ -571,7 +598,19 @@ try:
             check_prologues(dll, 'FirstPerson.cpp',
                             {'GenerateW2V': 'phd_GenerateW2V',
                              'DrawCreatureHD': 'DrawCreatureHD',
+                             'GetJoints': 'GetJoints',
+                             ('DrawGunFlashTR1' if dll == 'tomb1.dll' else
+                              'DrawGunFlashTR23'): 'DrawGunFlash',
+                             'LaraGunTR%d' % int(dll[4]): 'LaraGun',
+                             **({'FireHarpoonRetail': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
+                             **({'AnimateShotgun': 'AnimateShotgun'} if dll == 'tomb2.dll' else {}),
+                             **({'FireExplosive': 'FireRocket',
+                                 'FireGrenade': 'FireGrenade'} if dll == 'tomb3.dll' else {}),
+                             'FireWeaponTR%d' % int(dll[4]): 'FireWeapon',
+                             ('TargetLOSTR3' if dll == 'tomb3.dll' else
+                              'TargetLOSTR12'): 'GetTargetOnLOS',
                              'DrawHair': 'DrawHair',
+                             'ActionIndicators': 'DrawActionIndicators',
                              ('LaraMatricesTR1' if dll == 'tomb1.dll' else
                               'LaraMatricesTR23'): 'CalculateLaraMatrices'},
                             image_dir=d, table=DR, tag=tag)

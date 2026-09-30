@@ -200,6 +200,7 @@ constexpr uint32_t photo_mode  = 884;
 constexpr uint32_t dbg_vsync   = 2100;
 constexpr uint32_t dbg_no_ui   = 2092;
 constexpr uint32_t level       = 832;
+constexpr uint32_t level_type  = 836;
 // APP_CONFIG's first bitfield word, at cfg (+2128) + 4. Bit 0 is `modern` (the
 // HD renderer), bit 1 is `new_controls` (the camera-relative control scheme).
 // DrawLara tests exactly this: `mov edx,[rax+0x854]; test dl,1; test dl,2`.

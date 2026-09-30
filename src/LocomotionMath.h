@@ -36,6 +36,12 @@ inline Vec NeckToHead(float yaw, float metres) {
 inline Vec NeckFloorOffset(Vec rawEyeOffset, Vec neckArc) {
     return rawEyeOffset - neckArc;
 }
+// The estimated neck arc belongs to body room-scale movement. Once the
+// grounded camera has a stable eye anchor, removing that arc from the rendered
+// HMD position would move the world whenever the player merely turns her head.
+inline Vec ViewFloorOffset(Vec rawEyeOffset, Vec neckArc, bool stabilized) {
+    return stabilized ? rawEyeOffset : NeckFloorOffset(rawEyeOffset, neckArc);
+}
 // Artificial yaw pivots translated room position around the current player,
 // but the physical neck-to-eye arc belongs to the avatar's facing. Rotating
 // that arc with the room offset leaves the eye orbiting Lara until a full turn.
@@ -43,19 +49,31 @@ inline Vec PivotFloorOffset(Vec rawEyeOffset, Vec neckArc, float yawDelta) {
     return Rotate(NeckFloorOffset(rawEyeOffset, neckArc), -yawDelta) + neckArc;
 }
 inline bool IsJumpSteeringState(int state) { return state == 15 || state == 3; }
+inline bool IsLedgeHangState(int state) {
+    // Control-table entries shared by TR1-3; 75/82/83 exist only in TR3.
+    switch (state) {
+    case 10: case 30: case 31: case 75: case 82: case 83: return true;
+    default: return false;
+    }
+}
+inline bool IsClimbingCameraState(int state) {
+    // TR1-3 wall-climb stance, steps and transitions. Pull-up has a native
+    // animated eye and a retracted anchor; sweeping it from Lara's body can
+    // place the camera behind her arms and torso.
+    return state >= 56 && state <= 61;
+}
 // These animations keep Lara tight against geometry. The normal first-person
 // avatar-fit offset deliberately moves the eye forward so her torso sits below
 // the player, but here that same offset can cross the ledge wall or enter the
 // movable block. Values come from lara_control_routines in the TR1-3 DLLs;
 // TR3 adds hang2 and the two hanging-turn states.
 inline bool IsConstrainedInteractionState(int state) {
+    if (IsLedgeHangState(state)) return true;
     switch (state) {
-    case 10: case 30: case 31:       // hang, hang left/right
     case 19:                        // ledge pull-up (hang-up)
     case 36: case 37: case 38:       // push, pull, push/pull ready
     case 56: case 57: case 58:       // climb stance, left/right
     case 59: case 60: case 61:       // climb transition/down and the other side
-    case 75: case 82: case 83:       // TR3 hang2, hang turn left/right
         return true;
     default:
         return false;

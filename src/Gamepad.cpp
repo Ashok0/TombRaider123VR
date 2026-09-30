@@ -257,6 +257,9 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     // equipping or shooting must not switch the view or graphics mode.
     if (gripAction && !viewToggle && !graphicsToggle)
         mine.Gamepad.wButtons |= XB_Y;
+    FirstPersonGunTriggers(mine.Gamepad.bLeftTrigger,
+                           mine.Gamepad.bRightTrigger,
+                           viewToggle || graphicsToggle);
 
     // Transform the MERGED state so a physical Xbox pad has the same heading
     // and cannot reintroduce the engine's right-stick camera orbit.

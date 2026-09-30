@@ -204,6 +204,7 @@ void VRSystem::Shutdown() {
     m_system     = nullptr;
     m_compositor = nullptr;
     m_poseValid = false;
+    m_controllerPoseValid[0] = m_controllerPoseValid[1] = false;
     m_haveNeutral = false;
     if (m_dll) { FreeLibrary(m_dll); m_dll = nullptr; }
 }
@@ -308,6 +309,18 @@ void VRSystem::BeginFrame() {
         else RefreshHeadTranslation();
     }
 
+    const vr::ETrackedControllerRole roles[2] = {
+        vr::TrackedControllerRole_LeftHand, vr::TrackedControllerRole_RightHand
+    };
+    for (int hand = 0; hand < 2; ++hand) {
+        const auto idx = m_system->GetTrackedDeviceIndexForControllerRole(roles[hand]);
+        m_controllerPoseValid[hand] = idx != vr::k_unTrackedDeviceIndexInvalid &&
+            idx < vr::k_unMaxTrackedDeviceCount && poses[idx].bPoseIsValid &&
+            poses[idx].bDeviceIsConnected;
+        if (m_controllerPoseValid[hand])
+            m_controllerPose[hand] = poses[idx].mDeviceToAbsoluteTracking;
+    }
+
     if (wasValid != m_poseValid) {
         LogF("vr: head pose %s", m_poseValid ? "ACQUIRED" : "LOST");
     }
@@ -323,15 +336,51 @@ void VRSystem::BeginFrame() {
     }
 }
 
+bool VRSystem::ControllerPose(int hand, vr::HmdMatrix34_t& out) const {
+    if (hand < 0 || hand > 1 || !m_controllerPoseValid[hand]) return false;
+    out = m_controllerPose[hand];
+    return true;
+}
+
+bool VRSystem::FirstPersonControllerOffset(int hand, float& right, float& down,
+                                           float& forward) const {
+    if (hand < 0 || hand > 1 || !m_poseValid || !m_haveNeutral ||
+        !m_controllerPoseValid[hand]) return false;
+    FirstPersonViewOffset(right, forward);
+    right += m_controllerPose[hand].m[0][3] - m_headPosRaw[0];
+    forward -= m_controllerPose[hand].m[2][3] - m_headPosRaw[2];
+    down = m_headNeutral[1] - m_controllerPose[hand].m[1][3];
+    return std::isfinite(right) && std::isfinite(down) && std::isfinite(forward);
+}
+
 void VRSystem::HeadFloorOffset(float& right, float& forward) const {
     right = forward = 0;
     if (!m_poseValid || !m_haveNeutral) return;
-    right = m_headPosRaw[0] - m_headNeutral[0];
-    forward = -(m_headPosRaw[2] - m_headNeutral[2]);
+    const locomotion::Vec raw{m_headPosRaw[0] - m_headNeutral[0],
+                             -(m_headPosRaw[2] - m_headNeutral[2])};
     const auto pivot = locomotion::NeckToHead(HeadYawRadians(),
         std::clamp(Cfg().firstPersonRoomscaleNeckMetres, 0.0f, 0.4f));
-    right -= pivot.x - m_neutralNeckToHead[0];
-    forward -= pivot.z - m_neutralNeckToHead[1];
+    const auto body=locomotion::ViewFloorOffset(raw,
+        pivot-locomotion::Vec{m_neutralNeckToHead[0],m_neutralNeckToHead[1]},false);
+    right=body.x;
+    forward=body.z;
+}
+
+void VRSystem::FirstPersonViewOffset(float& right, float& forward) const {
+    right=forward=0;
+    if (!m_poseValid || !m_haveNeutral) return;
+    // A stable grounded eye anchor already excludes Lara's animated head arc.
+    // The eye and tracked hands must receive physical HMD movement alone;
+    // neck compensation is reserved for moving Lara's collision body.
+    const locomotion::Vec raw{m_headPosRaw[0]-m_headNeutral[0],
+                             -(m_headPosRaw[2]-m_headNeutral[2])};
+    const auto pivot=locomotion::NeckToHead(HeadYawRadians(),
+        std::clamp(Cfg().firstPersonRoomscaleNeckMetres,0.0f,0.4f));
+    const auto view=locomotion::ViewFloorOffset(raw,
+        pivot-locomotion::Vec{m_neutralNeckToHead[0],m_neutralNeckToHead[1]},
+        Cfg().firstPersonMovementStabilization);
+    right=view.x;
+    forward=view.z;
 }
 
 void VRSystem::RefreshHeadTranslation() {
@@ -341,12 +390,10 @@ void VRSystem::RefreshHeadTranslation() {
         m_headPosRaw[2] - m_headNeutral[2]
     };
     if (FirstPersonActive()) {
-        // Lara's animated head already carries the body-to-eye arc as her body
-        // turns. Applying the raw tracked arc again makes the view orbit her
-        // until a physical rotation reaches 360 degrees. Keep genuine neck
-        // translation and raw vertical ducking, but remove that duplicate arc.
+        // The grounded scene anchor is stable. Use real HMD displacement for
+        // the eye; the estimated neck arc only belongs to body room-scale drag.
         float right, forward;
-        HeadFloorOffset(right, forward);
+        FirstPersonViewOffset(right, forward);
         displacement[0] = right;
         displacement[2] = -forward;
     }
@@ -377,7 +424,9 @@ void VRSystem::PivotHeadFloorOffset(float yawDelta) {
     // Keep actual neck translation fixed in world while the artificial yaw
     // changes. The neck-to-eye arc stays in tracking space so it follows the
     // newly rotated Lara instead of orbiting her body until 360 degrees.
-    const auto after = locomotion::PivotFloorOffset(before, neckArc, yawDelta);
+    const auto after = Cfg().firstPersonMovementStabilization
+        ? locomotion::Rotate(before,-yawDelta)
+        : locomotion::PivotFloorOffset(before, neckArc, yawDelta);
     ConsumeHeadFloorOffset(before.x - after.x, before.z - after.z);
 }
 
@@ -398,6 +447,11 @@ float VRSystem::HeadYawRadians() const {
     // Inverse pose ROW 2 is the headset's back axis in tracking space.
     // Project its negative onto the floor; roll cannot steer walking.
     return TrackingYaw(m_headFromTracking);
+}
+
+float VRSystem::HeadVerticalOffset() const {
+    return m_poseValid && m_haveNeutral
+        ? m_headPosRaw[1] - m_headNeutral[1] : 0.0f;
 }
 
 float VRSystem::HeadPitchRadians() const {
