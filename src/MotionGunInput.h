@@ -15,40 +15,47 @@ inline bool VrGunInputEnabled(bool chordConsumed, bool motionReady,
 // Shared trigger state only. TR1/2/3 weapon IDs and dual/single hands are
 // selected by the running game in FirstPerson.cpp.
 
-// One queued shot per hand, consumed by the native FireWeapon hook rather
-// than by XInput polling. LT fires on release to distinguish draw/holster.
+// LT queues a shot on release to distinguish draw/holster. RT sustains its
+// request while held; native LaraGun still controls the weapon's fire rate.
 struct TriggerInput {
     bool active=false, waitRelease=false, leftHeld=false, rightHeld=false;
-    bool leftCanTap=false, longFired=false, pending[2]={};
+    bool leftWaitRelease=false, rightWaitRelease=false;
+    bool leftCanTap=false, leftGesture=false, longFired=false, pending[2]={};
     uint64_t leftSince=0, equipUntil=0;
 
     void Reset() { *this={}; }
     void Update(bool enabled, bool ready, bool left, bool right, uint64_t now) {
         if (!enabled) { Reset(); return; }
         if (!active) {
-            active=true; waitRelease=left || right;
+            active=true;
+            leftWaitRelease=left; rightWaitRelease=right;
         }
-        if (waitRelease) {
-            waitRelease=left || right;
-            return; // Never inherit a held menu/view-chord trigger.
-        }
+        // A hit animation or temporary loss of tracking can re-enable this
+        // adapter while one trigger is still held. Suppress that hand until
+        // release, but do not block a fresh press on the other controller.
+        if (!left) leftWaitRelease=false;
+        if (!right) rightWaitRelease=false;
+        waitRelease=leftWaitRelease || rightWaitRelease;
         if (!ready) pending[0]=pending[1]=false;
-        if (left && !leftHeld) {
-            leftSince=now; leftCanTap=ready; longFired=false;
+        if (!leftWaitRelease && left && !leftHeld) {
+            leftSince=now; leftCanTap=ready; leftGesture=true; longFired=false;
         }
         // Use elapsed wall-clock time, including a release poll which may
         // arrive after the threshold without any intervening held poll.
-        if ((left || leftHeld) && !longFired && now-leftSince>=500) {
+        if (leftGesture && (left || leftHeld) && !longFired &&
+            now-leftSince>=500) {
             longFired=true; leftCanTap=false;
             pending[0]=pending[1]=false;
             equipUntil=now+150;
         }
-        if (!left && leftHeld && !longFired && leftCanTap && ready)
+        if (!leftWaitRelease && !left && leftHeld && !longFired &&
+            leftCanTap && ready)
             pending[0]=true;
-        if (right && !rightHeld && ready && !longFired && now>=equipUntil)
+        if (!rightWaitRelease && right && ready &&
+            !longFired && now>=equipUntil)
             pending[1]=true;
         leftHeld=left; rightHeld=right;
-        if (!left) { longFired=false; leftCanTap=false; }
+        if (!left) { longFired=false; leftCanTap=false; leftGesture=false; }
     }
     bool Equip(uint64_t now) const { return active && now<equipUntil; }
     bool WantsShot() const { return active && (pending[0] || pending[1]); }

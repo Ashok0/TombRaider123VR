@@ -32,6 +32,9 @@ void FirstPersonShutdown();
 // inventory, during fixed and cinematic cameras, and whenever the anchor could
 // not be resolved.
 bool FirstPersonActive();
+// The last rendered scene eye, before stereo head translation. False when the
+// first-person gameplay camera is unavailable.
+bool FirstPersonSceneEye(int32_t out[3]);
 void FirstPersonGunTriggers(uint8_t& left, uint8_t& right, bool chordConsumed);
 
 // Called after merging physical and VR pads. Records manual intent for the

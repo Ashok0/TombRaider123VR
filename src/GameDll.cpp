@@ -1,5 +1,7 @@
 #include "GameDll.h"
 #include "Engine.h"
+#include "FirstPerson.h"
+#include "LocomotionMath.h"
 #include "Log.h"
 
 #include <windows.h>
@@ -19,6 +21,8 @@ namespace {
 namespace off {
 // lara_info, 432 bytes
 constexpr uint32_t lara_water_status = 12;   // int16
+constexpr uint32_t item_anim_state   = 18;   // int16
+constexpr uint32_t item_flags        = 484;  // uint16, gravity_status bit 3
 
 // camera_info, 128 bytes. camera.pos is a game_vector at +0:
 //   +0 x (int32)  +4 y (int32)  +8 z (int32)  +12 room_number (int16)
@@ -535,6 +539,31 @@ int LaraWaterStatus() {
 bool CameraHeadroom(float& units) {
     units = 0.0f;
     if (!g_dll) return false;
+    const auto* item=Read<uint8_t*>(g_dll->laraItem);
+    static const uint8_t* lastItem=nullptr;
+    static uint64_t resumeClampAt=0;
+    static bool reportedJump=false;
+    const uint64_t now=GetTickCount64();
+    if (item!=lastItem) {
+        lastItem=item;
+        resumeClampAt=0;
+        reportedJump=false;
+    }
+    if (item) {
+        const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+        const uint16_t flags=*reinterpret_cast<const uint16_t*>(item+off::item_flags);
+        if (locomotion::IsJumpOrFallState(state) || (flags&0x8u)) {
+            resumeClampAt=now+250;
+            if (!reportedJump) {
+                reportedJump=true;
+                LogF("vr: ceiling clamp paused for jump state=%d first=%d",
+                     state,int(FirstPersonActive()));
+            }
+        } else if (now>=resumeClampAt) {
+            reportedJump=false;
+        }
+        if (now<resumeClampAt) return false;
+    }
 
     // `room` is a POINTER to the rooms array, null until a level is loaded.
     auto* rooms = Read<uint8_t*>(g_dll->room);
@@ -548,24 +577,33 @@ bool CameraHeadroom(float& units) {
         return false;
     }
 
-    const int16_t roomNo = Read<int16_t>(g_dll->camera + off::camera_pos_room);
+    int16_t roomNo = Read<int16_t>(g_dll->camera + off::camera_pos_room);
+    int32_t eye[3]{};
+    const bool firstPersonEye=FirstPersonSceneEye(eye);
+    if (FirstPersonActive() && !firstPersonEye) return false;
+    if (firstPersonEye) {
+        if (roomNo < 0 || roomNo >= numRooms || !g_dll->getFloor) return false;
+        using Fn_GetFloor=void* (__cdecl*)(int32_t,int32_t,int32_t,int16_t*);
+        if (!reinterpret_cast<Fn_GetFloor>(g_base+g_dll->getFloor)(
+                eye[0],eye[1],eye[2],&roomNo)) return false;
+    }
     if (roomNo < 0 || roomNo >= numRooms) return false;
 
-    const int32_t camY = Read<int32_t>(g_dll->camera + off::camera_pos_y);
+    const int32_t camY = firstPersonEye ? eye[1] :
+        Read<int32_t>(g_dll->camera + off::camera_pos_y);
     const int32_t ceil =
         *reinterpret_cast<int32_t*>(rooms + static_cast<uint32_t>(roomNo) * off::room_stride
                                           + off::room_maxceiling);
 
     // TR world space is Y-DOWN: the ceiling has a SMALLER Y than anything below
-    // it, so headroom is (camera Y - ceiling Y) and is positive when the camera
+    // it, so headroom is (view Y - ceiling Y) and is positive when the view
     // is below the ceiling. Getting this backwards would produce a negative
     // number that the check below rejects, which is the intended failure.
     const int32_t headroom = camY - ceil;
 
     // Sanity. A sector is 1024 units and Lara is about 762 tall, so a real
     // headroom is a few hundred to a few thousand units. Anything outside that
-    // means we are reading a room the camera is not really in -- a cutscene
-    // camera, a level transition, a stale index -- so report "unknown" rather
+    // means a level transition or stale room, so report "unknown" rather
     // than clamp the player's head on a bad number.
     if (headroom <= 0 || headroom > 32768) return false;
 

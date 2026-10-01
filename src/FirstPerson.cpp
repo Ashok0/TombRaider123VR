@@ -40,6 +40,7 @@ constexpr uint32_t item_mesh_bits   = 12;    // uint32, one bit per mesh
 constexpr uint32_t item_object_number = 16;  // int16
 constexpr uint32_t item_anim_state    = 18;  // int16
 constexpr uint32_t item_goal_state    = 20;  // int16
+constexpr uint32_t item_anim_number   = 24;  // int16
 constexpr uint32_t item_room_number = 28;    // int16
 constexpr uint32_t item_speed       = 34;    // int16
 constexpr uint32_t item_hit_points    = 38;  // int16
@@ -221,6 +222,7 @@ unsigned g_skipped     = 0;
 locomotion::Heading g_heading;
 stabilization::RenderTurn g_renderTurn;
 stabilization::GroundEye g_groundEye;
+int g_lastClimbCameraState = -1;
 bool g_haveHeading = false;
 uint8_t* g_headingItem = nullptr;
 locomotion::Vec g_previousBody;
@@ -1017,6 +1019,9 @@ bool MotionTriggerMode() {
     if (!(Cfg().firstPersonMotionGuns && g_active && g_boundDll && g_boundBase &&
         GameDllBound()==g_boundDll && GameDllBase()==g_boundBase &&
         (AppFlag(drva::app_off::cfg_flags)&1))) return false;
+    const auto* item=*Ptr<uint8_t*>(g_boundDll->laraItem);
+    if (!item || *reinterpret_cast<const int16_t*>(item+off::item_hit_points)<=0)
+        return false;
     const int gun=*Ptr<int16_t>(g_boundDll->lara+4);
     const int last=*Ptr<int16_t>(g_boundDll->lara+8);
     // Keep native firing intact whenever tracking is unavailable. Holstered
@@ -1275,10 +1280,12 @@ void __cdecl Detour_LaraGun() {
             g_drawAwaitingLTRelease=true;
         if ((injected && beforeStatus==0) || beforeStatus!=afterStatus ||
             beforeStatus!=g_lastGunTraceStatus)
-            LogF("firstperson: LaraGun status %d -> %d input=%08X applied=%08X LT=%u draw-release=%d",
+            LogF("firstperson: LaraGun status %d -> %d input=%08X applied=%08X LT=%u draw-release=%d hp=%d state=%d",
                  beforeStatus,afterStatus,beforeInput,
                  beforeInput|(injected ? 0x20u : 0u),unsigned(g_lastRawLT),
-                 int(g_drawAwaitingLTRelease));
+                 int(g_drawAwaitingLTRelease),
+                 int(*reinterpret_cast<const int16_t*>(g_headingItem+off::item_hit_points)),
+                 int(*reinterpret_cast<const int16_t*>(g_headingItem+off::item_anim_state)));
         g_lastGunTraceStatus=afterStatus;
         if (injected) *Ptr<uint32_t>(g_boundDll->input)&=~0x20u;
     }
@@ -1380,6 +1387,8 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
 void UpdateLocomotion(PHD_3DPOS& pose) {
     using namespace locomotion;
     auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
+    const int state = *reinterpret_cast<const int16_t*>(item + off::item_anim_state);
+    const int nativeEyeY = pose.y_pos;
     const auto& pos = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos);
     const auto& prev = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos_prev);
     const int frac = std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac), 0, 256);
@@ -1420,7 +1429,14 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         VR().PivotHeadFloorOffset(turn);
     }
     if (CanWalk(item)) {
-        const float bodyY = static_cast<float>(Lerp(prev.y_pos, pos.y_pos, frac));
+        // A mount can finish with a one-tick root step while the native head
+        // joint is already at the new height. Interpolating the old root puts
+        // the stabilized eye inside Lara for that transition frame.
+        const float nativeHeight=float(nativeEyeY-pos.y_pos);
+        const bool mountFinished=g_lastClimbCameraState==19 &&
+            nativeHeight>=-950.0f && nativeHeight<=-500.0f;
+        const float bodyY = mountFinished ? float(pos.y_pos) :
+            static_cast<float>(Lerp(prev.y_pos, pos.y_pos, frac));
         const auto eye = g_groundEye.Apply(
             {body.x, bodyY, body.z}, g_heading.base,
             {float(pose.x_pos), float(pose.y_pos), float(pose.z_pos)});
@@ -1428,6 +1444,15 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         pose.y_pos = static_cast<int32_t>(std::lround(eye.y));
         pose.z_pos = static_cast<int32_t>(std::lround(eye.z));
     }
+    if (state != g_lastClimbCameraState &&
+        (state == 19 || g_lastClimbCameraState == 19)) {
+        LogF("firstperson: pull-up state=%d anim=%d rootY=%d nativeEyeY=%d "
+             "viewY=%d standingEye=%d storedHeight=%.0f",
+             state, *reinterpret_cast<const int16_t*>(item + off::item_anim_number),
+             pos.y_pos, nativeEyeY, pose.y_pos, g_groundEye.valid ? 1 : 0,
+             g_groundEye.local.y);
+    }
+    g_lastClimbCameraState = state;
     if (!CanWalk(item) && !Cfg().firstPersonMovementStabilization) {
         // Physical movement during an interaction must not queue a walk when
         // the animation releases control. Height remains tracked.
@@ -1531,15 +1556,54 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_rootMotion.Reset();
             g_renderTurn.Reset();
             g_groundEye.Reset();
+            g_lastClimbCameraState = -1;
             g_dragPrevious = g_dragCurrent = g_dragShown = {};
             g_neutralTaken = false;
         }
         const int state = item
             ? *reinterpret_cast<const int16_t*>(item + off::item_anim_state) : -1;
+        const int animation = item
+            ? *reinterpret_cast<const int16_t*>(item + off::item_anim_number) : -1;
         SetMeshVisibility(g_active && Cfg().firstPersonHideHead,
                           g_active && IsRollState(item),
                           g_active && IsCrouchState(item),
-                          g_active && locomotion::IsLedgeHangState(state));
+                          g_active && locomotion::IsArmsOnlyFirstPersonState(state,animation));
+        // One line per jump distinguishes missed VR frames from a camera that
+        // advances in coarse vertical steps. It also runs in third person.
+        struct JumpViewTrace {
+            bool live=false;
+            int frames=0, repeatedY=0, lateFrames=0, maxStepY=0;
+            int lastY=0, level=-1, firstPerson=0;
+            uint64_t lastMs=0;
+        };
+        static JumpViewTrace jumpTrace;
+        const bool jumping=state==3 || state==9 || state==15 ||
+            (state>=25 && state<=29);
+        const int level=AppFlag(drva::app_off::level);
+        const uint64_t nowMs=GetTickCount64();
+        if (jumpTrace.live && (!jumping || jumpTrace.level!=level ||
+                               jumpTrace.firstPerson!=int(g_active))) {
+            LogF("firstperson: jump view level=%d first=%d frames=%d "
+                 "repeatedY=%d lateFrames=%d maxStepY=%d",
+                 jumpTrace.level,jumpTrace.firstPerson,jumpTrace.frames,
+                 jumpTrace.repeatedY,jumpTrace.lateFrames,jumpTrace.maxStepY);
+            jumpTrace={};
+        }
+        if (jumping && item && pose) {
+            if (!jumpTrace.live) {
+                jumpTrace.live=true;
+                jumpTrace.level=level;
+                jumpTrace.firstPerson=int(g_active);
+            } else {
+                const int step=std::abs(pose->y_pos-jumpTrace.lastY);
+                if (step==0) ++jumpTrace.repeatedY;
+                jumpTrace.maxStepY=std::max(jumpTrace.maxStepY,step);
+                if (nowMs-jumpTrace.lastMs>28) ++jumpTrace.lateFrames;
+            }
+            ++jumpTrace.frames;
+            jumpTrace.lastY=pose->y_pos;
+            jumpTrace.lastMs=nowMs;
+        }
     }
     if (pose && g_firingHand>=0 && g_boundDll && g_boundBase &&
         reinterpret_cast<uint64_t>(caller)==
@@ -1886,6 +1950,13 @@ void FirstPersonShutdown() {
 }
 
 bool FirstPersonActive() { return g_active; }
+bool FirstPersonSceneEye(int32_t out[3]) {
+    if (!out || !g_active || !g_scenePoseValid) return false;
+    out[0]=g_scenePose.x_pos;
+    out[1]=g_scenePose.y_pos;
+    out[2]=g_scenePose.z_pos;
+    return true;
+}
 
 void FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed) {
     g_lastRawLT=left;
@@ -1961,7 +2032,7 @@ void FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed) {
         // First hold from holstered draws immediately. In modern controls the
         // native draw bit must then remain asserted even after LT is released.
         equipRequest=nativeLeft>30 &&
-            !g_gunTriggers.waitRelease && !g_drawAwaitingLTRelease;
+            !g_gunTriggers.leftWaitRelease && !g_drawAwaitingLTRelease;
     } else if (status==2) {
         // Require an LT release before the next gesture can holster or fire.
         g_gunTriggers.Reset();
@@ -1976,8 +2047,8 @@ void FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed) {
     g_nativeEquipStatus=status;
     g_nativeEquipHoldMode=holdMode;
     left=0;
-    // Ready dual guns use independent LT-release and RT-press requests. Long
-    // guns retain native sustained RT so their animation owns the full volley.
+    // Ready dual guns use independent LT-release and held-RT requests. Native
+    // LaraGun still sets the rate; long guns keep their sustained RT path.
     if (status==4 && weapon<=3)
         right=g_gunTriggers.WantsShot() ? 255 : 0;
 }

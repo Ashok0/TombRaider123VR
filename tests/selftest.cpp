@@ -29,6 +29,7 @@
 #include "FirstPersonActionIcon.h"
 #include "MotionGunMath.h"
 #include "MotionGunInput.h"
+#include "HeadHeightClamp.h"
 
 #include <windows.h>
 #include <cstdio>
@@ -667,6 +668,32 @@ static void TestLocomotion() {
     for (int state : {2, 19, 36, 56, 61})
         Check(!IsLedgeHangState(state),
               "pull-up, walking, blocks and wall climbing leave the hanging arm mask");
+    Check(IsArmsOnlyFirstPersonState(19,42) &&
+          IsArmsOnlyFirstPersonState(28,27) &&
+          IsArmsOnlyFirstPersonState(2,51) &&
+          IsArmsOnlyFirstPersonState(10,96) &&
+          IsArmsOnlyFirstPersonState(3,11) &&
+          IsArmsOnlyFirstPersonState(9,11) &&
+          !IsArmsOnlyFirstPersonState(2,11),
+          "crate mounts and jumps retain arms without the torso");
+    Check(IsJumpOrFallState(3) && IsJumpOrFallState(9) &&
+          IsJumpOrFallState(15) && IsJumpOrFallState(25) &&
+          IsJumpOrFallState(29) && !IsJumpOrFallState(2) &&
+          !IsJumpOrFallState(19),
+          "ceiling clearance pauses for jumps and falls, not standing or pull-up");
+    using tr::headheight::Clamp;
+    constexpr float neutralY=1.25f;
+    constexpr float scale=423.0f;
+    CheckNear(Clamp(neutralY, neutralY, 128.0f, 128.0f, scale), neutralY,
+              "landing clamp preserves a neutral headset height");
+    CheckNear(Clamp(neutralY+0.30f, neutralY, 128.0f, 128.0f, scale), neutralY,
+              "low ceiling caps rise relative to the headset neutral");
+    CheckNear(Clamp(neutralY+0.30f, neutralY, 658.0f, 128.0f, scale),
+              neutralY+0.30f,
+              "crate mount keeps an ordinary head rise below the cap");
+    CheckNear(Clamp(neutralY+1.50f, neutralY, 658.0f, 128.0f, scale),
+              neutralY+(658.0f-128.0f)/scale,
+              "crate ceiling caps only the excess head rise");
     using tr::firstperson::HdDrawMeshBits;
     Check(HdDrawMeshBits(0, false, true) == tr::firstperson::ArmMeshBits &&
           HdDrawMeshBits(0x400, false, true) == tr::firstperson::ArmMeshBits,
@@ -676,7 +703,7 @@ static void TestLocomotion() {
           "native masked right and left hand passes keep their own joints");
     Check(HdDrawMeshBits(0, false, false) == ~tr::firstperson::HeadMeshBit &&
           HdDrawMeshBits(0x600, true, false) == 0x600,
-          "pull-up restores native HD body and hand passes except the head");
+          "ordinary first-person HD body and hand passes hide only the head");
 
     for (int rate : {30, 60, 90, 120, 360}) {
         float yaw = 0;
@@ -766,6 +793,35 @@ static void TestLocomotion() {
     trigger.Update(true,true,true,false,1600);
     Check(trigger.Equip(1600) && !trigger.WantsShot(),
           "long left hold requests equip without firing");
+    TriggerInput sustainedRight;
+    sustainedRight.Update(true,true,false,false,0);
+    sustainedRight.Update(true,true,false,true,20);
+    Check(sustainedRight.Consume(1),"RT requests an initial native shot");
+    sustainedRight.Update(true,true,false,true,100);
+    Check(sustainedRight.Consume(1),"held RT remains able to fire after a shot");
+    sustainedRight.Update(true,false,false,true,120);
+    sustainedRight.Update(true,true,false,true,180);
+    Check(sustainedRight.Consume(1),"held RT resumes after a hit interruption");
+    TriggerInput hitRecovery;
+    hitRecovery.Update(true,true,false,false,10);
+    hitRecovery.Update(false,false,true,false,20); // interrupted by hit camera
+    hitRecovery.Update(true,true,true,false,30);   // LT was already held
+    hitRecovery.Update(true,true,true,true,40);    // fresh RT press
+    Check(hitRecovery.Consume(1) && !hitRecovery.Consume(0),
+          "fresh RT fires after hit even while inherited LT awaits release");
+    hitRecovery.Update(true,true,false,false,50);
+    hitRecovery.Update(true,true,true,false,60);
+    hitRecovery.Update(true,true,false,false,80);
+    Check(hitRecovery.Consume(0) && !hitRecovery.waitRelease,
+          "LT release and new tap recover after interrupted armed state");
+    TriggerInput leftRecovery;
+    leftRecovery.Update(false,false,false,true,100);
+    leftRecovery.Update(true,true,false,true,110); // inherited RT is suppressed
+    leftRecovery.Update(true,true,true,true,120);
+    leftRecovery.Update(true,true,false,true,180);
+    Check(leftRecovery.Consume(0) && !leftRecovery.Consume(1) &&
+          !leftRecovery.leftWaitRelease,
+          "fresh LT tap works while inherited RT awaits release after damage");
     EquipInput nativeEquip;
     Check(nativeEquip.Update(true,0,true) &&
           nativeEquip.Update(true,2,false) &&
@@ -811,6 +867,16 @@ static void TestLocomotion() {
     const auto turnedEye = standing.Apply({125, 0, 200}, Pi / 2, {165, -675, 245});
     CheckNear(turnedEye.x, 145, "artificial turn pivots standing eye reference");
     CheckNear(turnedEye.z, 190, "artificial turn rotates the forward eye offset");
+    tr::stabilization::GroundEye vaultEye;
+    const auto staleVault=vaultEye.Apply({0,-768,0},0,{0,-890,0});
+    Check(!vaultEye.valid && staleVault.y==-890,
+          "first grounded vault frame uses the native joint, not a guessed height");
+    const auto recoveredVault=vaultEye.Apply({0,-768,0},0,{0,-1480,0});
+    Check(vaultEye.valid && recoveredVault.y==-1480,
+          "settled standing skeleton restores eye height after tall crate mount");
+    const auto lateClimb=vaultEye.Apply({0,-768,0},0,{0,-1968,0});
+    Check(lateClimb.y==-1480,
+          "late pull-up skeleton cannot replace valid standing eye reference");
 
     const int32_t viewMatrix[12] = {
         16384,0,0,0, 0,16384,0,0, 0,0,16384,0

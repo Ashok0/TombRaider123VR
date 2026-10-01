@@ -1,4 +1,5 @@
 #include "VRSystem.h"
+#include "HeadHeightClamp.h"
 #include "Config.h"
 #include "Log.h"
 #include "GL.h"
@@ -248,24 +249,33 @@ void VRSystem::BeginFrame() {
         // is a view transform whose translation column is -R^T*p, and clamping
         // that would move the eye sideways as well as down.
         //
-        // Seated origin means pose Y is height above the seated zero, and the
-        // eye sits at the game camera when that is 0, so the camera rises by
-        // exactly poseY * unitsPerMetre. Cap that at the room's headroom less a
-        // margin. Nothing else is touched: ducking, leaning and every rotation
-        // pass through untouched, and below the cap this is a no-op.
+        // The eye sits at the game camera at the recentered headset height,
+        // regardless of the runtime's seated or standing origin. The cap must
+        // therefore be relative to that neutral height. Applying it to raw Y
+        // made a grounded frame jump by the entire headset-origin height when
+        // the clamp resumed after landing or Lara mounted a crate.
+        if (!m_haveNeutral) {
+            m_headNeutral[0] = pose.m[0][3];
+            m_headNeutral[1] = pose.m[1][3];
+            m_headNeutral[2] = pose.m[2][3];
+            m_haveNeutral = true;
+            LogF("vr: head neutral set at (%+.2f, %+.2f, %+.2f) m -- tracked "
+                 "translation is measured from here", m_headNeutral[0],
+                 m_headNeutral[1], m_headNeutral[2]);
+        }
         float headroom = 0.0f;
         if (Cfg().ceilingClearance && CameraHeadroom(headroom)) {
             const float scale = LiveWorldUnitsPerMetre();
             if (scale > 0.0f) {
-                float maxRise = (headroom - Cfg().ceilingMarginUnits) / scale;
-                if (maxRise < 0.0f) maxRise = 0.0f;   // already at the ceiling
-                if (pose.m[1][3] > maxRise) {
-                    pose.m[1][3] = maxRise;
+                const float capped = headheight::Clamp(pose.m[1][3],
+                    m_headNeutral[1], headroom, Cfg().ceilingMarginUnits, scale);
+                if (capped < pose.m[1][3]) {
+                    pose.m[1][3] = capped;
                     if (!m_loggedClamp) {
                         m_loggedClamp = true;
                         LogF("vr: ceiling clamp active -- headroom %.0f units, "
-                             "head capped at %.2f m above the seated zero",
-                             headroom, maxRise);
+                             "head capped at %.2f m above neutral",
+                             headroom, capped - m_headNeutral[1]);
                     }
                 }
             }
@@ -290,15 +300,6 @@ void VRSystem::BeginFrame() {
         m_headPosRaw[1] = pose.m[1][3];
         m_headPosRaw[2] = pose.m[2][3];
 
-        if (!m_haveNeutral) {
-            m_headNeutral[0] = pose.m[0][3];
-            m_headNeutral[1] = pose.m[1][3];
-            m_headNeutral[2] = pose.m[2][3];
-            m_haveNeutral = true;
-            LogF("vr: head neutral set at (%+.2f, %+.2f, %+.2f) m -- tracked "
-                 "translation is measured from here", m_headNeutral[0],
-                 m_headNeutral[1], m_headNeutral[2]);
-        }
         pose.m[0][3] -= m_headNeutral[0];
         pose.m[1][3] -= m_headNeutral[1];
         pose.m[2][3] -= m_headNeutral[2];

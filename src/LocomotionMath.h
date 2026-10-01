@@ -49,12 +49,25 @@ inline Vec PivotFloorOffset(Vec rawEyeOffset, Vec neckArc, float yawDelta) {
     return Rotate(NeckFloorOffset(rawEyeOffset, neckArc), -yawDelta) + neckArc;
 }
 inline bool IsJumpSteeringState(int state) { return state == 15 || state == 3; }
+inline bool IsJumpOrFallState(int state) {
+    return state == 3 || state == 9 || state == 15 ||
+        (state >= 25 && state <= 29);
+}
 inline bool IsLedgeHangState(int state) {
     // Control-table entries shared by TR1-3; 75/82/83 exist only in TR3.
     switch (state) {
     case 10: case 30: case 31: case 75: case 82: case 83: return true;
     default: return false;
     }
+}
+inline bool IsArmsOnlyFirstPersonState(int state, int animation) {
+    // The native two-step mount briefly leaves pull-up state 19 for state 28,
+    // animation 27; the short vault exits through standing animation 51.
+    // Jump and fall states can likewise put the camera inside Lara's torso.
+    // Keep the arms/hands without exposing the body in first person.
+    return IsLedgeHangState(state) || state == 19 ||
+        IsJumpOrFallState(state) ||
+        (state == 2 && animation == 51);
 }
 inline bool IsClimbingCameraState(int state) {
     // TR1-3 wall-climb stance, steps and transitions. Pull-up has a native

@@ -72,12 +72,20 @@ struct GroundEye {
     void Reset() { *this = {}; }
     Point Apply(Point root, float artificialYaw, Point animated) {
         using namespace locomotion;
-        if (!valid) {
+        const float height=animated.y-root.y;
+        // The first grounded frame after a high vault can still contain the
+        // pull-up skeleton while Lara's root is already on top of the crate.
+        // Never latch that near-feet/high-above-root pose as standing height.
+        const bool standing=std::isfinite(height) && height<=-500 && height>=-950;
+        if (standing && (!valid || local.y>-500 || local.y<-950)) {
             const auto flat = Rotate({animated.x - root.x,
                                       animated.z - root.z}, -artificialYaw);
-            local = {flat.x, animated.y - root.y, flat.z};
+            local = {flat.x, height, flat.z};
             valid = true;
         }
+        // Until a standing pose exists, use the actual animated joint. A
+        // guessed height can put the camera above Lara after a crate mount.
+        if (!valid) return animated;
         const auto flat = Rotate({local.x, local.z}, artificialYaw);
         return {root.x + flat.x, root.y + local.y, root.z + flat.z};
     }

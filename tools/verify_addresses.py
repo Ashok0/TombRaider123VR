@@ -268,6 +268,7 @@ for dll, stamp, vals in rows:
     # geometry pointer that identifies the face and sunglasses draws.
     size, f = udt(dll, 'ITEM_INFO')
     check('%s ITEM_INFO::mesh_bits' % dll, 12, f.get('mesh_bits'))
+    check('%s ITEM_INFO::anim_number' % dll, 24, f.get('anim_number'))
     check('%s ITEM_INFO::room_number' % dll, 28, f.get('room_number'))
     check('%s ITEM_INFO::object_number' % dll, 16, f.get('object_number'))
     check('%s ITEM_INFO::fallspeed' % dll, 36, f.get('fallspeed'))

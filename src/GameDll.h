@@ -157,7 +157,9 @@ uint64_t GameDllBase();
 // the camera's room reports dry exactly when it matters most.
 int LaraWaterStatus();
 
-// World units from the game camera up to its room's ceiling.
+// World units from the active camera (rendered eye in first person, native
+// camera in third person) up to its room's ceiling. Paused during jumps,
+// falls, and the brief landing transition.
 //
 // Returns false when it cannot be known -- no DLL bound, no level loaded, an
 // out-of-range room index, or a result that fails its own sanity check. Callers
@@ -165,7 +167,7 @@ int LaraWaterStatus();
 // the floor because a menu was open would be worse than not clamping at all.
 //
 // Derived from the room's bounding box (ROOM_INFO::maxceiling) rather than from
-// the floor data under the camera, so it is exact in a uniformly low room --
+// the floor data under the view, so it is exact in a uniformly low room --
 // tunnels, crawlspaces, the places the clamp exists for -- and over-generous in
 // a room with one tall section. Over-generous is the safe direction: it clamps
 // less than it could, never more.

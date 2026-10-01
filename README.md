@@ -59,16 +59,18 @@ rewrite also has independent maths tests and verifies its newly required
 ### First-person feature port (2026-09-29)
 
 Smooth right-stick turning uses elapsed time. Ground gait motion is smoothed
-toward the stick direction and stops when the stick is released. Wall and
-ceiling clearance applies only in first person, including forward jumps and
-walking into crates. The head anchor retracts for climbing, hanging and block
+toward the stick direction and stops when the stick is released. Wall clearance
+applies only in first person, including forward jumps and walking into crates.
+Ceiling clearance remains active in both views except during jumps and falls,
+with a brief settling pause after landing. The head anchor retracts for climbing, hanging and block
 interactions. Wall-climbing animations also sweep the eye against walls;
 pull-ups and hanging keep their native animated camera with a retracted anchor.
 Switching views recenters the tracking neutral. Swimming and
 cutscenes temporarily use the game's camera; first person resumes afterward.
 Native Action prompts appear at their nearby world positions in VR. In TR3
-crouch/crawl states Lara's obstructing body is hidden; ledge hanging keeps her
-hands and arms visible, and pull-up resumes the native arm pose. With movement
+crouch/crawl states Lara's obstructing body is hidden; ledge hanging and the
+short two-click crate vault keep her hands and arms visible, while tall pull-up
+uses the native arm pose. With movement
 stabilization enabled, the rendered eye uses raw headset displacement while
 Lara's body drag retains neck compensation,
 preventing subtle world motion during physical head turns.
@@ -377,10 +379,12 @@ identical struct layouts** — only the addresses of the globals differ — whic
 why `GameDll.cpp` carries one struct description and a three-row address table.
 
 That is what makes the ceiling clamp and the water-state check exact here rather
-than approximate. Headroom is `camera.pos.y - room.maxceiling`: TR world space is
-Y-down, so the ceiling has the *smaller* Y and a positive result means the camera
-is below it. Anything outside 0..32768 units is reported as "unknown" rather than
-clamped on, because a wrong clamp is worse than none.
+than approximate. In first person, `GetFloor` resolves the rendered eye's room;
+in third person, the native game camera and room are used. Headroom is the
+view's Y minus `room.maxceiling`. TR world space is Y-down, so the ceiling has
+the *smaller* Y. The clamp pauses during jump preparation, flight and falls,
+then resumes 250 ms after landing. Anything outside 0..32768 units is reported
+as "unknown" rather than clamped on.
 
 ### Culling Fix
 
@@ -1171,11 +1175,19 @@ layout and hook-window checks, including hitscan and projectile detours.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-09-30 Release/x64 DLL with stabilized first-person head movement,
-SteamVR-safe LT equip and TR4/5-style HD hanging-hand masks is installed in
-the Steam game folder. Its SHA-256 is
-`9C68E02C2AC5B246C480E5FB26E3F8638CE645624CA86C6F31D9387EFD8DD25F`.
-The preceding pull-up-camera DLL is backed up as
+The 2026-09-30 Release/x64 DLL with arms-only visibility during pull-ups,
+their transition frames, and first-person jumps/falls is installed in the
+Steam game folder. Its SHA-256 is
+`9454522F24F327FDA2D9F44451A1AF0DEEAD9FD4471F42D6BF5D47AF118F1CCD`.
+The previous first-person-only clamp DLL is backed up as
+`TombRaiderVR.dll.pre-jump-ceiling-20260930`.
+The previous jump-diagnostic DLL is backed up as
+`TombRaiderVR.dll.pre-firstperson-ceiling-fix-20260930`.
+The previous crate-transition diagnostic DLL is backed up as
+`TombRaiderVR.dll.pre-sustained-fire-jump-trace-20260930`.
+The preceding hanging-hand DLL is backed up as
+`TombRaiderVR.dll.pre-crate-hit-recovery-20260930`. The preceding pull-up-camera
+DLL is backed up as
 `TombRaiderVR.dll.pre-hang-hand-mask-20260930`. The preceding pull-up-arm DLL is
 backed up as
 `TombRaiderVR.dll.pre-pullup-camera-20260930`; the preceding LT-focus DLL is
@@ -1196,14 +1208,45 @@ holster gesture. SteamVR may deliver controller input while the game mirror is
 not the foreground Windows window; the gun adapter no longer drops its equip
 state in that case. The live failure log showed `foreground=0`, a native draw
 bit while LT was held, then `4 -> 3` holstering after LT release. A regression
-test now covers the focus-loss case. Pull-up state 19 exits the hanging arm-only
-mask and keeps its native eye animation rather than the wall-climb camera sweep;
-walking, blocks and wall climbing retain their normal mesh rules. This matches
-the TR4/5 pull-up visibility and camera-state tests. The HD render pass now
+test now covers the focus-loss case. Direct crate vaults and ledge mounts use
+the arms-only mask for the full pull-up state, without assuming an animation
+index. Runtime logs showed a pull-up transitioning through state 28/animation
+27 and a short vault ending in standing animation 51; those frames retain the
+arms-only mask. The first grounded frame after a mount uses Lara's current root
+height if her native head is already at standing height, avoiding a one-frame
+camera lag from interpolating the previous climb root. Until a valid standing
+pose exists, the camera uses the native joint rather than a guessed height.
+Pull-up transition logging records animation and camera heights. A hit or
+temporary tracking loss no longer makes an
+inherited hold on one trigger block a new press on the other. Pull-up state 19
+keeps its native eye animation rather than the wall-climb camera sweep;
+walking, blocks and wall climbing retain their normal mesh rules. The HD render pass now
 matches TR4/5's draw-local mask, retaining both native arms/hands even if
 `mesh_bits` is stale; no custom hand translation is applied. The Release/x64
-build, self-tests and address checks pass; hand placement, LT and pull-up
-behavior still need an in-headset check.
+build, self-tests and 1,734 address checks pass. Held RT now continues to
+request dual-gun shots while Lara is ready, letting the native animation set
+their rate and resuming after a nonfatal hit. The gun adapter no longer
+injects draw input after Lara's health reaches zero; gun transition logs now
+include health and animation state. One line per jump records camera stepping
+and late frames in both views. A Croft Manor third-person jump showed 100
+rendered frames, 7 frames over 28 ms and a 32-unit maximum vertical camera
+step; the main-game jump showed 99 frames, 9 late frames and a 95-unit step.
+The Manor log also showed the old ceiling clamp forcing the headset height to
+zero in third person. The clamp now remains available in both views, using the
+native camera in third person and Lara's rendered eye in first person, but
+pauses during jumps/falls and for 250 ms after landing. Close-bat firing, the
+corrected Manor jump and the revised crate/jump mesh mask still need headset
+verification.
+The 2026-09-30 follow-up fixes the ceiling cap's coordinate system: it now
+limits headset rise relative to the recentered headset height, the same origin
+used by the rendered camera. The prior absolute cap could shift the view when
+it resumed after a jump or after a crate mount. Self-tests cover neutral-height
+continuity at landing and crate-height capping; the Release/x64 build and all
+1,734 address checks pass. The installed DLL SHA-256 is
+`71BA071CB619CB40FD957822FCC03706C607CE796CB60BEB2409B3806E3DADB2`;
+the preceding build is backed up as
+`TombRaiderVR.dll.pre-neutral-ceiling-20260930`. A headset check is still
+needed for the reported landing angle and crate-head appearance.
 The earlier
 2026-09-25 build has SHA-256
 `5027B471FE34BA668A3D928167E440E865AD15BC8F700968C44E497527F1D51F`;
