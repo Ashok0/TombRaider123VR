@@ -22,6 +22,12 @@ inline bool AcceptCollisionDragStep(Vec requested, Vec accepted) {
 }
 inline float Wrap(float a) { return std::remainder(a, 2 * Pi); }
 inline float Radians(int16_t a) { return a * (2 * Pi / 65536); }
+// Ground roll start/end share states 45/23 in TR1-3. Observe the native
+// turn180_effect inside one animation tick, not B or repeated render frames.
+inline float GroundRollTurn(int beforeState,int afterState,int16_t beforeYaw,int16_t afterYaw) {
+    const bool roll=beforeState==23 || beforeState==45 || afterState==23 || afterState==45;
+    return roll && uint16_t(int(afterYaw)-int(beforeYaw))==0x8000u ? Pi : 0.f;
+}
 inline int16_t Angle(float a) { return static_cast<int16_t>(static_cast<int>(Wrap(a) * (65536 / (2 * Pi)))); }
 inline Vec Rotate(Vec v, float yaw) {
     const float c = std::cos(yaw), s = std::sin(yaw);

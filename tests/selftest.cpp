@@ -1208,6 +1208,67 @@ static void TestPhysicalBodyCentering() {
     Check(calibrationStable,"edge and wall camera retractions never become permanent standing offsets");
 }
 
+static void TestGroundRollHeading() {
+    using namespace tr::locomotion;
+    printf("\nfirst-person native ground-roll heading\n");
+    bool once=true,forward=true,tracking=true,centered=true;
+    for (int degrees=-180;degrees<180;degrees+=15) {
+        const float start=degrees*Pi/180,head=.37f;
+        Heading heading; heading.Align(start,head);
+        const float oldBase=heading.base;
+        const int16_t initial=Angle(start);
+        const int16_t reversed=int16_t(uint16_t(initial)^0x8000u);
+        int flips=0;
+        Vec manual=Rotate({0,1},heading.World(head));
+        tr::stabilization::GroundEye eye;
+        const Vec nativeEye{17,155},initialEye=Rotate(nativeEye,start);
+        eye.Apply({0,0,0},oldBase,{initialEye.x,-710,initialEye.z},start);
+        // The engine's orientation change can occur within either roll
+        // state, at the roll-state boundary, or on its final exit tick.
+        for (int tick=0;tick<90;++tick) {
+            const int before=tick<30 ? 45 : tick<60 ? 23 : 2;
+            const int after=tick<29 ? 45 : tick<59 ? 23 : 2;
+            const float delta=GroundRollTurn(before,after,
+                tick<=29 ? initial : reversed,tick<29 ? initial : reversed);
+            if (delta!=0) { ++flips; heading.Turn(delta); manual=Rotate(manual,delta); }
+        }
+        once &= flips==1;
+        forward &= Length(MovementWorld({0,1},heading.World(head))-
+            Rotate({0,1},Radians(reversed)))<.001f;
+        forward &= Length(manual-Rotate({0,1},heading.World(head)))<.001f;
+        for (bool stabilized : {false,true}) {
+            const Vec raw{.11f,-.08f},arc{.03f,.02f};
+            const Vec after=stabilized ? Rotate(raw,-Pi) : PivotFloorOffset(raw,arc,Pi);
+            // Same VR pivot as a stick turn: physical lean stays in world
+            // space; no new neutral or extra roomscale displacement.
+            const Vec beforeOffset=stabilized ? raw : NeckFloorOffset(raw,arc);
+            const Vec afterOffset=stabilized ? after : NeckFloorOffset(after,arc);
+            tracking &= Length(Rotate(beforeOffset,oldBase)-Rotate(afterOffset,heading.base))<.0001f;
+        }
+        const Vec finalNativeEye=Rotate(nativeEye,Radians(reversed));
+        const auto finalEye=eye.Apply({100,0,200},heading.base,
+            {100+finalNativeEye.x,-710,200+finalNativeEye.z},Radians(reversed));
+        const Vec fit=eye.BodyOffsetAtEye(heading.base,Radians(reversed),{},{},423,
+            {finalEye.x-100,finalEye.z-200});
+        centered &= Length(Vec{finalEye.x-100,finalEye.z-200}-finalNativeEye-fit)<.001f;
+        centered &= Length(Vec{finalEye.x-100,finalEye.z-200}+initialEye)<.001f;
+    }
+    Check(once,"one native half-turn changes VR heading once across repeated roll frames and yaw wrap");
+    Check(forward,"held forward and subsequent movement use Lara's reversed heading");
+    Check(tracking,"roll turn preserves roomscale lean through the artificial-turn pivot");
+    Check(centered,"standing eye offset rotates to the new forward side and body remains centered after roll");
+    Check(GroundRollTurn(45,45,0,-32768)!=0 && GroundRollTurn(23,2,0,-32768)!=0 &&
+          GroundRollTurn(2,45,0,-32768)!=0,
+          "native turn is detected inside the roll or on entry/exit animation ticks");
+    Check(GroundRollTurn(45,2,123,123)==0 && GroundRollTurn(45,45,0,100)==0 &&
+          GroundRollTurn(2,2,0,-32768)==0 && GroundRollTurn(66,66,0,-32768)==0 &&
+          GroundRollTurn(72,72,0,-32768)==0,
+          "cancelled rolls, ordinary turns and water/air rolls do not request a ground-roll flip");
+    Heading twice; twice.Turn(GroundRollTurn(45,23,0,-32768));
+    twice.Turn(GroundRollTurn(45,23,-32768,0));
+    CheckNear(twice.World(0),0,"two completed ground rolls return to original heading");
+}
+
 static void TestGunCalibrationPersistence() {
     printf("\nlive motion-gun fit persistence\n");
     wchar_t folder[MAX_PATH]{}, path[MAX_PATH]{};
@@ -1253,6 +1314,7 @@ int main() {
     TestPortalGeometry();
     TestLocomotion();
     TestPhysicalBodyCentering();
+    TestGroundRollHeading();
     TestGunCalibrationPersistence();
     TestInlineHook();
 

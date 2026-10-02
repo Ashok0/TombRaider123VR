@@ -1451,13 +1451,38 @@ void __cdecl Detour_AnimateShotgun(int weapon) {
     RetargetProjectile(index,6,0xF8,gun);
 }
 
-// Classic sidestep/backpedal root motion advances at walking speed. Keep the
-// skeleton at one animation tick (multiple ticks made the first-person body
-// and animated head visibly stutter), then scale only that tick's horizontal
-// displacement before the native collision routine sees it. At about 45 units
-// the resulting sweep remains shorter than Lara's 100-unit collision radius.
+// Observe the actual native roll turn at its animation boundary, before the
+// next input/simulation update can realign Lara to the old VR heading.
+void AdvanceLaraAnimation(uint8_t* item) {
+    using namespace locomotion;
+    const bool observe=item && item==g_headingItem && g_active && g_haveHeading && Gate();
+    const int beforeState=observe ? *reinterpret_cast<const int16_t*>(item+off::item_anim_state) : -1;
+    const int16_t beforeYaw=observe ? reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos)->y_rot : 0;
+    g_hAnimateLara.Original<Fn_AnimateLara>()(item);
+    if (!observe || !Gate()) return;
+    const int afterState=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    const int16_t afterYaw=reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos)->y_rot;
+    const float turn=GroundRollTurn(beforeState,afterState,beforeYaw,afterYaw);
+    if (turn==0) return;
+    // Lara has already turned. Rotate only the separate VR frame, using the
+    // same tracking pivot as artificial stick turns; do not recenter the HMD.
+    g_heading.Turn(turn);
+    VR().PivotHeadFloorOffset(turn);
+    g_manualWorld=Rotate(g_manualWorld,turn);
+    g_lastHeadWorld=g_heading.World(VR().HeadYawRadians());
+    g_lastBodyYaw=Radians(afterYaw);
+    auto* analog=Ptr<int16_t>(g_boundDll->analogInput);
+    analog[2]=analog[3]=Angle(g_lastHeadWorld);
+    g_rootMotion.Reset();
+    g_renderTurn.Reset();
+    LogF("firstperson: native roll turn 180 degrees state=%d->%d head=%.1f body=%.1f",
+         beforeState,afterState,g_lastHeadWorld*180/Pi,g_lastBodyYaw*180/Pi);
+}
+
+// Classic sidestep/backpedal root motion advances at walking speed. Keep one
+// skeletal update and scale only its horizontal collision-tested displacement.
 void __cdecl Detour_AnimateLara(uint8_t* item) {
-    auto original = g_hAnimateLara.Original<Fn_AnimateLara>();
+    auto original = &AdvanceLaraAnimation;
     const int scale = item && item == g_headingItem
         ? std::clamp(g_directionalRootScale, 1, 3) : 1;
     const bool stabilize = g_stabilizeRoot && item && item == g_headingItem &&

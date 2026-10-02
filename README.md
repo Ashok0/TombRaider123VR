@@ -143,6 +143,10 @@ working feature; TR3 crouch keeps native collision and movement.
   Collision pushback cannot be consumed as roomscale travel, and body fitting
   uses the final collision-resolved camera position each frame. Temporary
   camera corrections are not saved into the standing calibration.
+- **B-roll turnaround:** a native ground roll now turns the first-person view
+  and movement heading by 180 degrees. Lara keeps her native roll animation;
+  the standing eye offset rotates to her new forward side. The change follows
+  the actual animation turn, so cancelled rolls do not flip the view.
 
 The death, mesh-stretching and edge-centering changes pass automated tests;
 their reported gameplay cases still need headset confirmation. See
@@ -1073,6 +1077,15 @@ of trying to catch up stale state.
 
 #### Body facing and jumps
 
+The B-button ground roll transfers the engine's native 180-degree body turn to
+the separate VR heading. `AnimateLara` is observed before/after its native tick
+for the ground-roll states (45/23); the view turns only when the engine actually
+reverses Lara's yaw. Forward input, including a held stick, follows that new
+heading. The same tracking pivot as a right-stick turn preserves roomscale lean,
+and the standing eye anchor rotates to Lara's new facing direction. No second
+body turn is injected. Third person and water/air roll states keep their native
+behavior. Headset confirmation is still needed for the new first-person turn.
+
 Idle ground states and manual first-person movement follow the HMD heading.
 Manual forward input selects Lara's native forward walk/run, backward selects
 her backpedal, and horizontal input selects her dedicated left/right sidestep
@@ -1288,6 +1301,9 @@ they do not run the game engine or a headset.
 The current regressions also cover physical turns at five-degree intervals,
 camera handoff calibration, repeated ledge pushback at multiple headings,
 jump/landing recovery and body fitting against the final collision-resolved eye.
+Ground-roll tests cover a single native 180-degree turn, held-forward movement,
+roomscale pivot preservation, the new forward eye position, yaw wrap, repeated
+rolls and cancellation without a native turn.
 `tests/build_physics_selftest.cmd` exercises the actual skin shaders on a hidden
 OpenGL context, including wrist caps, body visibility, repeated ledge/NPC draw
 transitions and clearing a prior body-fit offset. The latest run passed all
@@ -1305,12 +1321,15 @@ hook. The subsequent death and ledge fixes add no engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-10-02 ledge-centering Release/x64 DLL is installed and its SHA-256
+The 2026-10-02 ground-roll turnaround Release/x64 DLL is installed and its SHA-256
 matches the build output:
-`6EFE42FF2782053D00A7B104468C881B7B24C470357A1DC66F96AC80FCB90546`.
+`486BE0C9403824754442D44791B87760098D01B8359E029BA41C6CF6311B451C`.
 The prior DLL, INI and log are preserved under
-`build/pre-ledge-centering-fix-20261002-005650/`. Hand calibration was preserved.
-Death-camera and rare ledge-transition behavior still require the headset
+`build/pre-roll-turn-fix-20261002-083615/`. Hand calibration was preserved.
+The Release build and CPU self-tests passed for the roll change; the 1,263 GPU
+checks above were run for the preceding ledge-centering build, whose skin path
+is unchanged by this update. Ground rolls, death-camera and rare ledge-transition
+behavior still require the headset
 checks in [docs/roomscale-testing.md](docs/roomscale-testing.md).
 
 #### Earlier build history

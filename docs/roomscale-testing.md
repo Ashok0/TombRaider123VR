@@ -61,3 +61,10 @@ FirstPersonRoomscaleNeckMetres=0.15 estimates the horizontal neck-to-HMD pivot.
 The neck-pivot correction is an estimate from the headset. If turning in place
 still translates the body, adjust FirstPersonRoomscaleNeckMetres and recenter.
 Zero disables that correction. The tests cannot substitute for headset play.
+
+For B-roll turnaround, roll from standing and while holding forward in first
+person. The view should turn 180 degrees once, and forward should follow Lara's
+new facing direction. Repeat twice to face the original direction. Repeat after
+physical and stick turns, with a sideways lean, and near a wall or ledge. Check
+that a cancelled roll does not flip the view and that third-person rolls remain
+unchanged. The body should reappear centered when its roll visibility ends.
