@@ -912,12 +912,28 @@ static void TestLocomotion() {
     Check(tr::wristcap::CutTriangle(cut,10,rim),"mixed wrist triangle contributes a sealing rim segment");
     float capPalette[384]{};
     for (int j=0;j<32;++j) { capPalette[j*12]=capPalette[j*12+5]=capPalette[j*12+10]=1; capPalette[j*12+3]=100; }
-    const auto edgeA=tr::wristcap::Rim(rim[0],capPalette);
-    const auto edgeB=tr::wristcap::Rim(rim[1],capPalette);
-    Check(std::fabs(edgeA.y-.5f)<.001f && std::fabs(edgeB.y-.5f)<.001f &&
-          std::fabs(edgeA.x-109.5f)<.001f && std::fabs(edgeB.x-90.5f)<.001f,
-          "wrist cap rim matches the shader cutoff after weighted skinning and translation");
+    capPalette[9*12+3]=-1000; // Forearm animation must not pull the cap away.
+    const auto edgeA=tr::wristcap::Rim(rim[0],capPalette,10);
+    const auto edgeB=tr::wristcap::Rim(rim[1],capPalette,10);
+    Check(std::fabs(edgeA.y-5.f)<.001f && std::fabs(edgeB.y-5.f)<.001f &&
+          std::fabs(edgeA.x-105.f)<.001f && std::fabs(edgeB.x-95.f)<.001f,
+          "wrist cap matches the rigid wrist and 50-percent seam independently of forearm pose");
     Check(!tr::wristcap::CutTriangle(cut,13,rim),"opposite hand contributes no cap geometry");
+    tr::wristcap::Boundary boundary;
+    // Duplicated texture vertices and repeated render-pass faces form one
+    // square surface, not six independent edges or a sealed manifold.
+    tr::wristcap::Vertex square[4]{};
+    square[0].position={-1,-1,0}; square[1].position={1,-1,0};
+    square[2].position={1,1,0}; square[3].position={-1,1,0};
+    for (auto& v:square) { v.joint[0]=10; v.weight[0]=1; }
+    const int faces[2][3]={{0,1,2},{0,2,3}};
+    for (int repeat=0;repeat<2;++repeat) for (const auto& face:faces) {
+        tr::wristcap::Vertex t[3]={square[face[0]],square[face[1]],square[face[2]]};
+        boundary.Add(t,10);
+    }
+    const auto loops=boundary.Loops();
+    Check(loops.size()==1 && loops[0].size()==4,
+          "native open boundaries survive full hand weights, split texture vertices and duplicate passes");
     EquipInput nativeEquip;
     Check(nativeEquip.Update(true,0,true) &&
           nativeEquip.Update(true,2,false) &&

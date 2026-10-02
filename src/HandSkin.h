@@ -2,17 +2,18 @@
 #include <string>
 
 namespace tr::handskin {
-// Visibility is independent of skinning. Zeroing a forearm palette entry
-// collapses vertices with mixed wrist weights toward the render origin.
+// Match the TR4/5 tracked-hand repair: skin the whole visible seam rigidly
+// with the wrist, then trim the forearm side by its original hand weight.
 inline bool Patch(std::string& vertex, std::string& fragment) {
-    const std::string anchor="p.z += dot(uJoints[index[2] + 2], coord) * weight;";
+    const std::string anchor="vec4 w = aColor;";
     const std::string main="void main()";
     const auto at=vertex.find(anchor);
     const auto fm=fragment.find(main);
     if (at==std::string::npos || vertex.find(main)==std::string::npos ||
         fm==std::string::npos || vertex.find("vec4 j = aLight;")==std::string::npos ||
-        vertex.find("vec4 w = aColor;")==std::string::npos ||
-        vertex.find("index[3]")!=std::string::npos) return false;
+        vertex.find("p.z += dot(uJoints[index[2] + 2], coord) * weight;")==std::string::npos ||
+        vertex.find("index[3]")!=std::string::npos ||
+        vertex.find("uTrackedHand")!=std::string::npos) return false;
     const auto brace=fragment.find('{',fm);
     if (brace==std::string::npos) return false;
     vertex.insert(at+anchor.size(),
@@ -20,11 +21,15 @@ inline bool Patch(std::string& vertex, std::string& fragment) {
         "    int handJoint = int(uTrackedHand.x);\n"
         "    vTrackedHandWeight = (handIndex.x == handJoint ? w.x : 0.0)\n"
         "                       + (handIndex.y == handJoint ? w.y : 0.0)\n"
-        "                       + (handIndex.z == handJoint ? w.z : 0.0);\n");
+        "                       + (handIndex.z == handJoint ? w.z : 0.0);\n"
+        "    if (uTrackedHand.w > 0.5) {\n"
+        "        j.xyz = vec3(float(handJoint));\n"
+        "        w.xyz = vec3(1.0, 0.0, 0.0);\n"
+        "    }\n");
     vertex.insert(vertex.find(main),
         "uniform vec4 uTrackedHand;\nout float vTrackedHandWeight;\n");
     fragment.insert(brace+1,
-        "\n    if (uTrackedHand.w > 0.5 && vTrackedHandWeight < 0.05) discard;\n");
+        "\n    if (uTrackedHand.w > 0.5 && vTrackedHandWeight < 0.5) discard;\n");
     fragment.insert(fm,"uniform vec4 uTrackedHand;\nin float vTrackedHandWeight;\n");
     return true;
 }

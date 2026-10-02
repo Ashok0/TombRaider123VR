@@ -301,6 +301,15 @@ void main() {
         return pixel[0]>240 && pixel[1]>240 && pixel[2]>240;
     };
     Require(pixelWhite(),"mixed wrist vertices keep full shape with hidden forearm");
+    fullPalette[9*12+3]=20;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"animated forearm cannot warp the tracked wrist (TR4/5 repair)");
+    const float belowSeam[4]={.49f,.51f,0,0};
+    gl::Uniform4fv(weightsLoc,1,belowSeam);
+    Require(!pixelWhite(),"forearm side is trimmed at the 50-percent seam");
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    fullPalette[9*12+3]=0;
+    BoneSkinAfterValidate(false);
     Require((testState.consts&kJoints)!=0,"hand GPU override dirties next native palette upload");
     const float forearmWeights[4]={0,1,0,0};
     gl::Uniform4fv(weightsLoc,1,forearmWeights);
@@ -334,13 +343,16 @@ void main() {
     gl::LinkProgram(program); gl::GetProgramiv(program,GL_LINK_STATUS,&linked);
     Require(linked!=0,"wrist cap mesh fixture links");
     gl::UseProgram(program); testShaders[0].id=program; InvalidateProgram(program);
-    struct CapVertex { float pos[3],joints[4],weights[4]; } sleeve[8]{};
+    // Match the native byte-packed bone indices and normalized byte weights.
+    struct CapVertex { float pos[3]; uint8_t normal[4],joints[4],weights[4],padding[4]; } sleeve[8]{};
     const float corners[4][2]={{-.7f,-.7f},{.7f,-.7f},{.7f,.7f},{-.7f,.7f}};
     for (int i=0;i<8;++i) {
         sleeve[i].pos[0]=corners[i%4][0]; sleeve[i].pos[1]=corners[i%4][1];
         sleeve[i].pos[2]=i<4 ? .4f : .8f;
         sleeve[i].joints[0]=10; sleeve[i].joints[1]=9;
-        sleeve[i].weights[i<4 ? 1 : 0]=1;
+        // Both rings exceeded the old 5% cutoff, so it produced no cap rim.
+        sleeve[i].weights[0]=i<4 ? 64 : 255;
+        sleeve[i].weights[1]=i<4 ? 191 : 0;
     }
     uint16_t sleeveIndices[24]{};
     for (int i=0;i<4;++i) {
@@ -353,11 +365,12 @@ void main() {
     gl::GenBuffers(1,&vertexBuffer); gl::BindBuffer(GL_ARRAY_BUFFER,vertexBuffer);
     gl::BufferData(GL_ARRAY_BUFFER,sizeof(sleeve),sleeve,GL_STATIC_DRAW);
     const char* attrs[]={"aCoord","aLight","aColor"};
-    const size_t offsets[]={0,3*sizeof(float),7*sizeof(float)};
+    const size_t offsets[]={offsetof(CapVertex,pos),offsetof(CapVertex,joints),offsetof(CapVertex,weights)};
     for (int i=0;i<3;++i) {
         const GLint attrLoc=gl::GetAttribLocation(program,attrs[i]);
         Require(attrLoc>=0,"wrist cap reads active native skin attributes");
-        gl::VertexAttribPointer(attrLoc,i==0 ? 3 : 4,GL_FLOAT,GL_FALSE,sizeof(CapVertex),reinterpret_cast<void*>(offsets[i]));
+        gl::VertexAttribPointer(attrLoc,i==0 ? 3 : 4,i==0 ? GL_FLOAT : GL_UNSIGNED_BYTE,
+            i==2 ? GL_TRUE : GL_FALSE,sizeof(CapVertex),reinterpret_cast<void*>(offsets[i]));
         gl::EnableVertexAttribArray(attrLoc);
     }
     gl::GenBuffers(1,&indexBuffer); gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,indexBuffer);
@@ -372,17 +385,32 @@ void main() {
     BoneSkinAfterValidate(false);
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE); glDepthMask(GL_FALSE);
-    for (int side=0;side<2;++side) {
-        view[0]=side ? -1.f : 1.f;
+    for (int pass=0;pass<4;++pass) {
+        if (pass==2) {
+            // Reproduce the reported failure: the other hand has an open
+            // native wrist, but every vertex is fully hand-weighted. There
+            // are NO shader-cutoff crossings from which to build a cap.
+            ResetWristCaps();
+            for (auto& v:sleeve) {
+                v.joints[0]=13; v.weights[0]=255; v.weights[1]=0;
+            }
+            gl::BindBuffer(GL_ARRAY_BUFFER,vertexBuffer);
+            gl::BufferData(GL_ARRAY_BUFFER,sizeof(sleeve),sleeve,GL_STATIC_DRAW);
+            testHandJoint=13;
+            BoneSkinAfterValidate(false);
+        }
+        view[0]=(pass%2) ? -1.f : 1.f;
         gl::Uniform4fv(gl::GetUniformLocation(program,"uViewMatrix[0]"),3,view);
         glClearColor(0,0,0,0); glClear(GL_COLOR_BUFFER_BIT);
         glDrawElements(GL_TRIANGLES,24,GL_UNSIGNED_SHORT,nullptr);
         unsigned char empty[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,empty);
         Require(empty[0]==0,"native clipped sleeve leaves an open wrist");
-        BoneSkinDrawWristCap(mesh,0,24);
+        // Each material draws only half the sleeve. The boundary must still
+        // use the whole surface, with no false cap along a material border.
+        BoneSkinDrawWristCap(mesh,(pass%2)*12,12);
         unsigned char sealed[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,sealed);
         Require(sealed[0]>40 && sealed[1]>25 && sealed[2]>20,
-                "opaque cap closes the wrist from both winding directions");
+                "opaque cap closes clipped AND fully weighted native wrists from both sides");
         GLint restoredProgram=0,restoredVao=0,restoredBuffer=0;
         GLboolean restoredDepth=GL_TRUE;
         glGetIntegerv(GL_CURRENT_PROGRAM,&restoredProgram); glGetIntegerv(GL_VERTEX_ARRAY_BINDING,&restoredVao);
@@ -391,8 +419,8 @@ void main() {
                 restoredBuffer==GLint(vertexBuffer) && glIsEnabled(GL_BLEND) &&
                 glIsEnabled(GL_CULL_FACE) && !restoredDepth,"cap draw restores native rendering state");
     }
-    Require(!g_wristRims.empty() && g_wristRims.back().edges.size()==16,
-            "indexed sleeve produces all eight cap rim segments");
+    Require(g_wristRims.size()==1 && g_wristRims.back().loops.size()==2,
+            "material ranges share the two real sleeve openings without artificial seams");
     Require(glGetError()==GL_NO_ERROR,"wrist cap GPU regression leaves no GL errors");
     testHandPalette=nullptr; testHandJoint=-1;
     gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);

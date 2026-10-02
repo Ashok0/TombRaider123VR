@@ -1089,7 +1089,7 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
             motiongun::ReadRows(bone)),bone);
     }
     // DrawCreatureHD zeroes masked entries AFTER this hook. Preserve the
-    // complete palette for the skin shader, including forearm wrist weights.
+    // corrected palette for the rigid tracked-wrist shader and sealing rim.
     std::memcpy(g_handSkinPalette,joints,sizeof(g_handSkinPalette));
     g_handSkinCentre=desired.origin;
     g_renderWrist=pivot;

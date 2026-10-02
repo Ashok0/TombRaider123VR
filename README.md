@@ -97,12 +97,15 @@ The gun pitch now defaults to the same -30 degrees as the installed TR4/5
 profile, and native muzzle flashes follow the tracked gun pose in first person.
 The flash uses the same world axes as the HD hand palette, so stick rotation
 is applied once. Bullet origins use the game's per-weapon HD flash offsets.
-Tracked hand draws preserve forearm bone contributions at the wrist and hide
-unwanted arm fragments in the skin shader. This avoids collapsing the wrist's
-blended vertices when the native mesh mask zeroes hidden bones. The hand shader
+Tracked hand draws use the TR4/5 rigid wrist correction and trim the forearm
+at the 50-percent hand-weight seam. Mixed wrist vertices follow the corrected
+wrist instead of stretching with the animated forearm. The hand shader
 works with chest physics disabled; unsupported shaders keep native masking.
-Opaque, two-sided caps close the actual clipped wrist rims. Their boundary
-follows the same skin weights and controller pose as the hand in each eye.
+Opaque, two-sided caps close the wrist's open mesh boundary, including fully
+hand-weighted edges that never cross the shader cutoff. Boundary extraction
+welds texture seams across the whole indexed mesh; material draw ranges do not
+create false holes. The opening nearest the anatomical wrist is filled and
+follows the hand's rigid controller pose in each eye.
 These targeting and rotation fixes pass offline checks; headset confirmation
 is still required. The first 100 tracked shots log the selected target and its
 health before/after native damage for that check.
