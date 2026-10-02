@@ -65,8 +65,9 @@ Ceiling clearance remains active in both views except during jumps and falls,
 with a brief settling pause after landing. The head anchor retracts for climbing, hanging and block
 interactions. Wall-climbing animations also sweep the eye against walls;
 pull-ups and hanging keep their native animated camera with a retracted anchor.
-Switching views recenters the tracking neutral. Swimming and
-cutscenes temporarily use the game's camera; first person resumes afterward.
+Switching views recenters the tracking neutral. Swimming, death and
+cutscenes temporarily use the game's camera; first person resumes when a live
+Lara returns to an eligible gameplay state.
 Native Action prompts appear at their nearby world positions in VR. In TR3
 crouch/crawl states Lara's obstructing body is hidden. As in TR4/5, only ledge
 hanging uses the arms-only mesh mask; crate pull-ups, vaults, jumps and falls
@@ -118,6 +119,36 @@ weapon/mesh equivalent here. TR1/2 have no crouch/prone states. The TR4-6
 crouch/prone roomscale extension was reverted there, so it is not ported as a
 working feature; TR3 crouch keeps native collision and movement.
 
+### Recent first-person fixes (2026-10-01 to 2026-10-02)
+
+- **Hits and muzzle flashes:** hitscan weapons select targets per controller
+  barrel without requiring Lara's native target lock. Muzzle flashes share the
+  gun mesh's world axes, preventing double rotation during stick turns.
+- **Guns stopping during bat attacks:** held LT+RT remains a dual-fire gesture,
+  and the pistol animation can fire while a selected enemy loses native arm
+  lock. Native shot timing, ammunition, damage and effects are retained.
+- **Open or warped wrists:** tracked hands use rigid wrist skinning and opaque
+  caps over the actual open mesh boundary. Wrist sealing was confirmed in play.
+- **Body centering after camera takeovers and physical turns:** scripted-camera
+  handoffs retain the standing-eye calibration. The grounded body is fitted
+  beneath the rendered eye throughout physical turns, including intermediate
+  angles that a full-circle-only check misses.
+- **Death clipping:** the native death camera takes over as soon as Lara's
+  health reaches zero. Loading a live save restores first-person eligibility.
+- **Mesh stretching near ledges:** first-person HD body draws preserve the
+  complete bone palette and hide fragments by visible bone weight. Hidden
+  shoulder/torso bones no longer collapse shared skin vertices toward zero.
+- **Persistent off-center body at crate/ledge edges:** eye clearance allows
+  looking over empty drops, while body movement still respects ledge safety.
+  Collision pushback cannot be consumed as roomscale travel, and body fitting
+  uses the final collision-resolved camera position each frame. Temporary
+  camera corrections are not saved into the standing calibration.
+
+The death, mesh-stretching and edge-centering changes pass automated tests;
+their reported gameplay cases still need headset confirmation. See
+[headset validation](docs/roomscale-testing.md) for death/respawn, repeated
+ledge releases, crate-edge turns and jump-off checks.
+
 ## Installation
 
 Copy three files into the game folder
@@ -159,8 +190,8 @@ Around it: positional tracking is measured from a captured neutral, physical and
 right-stick turning share a stable VR-world heading, HMD-relative stick movement
 stays aligned after either kind of turn, and walking about the room moves Lara
 by direct displacement through native collision queries. These controls have
-been exercised in the headset on TR1; the latest pull-up, jump and
-controller-chord changes still need a headset check.
+been exercised in the headset on TR1. The latest death-camera, ledge-mesh and
+edge-centering fixes have automated coverage but still need headset checks.
 See "Roomscale and rotation in first person".
 
 Supported builds:
@@ -761,9 +792,12 @@ the camera anchor to hold the rendered viewpoint there. Lara's body collision
 and movement are unchanged.
 
 The same horizontal check covers jump preparation, forward and vertical jumps,
-side/back jumps, falls and the wall-impact animation. In the air it allows the
-floor to be farther below Lara, so an ordinary jump does not pull the camera
-back simply because she has left the ground.
+side/back jumps, falls and the wall-impact animation. Both grounded and airborne
+views test floor/ceiling obstruction at the rendered eye height, including
+tracked vertical movement. Empty space beyond a ledge is not a camera obstacle;
+looking over a deep drop no longer pulls the view back toward Lara's root.
+Walls, ceilings, static obstacles and invalid room samples still block the eye.
+The grounded HD body fit runs after this check so it follows the final camera.
 
 Hanging, ledge pull-up, ladder climbing and push/pull animations instead use
 `FirstPersonInteractionAnchorZ=16`. This retracts the usual 144-unit forward
@@ -777,6 +811,11 @@ offset. On return it is rebased to the new tracking neutral and any scripted
 body turn, so a temporary sideways head animation cannot become a permanent
 mesh offset. A different Lara or level starts a new calibration. Camera
 suspension/resumption and the retained offset are recorded in the mod log.
+
+Death also suspends first person: a head anchor following the death animation
+can rotate into the floor, so health at or below zero selects the native camera
+and restores normal body visibility. First person resumes on a live Lara without
+requiring a view toggle.
 
 #### What headset testing changed
 
@@ -824,9 +863,15 @@ masked hand/weapon passes retain their own bits. The item mask is restored after
 each draw. This matches the TR4/5 HD path and keeps native hand positions even
 when the saved item mask is empty or stale.
 
-This is worth stating plainly because the other TR1-3 attempt did it the hard
-way: caching index buffers and removing every triangle weighted to the head bone.
-That works, but the engine already had a switch for it.
+Zeroing HD bones can deform vertices weighted to both visible and hidden body
+parts, especially around the shoulders during ledge transitions. The current
+path therefore snapshots the full native palette in `GetJoints`, before masking,
+and uploads it for that first-person body draw. The skin shader discards
+fragments with less than 50 percent weight on visible bones. Outfit bone-to-mesh
+mapping determines visibility; bone positions and normals keep their native
+transforms. The override is limited to the draw and clears before later hands,
+NPCs or third-person draws. It works with motion guns and chest physics disabled;
+unsupported shaders retain the native masking fallback.
 
 **The face and the sunglasses: skip the draw.** Neither is part of the body mesh,
 so no `mesh_bits` bit reaches them. `DrawLaraHD` copies a separate `GEOM_INFO`
@@ -844,7 +889,7 @@ Her body stays drawn during ordinary first-person movement: look down and she is
 there. A B-button roll temporarily applies a second visibility override that
 clears the whole body mask and skips the separate HD face, sunglasses and braid
 draws. The saved mask returns when the roll state ends. First-person head hiding
-also ends immediately for a cutscene, inventory, the third-person toggle or an
+also ends immediately for death, a cutscene, inventory, the third-person toggle or an
 unhook. The unhook line counts what was dropped:
 
 ```
@@ -914,20 +959,39 @@ ammo, effects and simulation. If a required controller pose or per-weapon hook
 is unavailable, that weapon uses its native pose. Enable with
 `FirstPersonMotionGuns=1`; grip and angle calibration are in the INI. Each
 weapon still needs an in-headset gameplay and appearance check.
-Tracked shots and projectiles steer toward a living enemy already selected by
-the game's auto-target logic when the controller barrel is within
-`FirstPersonAutoAimDegrees` (default 45 degrees). Set it to 0 for unassisted
-shots, or up to 60 degrees for stronger assistance. The first 12 tracked shots
-log whether a native target was present and whether assist engaged; if the
-game selected no target, the controller shot remains unassisted.
+Hitscan shots select living targets independently per barrel, preferring direct
+sphere hits and otherwise assisting toward a visible enemy within
+`FirstPersonAutoAimDegrees` (default 45 degrees). Lara need not have a native
+target lock. Projectile assistance still uses the native selected living enemy.
+Set the assist angle to 0 for unassisted shots, or up to 60 for stronger
+assistance. The first 100 tracked hitscan shots log their selected target and
+health before/after native damage.
 `DrawGunFlash` uses the same tracked wrist correction as the HD gun mesh,
-including the current scene view rotation. Outside first-person tracked-gun
-mode, the native flash render path is unchanged.
+with world axes so scene rotation is applied only once. Shot origins use each
+weapon's native HD muzzle offset. Outside first-person tracked-gun mode, the
+native flash render path is unchanged.
+
+For dual guns, holding LT+RT fires both and cannot become a holster gesture until
+LT is released. LT alone held for 0.5 seconds holsters; held RT resumes after a
+temporary tracking interruption. `AnimatePistols` temporarily clears the native
+target only while advancing a requested controller shot, then restores it. This
+avoids the selected-target/no-arm-lock stall seen during bat attacks while
+preserving native cadence, ammunition and effects.
+
+The tracked wrist uses rigid skinning at a 50-percent hand-weight seam. Opaque,
+two-sided caps seal native open wrist boundaries, including fully hand-weighted
+edges and texture seams across material ranges. See the feature overview above
+for the cap extraction details and current validation limits.
 When tracked guns are ready, Ctrl+F1–F6 adjust their live grip position by
 quarter-inch steps; Ctrl+Shift+F1–F6 adjust yaw, pitch and roll by one degree.
 Ctrl+F7 saves the fit to the INI after making a backup, and Ctrl+Shift+F7
 restores the last loaded or saved fit. These keys are captured only in the
 focused gameplay window while tracked guns are ready.
+`FirstPersonMotionGunRaiseMetres` adjusts hand height; 0.25 inches is 0.00635 m.
+The current local Steam profile uses `-0.06985` after the requested hand-height
+tuning; this is a personal calibration, not a changed default. The code default
+remains `0.0254`. Restart after editing the INI manually; the calibration keys
+apply changes live and Ctrl+F7 persists them.
 The runtime log reports why tracked hands are unavailable while first person
 is active, including classic graphics, missing controller poses and gun state.
 
@@ -1001,7 +1065,7 @@ compensation remains in the body movement request, not the stabilized eye;
 translation is refreshed immediately so culling and both eyes use the same
 origin in that frame.
 
-When inventory, a fixed camera, a cinematic camera or a cutscene takes control,
+When death, inventory, a fixed camera, a cinematic camera or a cutscene takes control,
 first person and locomotion stand down. Returning with the same Lara preserves
 the last world heading and captures a fresh positional neutral. A changed item
 or a relocation of more than two metres/1024 units realigns from Lara instead
@@ -1077,8 +1141,8 @@ the world subtly as the head turns. The legacy rendered-eye correction is kept
 when movement stabilization is off. Vertical ducking remains raw in both modes.
 
 The grounded HD body is fitted beneath that stable eye as Lara physically
-turns. Its render palette compensates for the difference between the saved
-eye anchor and the rotating body, including the neck arc already present in
+turns. Its render palette compensates for the difference between the final
+collision-resolved eye anchor and the rotating body, including the neck arc already present in
 tracking. This prevents an offset that disappears only after a full revolution.
 It does not move the camera or collision root, cancel real leaning, or shift
 the independently tracked gun hands. The correction stops outside grounded
@@ -1093,8 +1157,13 @@ and lets the normal simulation handle floor settling, enemies and triggers.
 Large drops, excessive floor rises and inadequate headroom block the drag.
 The movement has no walk/run/sidestep input, speed ramp or gait dependency.
 
-Only displacement actually accepted by the collision query consumes the tracked
-neutral. Separate cumulative roomscale counters are interpolated with the same
+Only a shortened or sliding projection of the requested step consumes the
+tracked neutral. A collision correction backward, sideways away from the
+request, or beyond the requested travel is rejected. Previously, ledge pushback
+could increase the pending tracking offset every tick until it exceeded the
+two-metre guard; it then persisted through jumps until recentering or toggling
+views. Native collision settling remains the game's responsibility.
+Separate cumulative roomscale counters are interpolated with the same
 `frame_frac` as Lara's body, keeping camera displacement and body rendering in
 step. Manual travel cannot consume physical displacement. Motion already
 simulated but not yet rendered is excluded from the next drag request so it
@@ -1123,6 +1192,8 @@ near walls, including the remaining horizontal tracked movement.
 | sidestep/backpedal creeps forward slowly | the hook reset `lara.move_angle` to body-forward before root motion, and the native gaits use walking speed | publish the selected side/back world angle and scale one frame's horizontal root displacement |
 | side/back movement stutters while forward is smooth | accelerating the gait by processing three complete animation frames per simulation tick made the body/head skip frames | process one animation frame and scale only its collision-tested root displacement |
 | physical steps drift or depend on frame rate | fixed neutral consumption or attribution from manual movement | consume only accepted drag, using body interpolation |
+| body goes off-center at a crate edge | camera applied walking-floor restrictions and retracted after body fitting | eye-height clearance allows open drops; fit the body after camera collision |
+| offset persists after leaving a ledge | native collision pushback was counted as physical travel and grew the pending offset | consume only shortened/sliding travel in the requested direction |
 
 #### Implementation and address verification
 
@@ -1214,15 +1285,35 @@ sidestep selection, jump-direction selection, and consistent steering in
 compression and forward flight. These checks validate math and state selection;
 they do not run the game engine or a headset.
 
+The current regressions also cover physical turns at five-degree intervals,
+camera handoff calibration, repeated ledge pushback at multiple headings,
+jump/landing recovery and body fitting against the final collision-resolved eye.
+`tests/build_physics_selftest.cmd` exercises the actual skin shaders on a hidden
+OpenGL context, including wrist caps, body visibility, repeated ledge/NPC draw
+transitions and clearing a prior body-fit offset. The latest run passed all
+1,263 checks using both the PDB-build and installed retail executable's shaders;
+each supplied image compiled 288 native skin shader pairs.
+
 The wall camera sweep calls the game engine's `GetCollisionInfo`, so it also
 needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump, wall-climb and pull-up changes have not yet been
 confirmed there.
 
-`tools/verify_addresses.py` passes all 1,731 PDB, retail and Gold address,
-layout and hook-window checks, including hitscan and projectile detours.
+The last `tools/verify_addresses.py` run passed all 1,836 PDB, retail and Gold
+address, layout and hook-window checks, including the added `AnimatePistols`
+hook. The subsequent death and ledge fixes add no engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
+
+The 2026-10-02 ledge-centering Release/x64 DLL is installed and its SHA-256
+matches the build output:
+`6EFE42FF2782053D00A7B104468C881B7B24C470357A1DC66F96AC80FCB90546`.
+The prior DLL, INI and log are preserved under
+`build/pre-ledge-centering-fix-20261002-005650/`. Hand calibration was preserved.
+Death-camera and rare ledge-transition behavior still require the headset
+checks in [docs/roomscale-testing.md](docs/roomscale-testing.md).
+
+#### Earlier build history
 
 An earlier 2026-09-30 Release/x64 DLL used arms-only visibility during pull-ups,
 their transition frames, and first-person jumps/falls. Its SHA-256 is
@@ -1310,8 +1401,8 @@ fit keys and backed-up INI save to the existing TR1–3 calibration math. The HK
 exist in TR1–3; TR1/2 also lack crouch/prone states. Existing camera-height
 and collision safeguards remain in place because their game-specific animation
 transitions differ. Headset checks remain necessary for movement feel and gun
-fit across all three games. The final Release/x64 DLL is installed in the
-Steam game folder, with SHA-256
+fit across all three games. That parity-pass Release/x64 DLL was installed in
+the Steam game folder with SHA-256
 `0D56F4C922D4857991B7C9644D42EC77C0ED92700C38C32836FC8C5C20ED5D30`.
 The preceding installed DLL is backed up as
 `TombRaiderVR.dll.pre-full-fp-parity-20261001`.
@@ -1551,6 +1642,7 @@ python tools\port_build.py path\to\new-build  # only for a new PDB-less build
 python tools\verify_addresses.py build\current-retail-verify build\current-gold-verify
 python tools\verify_locomotion.py build\current-retail-verify build\current-gold-verify
 .\tests\build_selftest.cmd
+.\tests\build_physics_selftest.cmd
 ```
 
 `verify_addresses.py` re-derives every address, struct offset, structural
@@ -1560,6 +1652,11 @@ rows against `port_build.json` and against the images themselves. The checked
 retail and Gold images in this repository are in
 `build\current-retail-verify` and `build\current-gold-verify`. Run the checks
 after any game patch: failures name what moved.
+
+The physics self-test defaults to `PDB\tomb123.exe`. To validate other builds'
+embedded skin shaders too, pass their executable paths as arguments to
+`build_physics_selftest.cmd`. Use absolute paths because the script runs the
+test from `build\test`.
 
 ## Repository layout
 
