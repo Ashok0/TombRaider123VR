@@ -802,6 +802,64 @@ static void TestLocomotion() {
               std::fabs(hitDistance-900)<.01f,
               "barrel finds enemy sphere without head/body target at every heading");
     }
+    // FireShotgun uses four world-space GetJointAbsPosition queries instead
+    // of DrawGunFlash. Exercise physical yaw separately from artificial yaw,
+    // including their combinations and a full physical revolution.
+    const uint32_t effectCallers[4]={0x100,0x200,0x300,0x400};
+    for (auto caller : effectCallers)
+        Check(IsShotgunEffectQuery(caller,effectCallers,true,4,10),
+              "shotgun smoke/spark origin and direction calls are admitted");
+    Check(!IsShotgunEffectQuery(0x101,effectCallers,true,4,10) &&
+          !IsShotgunEffectQuery(0x100,effectCallers,false,4,10) &&
+          !IsShotgunEffectQuery(0x100,effectCallers,true,1,10) &&
+          !IsShotgunEffectQuery(0x100,effectCallers,true,4,13) &&
+          !IsShotgunEffectQuery(0,effectCallers,true,4,10),
+          "other joint queries, enemies, pistols and left hands remain native");
+    for (float stick : {0.f,Pi/2,-Pi/2,.73f}) {
+        for (int step=0;step<=12;++step) {
+            const float physical=step*Pi/6;
+            const float c=std::cos(physical),s=std::sin(physical);
+            // OpenVR right-handed yaw corresponding to a TR +Y-down turn.
+            const float pose[3][4]={{c,0,-s,0},{0,1,0,0},{s,0,c,0}};
+            const auto basis=GunBasis(ControllerBasis(pose,stick));
+            const auto hand=HandInWorld({100,-500,200},
+                .2f*c+.4f*s,-.1f,-.2f*s+.4f*c,stick,1000);
+            int32_t smoke[3]={0,228,32}, spark[3]={0,356,82}, end[3]={0,1508,32};
+            Check(RetargetEffectPoint(smoke,basis,hand) &&
+                  RetargetEffectPoint(spark,basis,hand) &&
+                  RetargetEffectPoint(end,basis,hand),
+                  "shotgun effect points accept physical and mixed turns");
+            const float yaw=stick+physical;
+            const auto atBarrel=[&](const int32_t* point,float forward,float up) {
+                return std::fabs(point[0]-(hand.x+std::sin(yaw)*forward))<=.51f &&
+                       std::fabs(point[1]-(hand.y-up))<=.51f &&
+                       std::fabs(point[2]-(hand.z+std::cos(yaw)*forward))<=.51f;
+            };
+            Check(atBarrel(smoke,228,32) && atBarrel(spark,356,82) && atBarrel(end,1508,32),
+                  "shotgun particles follow physical yaw through 360 degrees");
+            Check(std::fabs((end[0]-smoke[0])-1280*std::sin(yaw))<=1.01f &&
+                  end[1]==smoke[1] &&
+                  std::fabs((end[2]-smoke[2])-1280*std::cos(yaw))<=1.01f,
+                  "shotgun smoke velocity turns with its origin");
+            // Emission belongs to the controller, independent of Lara's old
+            // or current body yaw. Pitched/rolled calibrated guns use the same
+            // frame as the visible mesh, not headset yaw added a second time.
+            Calibration fit{}; fit.pitchDegrees=-30; fit.rollDegrees=19;
+            const auto calibrated=GunBasis(CalibratedController(ControllerBasis(pose,stick),fit));
+            const auto grip=GripFrame(calibrated,hand,75,-29.55f,4);
+            int32_t local[3]={0,356,82};
+            const auto meshPoint=Transform(grip,{0,356,82});
+            Check(RetargetEffectPoint(local,grip.basis,grip.origin) &&
+                  std::fabs(local[0]-meshPoint.x)<=.51f &&
+                  std::fabs(local[1]-meshPoint.y)<=.51f &&
+                  std::fabs(local[2]-meshPoint.z)<=.51f,
+                  "shotgun flare stays on calibrated gun under yaw pitch and roll");
+        }
+    }
+    int32_t invalidEffect[3]={0,228,32};
+    Check(!RetargetEffectPoint(invalidEffect,gun,{NAN,0,0}) &&
+          invalidEffect[0]==0 && invalidEffect[1]==228 && invalidEffect[2]==32,
+          "invalid tracked effect point preserves the original query for fallback");
     float sphereDistance=0;
     Check(!ShotSphere({0,0,0},{0,0,1},{200,0,600},100,sphereDistance) &&
           !ShotSphere({0,0,0},{0,0,1},{0,0,-600},100,sphereDistance) &&

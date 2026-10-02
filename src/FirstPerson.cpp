@@ -124,6 +124,7 @@ hook::InlineHook g_hDrawActionIndicators;
 hook::InlineHook g_hGetJoints;
 hook::InlineHook g_hFireWeapon;
 hook::InlineHook g_hDrawGunFlash;
+hook::InlineHook g_hShotgunEffectJoint;
 hook::InlineHook g_hGetTargetOnLOS;
 hook::InlineHook g_hFireHarpoon;
 hook::InlineHook g_hFireRocket;
@@ -170,6 +171,7 @@ const uint8_t kFireExplosivePrologue[] =
 const uint8_t kFireGrenadePrologue[] =
     {0x4C,0x8B,0xDC,0x48,0x81,0xEC,0x88,0x00,0x00,0x00};
 const uint8_t kAnimateShotgunPrologue[] = {0x89,0x4C,0x24,0x08,0x55};
+const uint8_t kShotgunEffectJointPrologue[] = {0x48,0x89,0x5C,0x24,0x08};
 const uint8_t kAnimatePistolsPrologue[] = {0x48,0x89,0x5C,0x24,0x10};
 const uint8_t kDrawGunFlashTR1Prologue[] = {0x48,0x83,0xEC,0x28,0xF6,0x05};
 const int kDrawGunFlashTR1RipFixups[] = {6};
@@ -1016,6 +1018,25 @@ bool BuildGunPose(int hand, GunPose& out) {
         !std::isfinite(out.hand.z)) return rejected("nonfinite-hand");
     g_motionPoseFailure[hand]="pose-ok";
     return true;
+}
+
+void __cdecl Detour_ShotgunEffectJoint(uint8_t* item,int32_t* point,int32_t joint) {
+    using Fn=void (__cdecl*)(uint8_t*,int32_t*,int32_t);
+    const auto original=g_hShotgunEffectJoint.Original<Fn>();
+    if (g_boundDll && g_boundBase && point) {
+        const auto& d=*g_boundDll;
+        const uint32_t callers[4]={d.shotgunSmokeOriginReturn,d.shotgunSmokeDirectionReturn,
+                                  d.shotgunSparkOriginReturn,d.shotgunSparkDirectionReturn};
+        const uint64_t caller=reinterpret_cast<uint64_t>(_ReturnAddress())-g_boundBase;
+        if (motiongun::IsShotgunEffectQuery(caller,callers,
+                item && item==*Ptr<uint8_t*>(d.laraItem),
+                *Ptr<int16_t>(d.lara+4),joint)) {
+            GunPose gun{};
+            if (BuildGunPose(1,gun) && motiongun::RetargetEffectPoint(point,gun.basis,gun.hand))
+                return;
+        }
+    }
+    original(item,point,joint);
 }
 
 void __cdecl Detour_DrawGunFlash(int32_t weapon,int32_t unused,int32_t joint) {
@@ -2092,6 +2113,12 @@ bool Install(const GameDllLayout& d, uint64_t base) {
                 "DrawGunFlash");
     }
     if (!flashInstalled) Log("firstperson: tracked-gun flash hook unavailable");
+    if (d.getJointAbsPosition && !g_hShotgunEffectJoint.Install(
+            reinterpret_cast<void*>(base+d.getJointAbsPosition),
+            reinterpret_cast<void*>(&Detour_ShotgunEffectJoint),
+            5,kShotgunEffectJointPrologue,sizeof(kShotgunEffectJointPrologue),
+            "shotgun effect wrist position"))
+        Log("firstperson: tracked shotgun particle hook unavailable");
     bool losInstalled=false;
     if (d.getTargetOnLOS && d.module[4]!=L'3')
         losInstalled=g_hGetTargetOnLOS.Install(
@@ -2175,6 +2202,7 @@ void Remove() {
     g_hAnimatePistols.Remove();
     g_hFireWeapon.Remove();
     g_hDrawGunFlash.Remove();
+    g_hShotgunEffectJoint.Remove();
     g_hGenerateW2V.Remove();
     g_active     = false;
     g_scenePoseValid=false;

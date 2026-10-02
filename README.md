@@ -131,7 +131,9 @@ in-headset weapon checks; ordinary head-aimed arms remain the default.
 The gun pitch now defaults to the same -30 degrees as the installed TR4/5
 profile, and native muzzle flashes follow the tracked gun pose in first person.
 The flash uses the same world axes as the HD hand palette, so stick rotation
-is applied once. Bullet origins use the game's per-weapon HD flash offsets.
+is applied once. Shotgun sparks and smoke also follow the tracked wrist after
+physical roomscale turns, including their emission direction. Bullet origins
+use the game's per-weapon HD flash offsets.
 Tracked hand draws use the TR4/5 rigid wrist correction and trim the forearm
 at the 50-percent hand-weight seam. Mixed wrist vertices follow the corrected
 wrist instead of stretching with the animated forearm. The hand shader
@@ -1010,6 +1012,15 @@ with world axes so scene rotation is applied only once. Shot origins use each
 weapon's native HD muzzle offset. Outside first-person tracked-gun mode, the
 native flash render path is unchanged.
 
+Shotgun sparks and smoke take a separate path through `FireShotgun`. Its four
+`GetJointAbsPosition` calls now transform the emission origins and direction
+points through the tracked right-hand frame. This corrects particles remaining
+at Lara's animated wrist after physical roomscale turns. The hook matches only
+those four verified callers, Lara, weapon 4 and wrist 10; other joint queries
+retain their native behavior. HD particle offsets, spread, lifetime and firing
+cadence remain native. Regression tests cover a full physical turn, stick turns,
+combined turns, calibrated pitch/roll and rejection of unrelated callers.
+
 For dual guns, holding LT+RT fires both and cannot become a holster gesture until
 LT is released. LT alone held for 0.5 seconds holsters; held RT resumes after a
 temporary tracking interruption. `AnimatePistols` temporarily clears the native
@@ -1359,15 +1370,24 @@ needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump, wall-climb and pull-up changes have not yet been
 confirmed there.
 
-The last `tools/verify_addresses.py` run passed all 1,908 PDB, retail and Gold
+The last `tools/verify_addresses.py` run passed all 2,022 PDB, retail and Gold
 address, layout and hook-window checks, including `AnimatePistols` and the
-four effect texture-loader/upload hooks. Death, ledge and roll fixes add no
+four effect texture-loader/upload hooks, plus the shotgun joint-query hook and
+its four call sites in each game. Death, ledge and roll fixes add no
 engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-10-02 built-in enhanced-effects Release/x64 DLL is installed, with
+The 2026-10-02 shotgun roomscale-effects Release/x64 DLL is installed, with
 SHA-256 matching the build output:
+`85DA380D52A7AC5209FAF356CE5004D90DB9FC7928A344388C977719F9B65D82`.
+The previous DLL, INI and log are backed up under
+`build/pre-shotgun-roomscale-20261002-104525/`. Settings and hand calibration
+were preserved. The Release build, CPU rotation/scope regressions and all
+2,022 binary checks passed. Physical-turn shotgun placement still needs the
+headset check described in [docs/roomscale-testing.md](docs/roomscale-testing.md).
+
+The preceding 2026-10-02 built-in enhanced-effects Release/x64 DLL had SHA-256:
 `178FE9FEBCC1670EEA430078C04334F44CEF284A60C084AE79EE7A9640527968`.
 The prior DLL, INI and log are preserved under
 `build/pre-enhanced-effects-20261002-100741/`. The installed INI and hand

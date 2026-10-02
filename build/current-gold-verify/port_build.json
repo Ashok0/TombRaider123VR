@@ -476,6 +476,11 @@
     "new": 162352,
     "how": "fuzzy 0.99"
    },
+   "GetJointAbsPosition": {
+    "old": 346368,
+    "new": 346288,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 406918,
     "new": 406968,
@@ -505,6 +510,26 @@
     "old": 169262,
     "new": 169680,
     "how": "return address of the GetTargetOnLOS call in FireWeapon"
+   },
+   "shotgun_smoke_origin_return": {
+    "old": 159749,
+    "new": 160122,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_smoke_direction_return": {
+    "old": 159802,
+    "new": 160177,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_spark_origin_return": {
+    "old": 159972,
+    "new": 160342,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_spark_direction_return": {
+    "old": 160021,
+    "new": 160393,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
    }
   }
  },
@@ -820,6 +845,11 @@
     "new": 300672,
     "how": "function match"
    },
+   "GetJointAbsPosition": {
+    "old": 552720,
+    "new": 551312,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 610006,
     "new": 608696,
@@ -849,6 +879,26 @@
     "old": 315908,
     "new": 315973,
     "how": "return address of the GetTargetOnLOS call in FireWeapon"
+   },
+   "shotgun_smoke_origin_return": {
+    "old": 289413,
+    "new": 289370,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_smoke_direction_return": {
+    "old": 289466,
+    "new": 289425,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_spark_origin_return": {
+    "old": 289636,
+    "new": 289590,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_spark_direction_return": {
+    "old": 289685,
+    "new": 289641,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
    }
   }
  },
@@ -1166,6 +1216,11 @@
     "new": 422544,
     "how": "function match"
    },
+   "GetJointAbsPosition": {
+    "old": 843472,
+    "new": 849936,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 914182,
     "new": 920648,
@@ -1195,6 +1250,26 @@
     "old": 438496,
     "new": 439282,
     "how": "return address of the GetTargetOnLOS call in FireWeapon"
+   },
+   "shotgun_smoke_origin_return": {
+    "old": 403662,
+    "new": 404210,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_smoke_direction_return": {
+    "old": 403715,
+    "new": 404265,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_spark_origin_return": {
+    "old": 403876,
+    "new": 404427,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "shotgun_spark_direction_return": {
+    "old": 403925,
+    "new": 404478,
+    "how": "return address of the GetJointAbsPosition call in FireShotgun"
    }
   }
  }

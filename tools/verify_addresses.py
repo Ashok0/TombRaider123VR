@@ -166,7 +166,9 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'phd_centery', 'phd_znear', 'phd_zfar', 'next_item_free', 'items',
           'FireHarpoon', 'FireRocket', 'FireGrenade', 'ItemNewRoom',
           'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
-          'find_target_point', 'LOS', 'AnimatePistols']
+          'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
+          'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -179,6 +181,10 @@ DERIVED = {
     'left_fire_return': 'FireWeapon',
     'hit_los_return': 'GetTargetOnLOS',
     'miss_los_return': 'GetTargetOnLOS',
+    'shotgun_smoke_origin_return': 'GetJointAbsPosition',
+    'shotgun_smoke_direction_return': 'GetJointAbsPosition',
+    'shotgun_spark_origin_return': 'GetJointAbsPosition',
+    'shotgun_spark_direction_return': 'GetJointAbsPosition',
 }
 
 def pe_stamp(path):
@@ -430,6 +436,7 @@ try:
                          'LaraGunTR%d' % int(dll[4]): 'LaraGun',
                          **({'FireHarpoonStock': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
                          'AnimatePistols': 'AnimatePistols',
+                         'ShotgunEffectJoint': 'GetJointAbsPosition',
                          **({'AnimateShotgun': 'AnimateShotgun'} if dll == 'tomb2.dll' else {}),
                          **({'FireExplosive': 'FireRocket',
                              'FireGrenade': 'FireGrenade'} if dll == 'tomb3.dll' else {}),
@@ -617,6 +624,7 @@ try:
                              'LaraGunTR%d' % int(dll[4]): 'LaraGun',
                              **({'FireHarpoonRetail': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
                              'AnimatePistols': 'AnimatePistols',
+                             'ShotgunEffectJoint': 'GetJointAbsPosition',
                              **({'AnimateShotgun': 'AnimateShotgun'} if dll == 'tomb2.dll' else {}),
                              **({'FireExplosive': 'FireRocket',
                                  'FireGrenade': 'FireGrenade'} if dll == 'tomb3.dll' else {}),

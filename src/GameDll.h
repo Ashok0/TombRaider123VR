@@ -138,6 +138,13 @@ struct GameDllLayout {
     uint32_t findTargetPoint; // void find_target_point(ITEM_INFO*, GAME_VECTOR*)
     uint32_t los; // int LOS(GAME_VECTOR*, GAME_VECTOR*), no damage/effects
     uint32_t animatePistols; // native cadence/flash animation; controller free-aim scope
+    uint32_t getJointAbsPosition; // void(ITEM_INFO*, PHD_VECTOR*, joint)
+    // Exactly the four wrist-point queries in FireShotgun. Other callers,
+    // including enemy effects and hit testing, retain the native joint pose.
+    uint32_t shotgunSmokeOriginReturn;
+    uint32_t shotgunSmokeDirectionReturn;
+    uint32_t shotgunSparkOriginReturn;
+    uint32_t shotgunSparkDirectionReturn;
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

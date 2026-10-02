@@ -64,7 +64,9 @@ DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
           'phd_centery', 'phd_znear', 'phd_zfar', 'next_item_free', 'items',
           'FireHarpoon', 'FireRocket', 'FireGrenade', 'ItemNewRoom',
               'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
-          'find_target_point', 'LOS', 'AnimatePistols']
+          'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
+          'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return']
 # Not a symbol: the return address of the ONE phd_GenerateW2V call that builds
 # the main scene view, inside S_InitialisePolyList. FirstPerson.cpp gates on it
 # so it rewrites the scene camera and nothing else (inventory, shadows, pickup
@@ -76,6 +78,10 @@ DERIVED = {
     'left_fire_return': ('AnimatePistols', 'FireWeapon', 1),
     'hit_los_return': ('FireWeapon', 'GetTargetOnLOS', 0),
     'miss_los_return': ('FireWeapon', 'GetTargetOnLOS', 1),
+    'shotgun_smoke_origin_return': ('FireShotgun', 'GetJointAbsPosition', 0),
+    'shotgun_smoke_direction_return': ('FireShotgun', 'GetJointAbsPosition', 1),
+    'shotgun_spark_origin_return': ('FireShotgun', 'GetJointAbsPosition', 2),
+    'shotgun_spark_direction_return': ('FireShotgun', 'GetJointAbsPosition', 3),
 }
 # Referenced from the self-checks in verify_addresses.py.
 EXE_EXTRA = ['vidInit', 'init_ogl', 'appInit', 'vid_setViewMatrix', 'WinMain',

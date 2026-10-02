@@ -62,6 +62,15 @@ The neck-pivot correction is an estimate from the headset. If turning in place
 still translates the body, adjust FirstPersonRoomscaleNeckMetres and recenter.
 Zero disables that correction. The tests cannot substitute for headset play.
 
+For tracked shotgun effects, fire at physical turns of 0, 45, 90, 180, 270 and
+360 degrees in each direction, with the turning stick centered. Sparks and
+smoke should originate at the barrel and travel along it. Repeat after stick
+turns and combined physical/stick turns, with the gun pitched up/down and rolled.
+Check all three games, reload a save, and compare pistols and third-person
+shotgun fire. Existing particles should continue their flight in world space;
+new emissions should use the current tracked gun pose. This fix has automated
+maths and binary-call-site coverage; the headset check remains pending.
+
 For B-roll turnaround, roll from standing and while holding forward in first
 person. The view should turn 180 degrees once, and forward should follow Lara's
 new facing direction. Repeat twice to face the original direction. Repeat after

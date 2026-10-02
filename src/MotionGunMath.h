@@ -133,6 +133,34 @@ inline bool RetargetFlashMatrix(int32_t* wrist, const Basis& gun, Vec handDelta)
     return true;
 }
 
+inline bool IsShotgunEffectQuery(uint64_t caller, const uint32_t (&returns)[4],
+                                 bool lara, int weapon, int joint) {
+    if (!lara || weapon!=4 || joint!=10 || !caller) return false;
+    for (uint32_t address : returns)
+        if (address && caller==address) return true;
+    return false;
+}
+
+// Shotguns spawn world-space sparks/smoke during FireShotgun, outside the
+// DrawGunFlash path used by pistols. Transform BOTH the origin and the second
+// point defining particle velocity through the same tracked wrist frame.
+// Native HD barrel offsets and particle spread remain owned by FireShotgun.
+inline bool RetargetEffectPoint(int32_t* point, const Basis& gun, Vec hand) {
+    if (!point) return false;
+    const Vec world=Add(hand,Transform(gun,
+        {float(point[0]),float(point[1]),float(point[2])}));
+    const double coords[3]={world.x,world.y,world.z};
+    int32_t result[3];
+    for (int i=0;i<3;++i) {
+        if (!std::isfinite(coords[i]) ||
+            coords[i]<std::numeric_limits<int32_t>::min() ||
+            coords[i]>std::numeric_limits<int32_t>::max()) return false;
+        result[i]=int32_t(std::llround(coords[i]));
+    }
+    for (int i=0;i<3;++i) point[i]=result[i];
+    return true;
+}
+
 // Match FireWeapon's sphere test: centre in front by more than its radius,
 // and the ray passing inside the projected circle. The returned distance is
 // the same conservative near endpoint used by its native obstruction test.
