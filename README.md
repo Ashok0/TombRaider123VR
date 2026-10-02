@@ -105,7 +105,7 @@ Tracked hand draws use the TR4/5 rigid wrist correction and trim the forearm
 at the 50-percent hand-weight seam. Mixed wrist vertices follow the corrected
 wrist instead of stretching with the animated forearm. The hand shader
 works with chest physics disabled; unsupported shaders keep native masking.
-Opaque, two-sided caps close the wrist's open mesh boundary, including fully
+Opaque black, two-sided caps close the wrist's open mesh boundary, including fully
 hand-weighted edges that never cross the shader cutoff. Boundary extraction
 welds texture seams across the whole indexed mesh; material draw ranges do not
 create false holes. The opening nearest the anatomical wrist is filled and
@@ -127,7 +127,7 @@ working feature; TR3 crouch keeps native collision and movement.
 - **Guns stopping during bat attacks:** held LT+RT remains a dual-fire gesture,
   and the pistol animation can fire while a selected enemy loses native arm
   lock. Native shot timing, ammunition, damage and effects are retained.
-- **Open or warped wrists:** tracked hands use rigid wrist skinning and opaque
+- **Open or warped wrists:** tracked hands use rigid wrist skinning and opaque black
   caps over the actual open mesh boundary. Wrist sealing was confirmed in play.
 - **Body centering after camera takeovers and physical turns:** scripted-camera
   handoffs retain the standing-eye calibration. The grounded body is fitted
@@ -982,7 +982,7 @@ target only while advancing a requested controller shot, then restores it. This
 avoids the selected-target/no-arm-lock stall seen during bat attacks while
 preserving native cadence, ammunition and effects.
 
-The tracked wrist uses rigid skinning at a 50-percent hand-weight seam. Opaque,
+The tracked wrist uses rigid skinning at a 50-percent hand-weight seam. Opaque black,
 two-sided caps seal native open wrist boundaries, including fully hand-weighted
 edges and texture seams across material ranges. See the feature overview above
 for the cap extraction details and current validation limits.
@@ -1306,7 +1306,7 @@ roomscale pivot preservation, the new forward eye position, yaw wrap, repeated
 rolls and cancellation without a native turn.
 `tests/build_physics_selftest.cmd` exercises the actual skin shaders on a hidden
 OpenGL context, including wrist caps, body visibility, repeated ledge/NPC draw
-transitions and clearing a prior body-fit offset. The latest run passed all
+transitions and clearing a prior body-fit offset. The ledge-centering run passed all
 1,263 checks using both the PDB-build and installed retail executable's shaders;
 each supplied image compiled 288 native skin shader pairs.
 
@@ -1321,14 +1321,15 @@ hook. The subsequent death and ledge fixes add no engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-10-02 ground-roll turnaround Release/x64 DLL is installed and its SHA-256
+The 2026-10-02 black wrist-seal Release/x64 DLL is installed and its SHA-256
 matches the build output:
-`486BE0C9403824754442D44791B87760098D01B8359E029BA41C6CF6311B451C`.
+`67605EC6AE1772CEF32225A9663B0919F2ABBCFD1140AE49108E8ECCAAEDC9CD`.
 The prior DLL, INI and log are preserved under
-`build/pre-roll-turn-fix-20261002-083615/`. Hand calibration was preserved.
-The Release build and CPU self-tests passed for the roll change; the 1,263 GPU
-checks above were run for the preceding ledge-centering build, whose skin path
-is unchanged by this update. Ground rolls, death-camera and rare ledge-transition
+`build/pre-black-wrist-seals-20261002-091021/`. Hand calibration was preserved.
+The Release build and CPU self-tests passed for the roll change. The black-seal
+update passed 949 graphics checks with the PDB executable, including opaque
+black coverage of both wrist openings from both sides against a colored background.
+Ground rolls, death-camera and rare ledge-transition
 behavior still require the headset
 checks in [docs/roomscale-testing.md](docs/roomscale-testing.md).
 

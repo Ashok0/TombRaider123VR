@@ -392,7 +392,7 @@ void main() {
 })GLSL";
     const char* fragment=R"GLSL(#version 150
 out vec4 color;
-void main() { color=vec4(0.32,0.22,0.17,1.0); }
+void main() { color=vec4(0.0,0.0,0.0,1.0); }
 )GLSL";
     const GLuint vs=gl::CreateShader(GL_VERTEX_SHADER),fs=gl::CreateShader(GL_FRAGMENT_SHADER);
     const GLuint program=gl::CreateProgram();

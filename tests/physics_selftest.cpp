@@ -440,16 +440,16 @@ void main() {
         }
         view[0]=(pass%2) ? -1.f : 1.f;
         gl::Uniform4fv(gl::GetUniformLocation(program,"uViewMatrix[0]"),3,view);
-        glClearColor(0,0,0,0); glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(1,0,1,0); glClear(GL_COLOR_BUFFER_BIT);
         glDrawElements(GL_TRIANGLES,24,GL_UNSIGNED_SHORT,nullptr);
         unsigned char empty[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,empty);
-        Require(empty[0]==0,"native clipped sleeve leaves an open wrist");
+        Require(empty[0]>240 && empty[1]<5 && empty[2]>240,"native clipped sleeve leaves an open wrist");
         // Each material draws only half the sleeve. The boundary must still
         // use the whole surface, with no false cap along a material border.
         BoneSkinDrawWristCap(mesh,(pass%2)*12,12);
         unsigned char sealed[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,sealed);
-        Require(sealed[0]>40 && sealed[1]>25 && sealed[2]>20,
-                "opaque cap closes clipped AND fully weighted native wrists from both sides");
+        Require(sealed[0]<5 && sealed[1]<5 && sealed[2]<5,
+                "opaque black cap closes clipped AND fully weighted native wrists from both sides");
         GLint restoredProgram=0,restoredVao=0,restoredBuffer=0;
         GLboolean restoredDepth=GL_TRUE;
         glGetIntegerv(GL_CURRENT_PROGRAM,&restoredProgram); glGetIntegerv(GL_VERTEX_ARRAY_BINDING,&restoredVao);
