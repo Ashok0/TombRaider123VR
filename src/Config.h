@@ -212,6 +212,8 @@ struct Config {
     // into the native weapon animation. Only active in first-person gameplay.
     bool  firstPersonHeadAim = true;
     bool  firstPersonMotionGuns = false; // HD tracked-hand mode, opt in
+    float firstPersonAutoAimDegrees = 45.0f; // per-controller target assist, tracked shots only
+    bool  firstPersonMotionGunHotkeys = true;
     motiongun::Calibration firstPersonMotionGunCalibration{};
 
     // Rotation-only head tracking. The safest possible first test: the camera
@@ -759,6 +761,10 @@ struct Config {
 
 const Config& Cfg();
 void LoadConfig(const wchar_t* iniPath);
+const motiongun::Calibration& LiveMotionGunCalibration();
+void AdjustMotionGunCalibration(int command);
+void RestoreMotionGunCalibration();
+bool SaveMotionGunCalibration();
 
 // --- live tuning ------------------------------------------------------------
 // Scale is a perceptual judgement, so it is adjustable in the headset rather

@@ -265,7 +265,7 @@ void PollTraceKey() {
     const auto& c = Cfg();
     if (c.traceKey == 0 || c.traceFrames <= 0) return;
     const bool down = (GetAsyncKeyState(c.traceKey) & 0x8000) != 0;
-    if (down && !g_traceKeyWasDown) {
+    if (down && !g_traceKeyWasDown && !FirstPersonCalibrationKeyReserved(c.traceKey)) {
         g_traceUntilFrame = g_frameIndex + static_cast<unsigned>(c.traceFrames);
         LogF("trace: hotkey pressed, capturing %d frame(s)", c.traceFrames);
     }
@@ -281,7 +281,7 @@ void PollDumpKey() {
     const auto& c = Cfg();
     if (c.dumpKey == 0 || c.dumpDraws <= 0) return;
     const bool down = (GetAsyncKeyState(c.dumpKey) & 0x8000) != 0;
-    if (down && !g_dumpKeyWasDown) {
+    if (down && !g_dumpKeyWasDown && !FirstPersonCalibrationKeyReserved(c.dumpKey)) {
         g_dumpRemaining = static_cast<unsigned>(c.dumpDraws);
         g_dumpIndex     = 0;
         LogF("dump: hotkey pressed, capturing the next %d draw(s)", c.dumpDraws);
@@ -347,7 +347,7 @@ void PollTuningKeys() {
     for (int i = 0; i < 5; ++i) {
         if (keys[i] == 0) continue;
         const bool down = (GetAsyncKeyState(keys[i]) & 0x8000) != 0;
-        if (down && !g_tuneWasDown[i]) {
+        if (down && !g_tuneWasDown[i] && !FirstPersonCalibrationKeyReserved(keys[i])) {
             switch (i) {
             case 0: AdjustWorldScale(step);        break;
             case 1: AdjustWorldScale(1.0f / step); break;

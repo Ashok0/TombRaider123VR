@@ -431,6 +431,26 @@
     "new": 65648,
     "how": "function match"
    },
+   "next_item_active": {
+    "old": 4114128,
+    "new": 4118032,
+    "how": "41/41 votes"
+   },
+   "GetSpheres": {
+    "old": 277584,
+    "new": 277296,
+    "how": "function match"
+   },
+   "find_target_point": {
+    "old": 167072,
+    "new": 167488,
+    "how": "function match"
+   },
+   "LOS": {
+    "old": 364112,
+    "new": 363872,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 406918,
     "new": 406968,
@@ -748,6 +768,26 @@
    "DrawGunFlash": {
     "old": 99168,
     "new": 99216,
+    "how": "function match"
+   },
+   "next_item_active": {
+    "old": 4372198,
+    "new": 4372006,
+    "how": "11/11 votes"
+   },
+   "GetSpheres": {
+    "old": 496080,
+    "new": 494608,
+    "how": "function match"
+   },
+   "find_target_point": {
+    "old": 313488,
+    "new": 313536,
+    "how": "function match"
+   },
+   "LOS": {
+    "old": 570256,
+    "new": 568672,
     "how": "function match"
    },
    "w2v_scene_return": {
@@ -1069,6 +1109,26 @@
    "DrawGunFlash": {
     "old": 178336,
     "new": 178544,
+    "how": "function match"
+   },
+   "next_item_active": {
+    "old": 4764128,
+    "new": 4776224,
+    "how": "9/9 votes"
+   },
+   "GetSpheres": {
+    "old": 732784,
+    "new": 738736,
+    "how": "function match"
+   },
+   "find_target_point": {
+    "old": 436160,
+    "new": 436928,
+    "how": "function match"
+   },
+   "LOS": {
+    "old": 861824,
+    "new": 868112,
     "how": "function match"
    },
    "w2v_scene_return": {

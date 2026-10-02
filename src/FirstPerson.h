@@ -32,6 +32,9 @@ void FirstPersonShutdown();
 // inventory, during fixed and cinematic cameras, and whenever the anchor could
 // not be resolved.
 bool FirstPersonActive();
+bool FirstPersonCalibrationKeyReserved(int virtualKey);
+// Corrected, unmasked palette for a tracked hand draw; null outside that scope.
+const float* FirstPersonHandSkin(int& wristJoint);
 // The last rendered scene eye, before stereo head translation. False when the
 // first-person gameplay camera is unavailable.
 bool FirstPersonSceneEye(int32_t out[3]);

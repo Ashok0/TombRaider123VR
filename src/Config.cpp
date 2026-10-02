@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cwchar>
 #include <cmath>
+#include <algorithm>
 
 namespace tr {
 namespace {
@@ -15,6 +16,8 @@ namespace {
 Config g_cfg;
 float  g_liveScale = 423.0f;
 float  g_liveIpd   = 1.0f;
+std::wstring g_iniPath;
+motiongun::Calibration g_liveGun, g_savedGun;
 
 int GetInt(const wchar_t* key, int def, const wchar_t* ini) {
     return static_cast<int>(GetPrivateProfileIntW(L"VR", key, def, ini));
@@ -75,6 +78,44 @@ float GetFloat(const wchar_t* key, float def, const wchar_t* ini) {
 } // namespace
 
 const Config& Cfg() { return g_cfg; }
+const motiongun::Calibration& LiveMotionGunCalibration() { return g_liveGun; }
+
+void AdjustMotionGunCalibration(int command) {
+    motiongun::AdjustCalibration(g_liveGun, command);
+    LogF("gun calibration: right=%.5fm up=%.5fm back=%.5fm pitch=%.1f yaw=%.1f roll=%.1f",
+         g_liveGun.rightMetres,g_liveGun.raiseMetres,g_liveGun.gripForwardMetres,
+         g_liveGun.pitchDegrees,g_liveGun.yawDegrees,g_liveGun.rollDegrees);
+}
+void RestoreMotionGunCalibration() {
+    g_liveGun=g_savedGun;
+    Log("gun calibration: restored last loaded/saved fit");
+}
+bool SaveMotionGunCalibration() {
+    if (g_iniPath.empty()) return false;
+    const std::wstring backup=g_iniPath+L".motion-gun-calibration.bak";
+    if (!CopyFileW(g_iniPath.c_str(),backup.c_str(),FALSE)) {
+        LogF("gun calibration: INI backup failed (%lu); not saving",GetLastError());
+        return false;
+    }
+    const wchar_t* keys[]={L"FirstPersonMotionGunRightMetres",
+        L"FirstPersonMotionGunRaiseMetres",L"FirstPersonMotionGunGripForwardMetres",
+        L"FirstPersonMotionGunPitchDegrees",L"FirstPersonMotionGunYawDegrees",
+        L"FirstPersonMotionGunRollDegrees"};
+    const float values[]={g_liveGun.rightMetres,g_liveGun.raiseMetres,
+        g_liveGun.gripForwardMetres,g_liveGun.pitchDegrees,
+        g_liveGun.yawDegrees,g_liveGun.rollDegrees};
+    for (int i=0;i<6;++i) {
+        wchar_t value[40]{};
+        swprintf_s(value,L"%.5f",values[i]);
+        if (!WritePrivateProfileStringW(L"VR",keys[i],value,g_iniPath.c_str())) {
+            LogF("gun calibration: save failed (%lu); original INI is in the backup",GetLastError());
+            return false;
+        }
+    }
+    g_savedGun=g_liveGun;
+    Log("gun calibration: saved to INI");
+    return true;
+}
 
 float LiveWorldUnitsPerMetre() { return g_liveScale; }
 float LiveIpdScale()           { return g_liveIpd; }
@@ -153,6 +194,8 @@ bool EnsureConfigFile(const wchar_t* path) {
 }
 
 void LoadConfig(const wchar_t* ini) {
+    g_iniPath=ini ? ini : L"";
+    g_liveGun=g_savedGun=g_cfg.firstPersonMotionGunCalibration;
     if (GetFileAttributesW(ini) == INVALID_FILE_ATTRIBUTES) {
         Log("config: no TombRaiderVR.ini found, using defaults");
         return;
@@ -197,6 +240,13 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonHeadAim, ini);
     g_cfg.firstPersonMotionGuns      = GetBool(L"FirstPersonMotionGuns",
                                                 g_cfg.firstPersonMotionGuns, ini);
+    g_cfg.firstPersonAutoAimDegrees = GetFloat(L"FirstPersonAutoAimDegrees",
+                                                g_cfg.firstPersonAutoAimDegrees,ini);
+    if (!std::isfinite(g_cfg.firstPersonAutoAimDegrees))
+        g_cfg.firstPersonAutoAimDegrees=45.0f;
+    g_cfg.firstPersonAutoAimDegrees=std::clamp(g_cfg.firstPersonAutoAimDegrees,0.0f,60.0f);
+    g_cfg.firstPersonMotionGunHotkeys=GetBool(L"FirstPersonMotionGunHotkeys",
+                                                g_cfg.firstPersonMotionGunHotkeys,ini);
     auto& gunCal=g_cfg.firstPersonMotionGunCalibration;
     gunCal.rightMetres=GetFloat(L"FirstPersonMotionGunRightMetres",
                                 gunCal.rightMetres,ini);
@@ -220,6 +270,7 @@ void LoadConfig(const wchar_t* ini) {
     gunCal.pitchDegrees=safe(gunCal.pitchDegrees,-90,90,-30);
     gunCal.yawDegrees=safe(gunCal.yawDegrees,-90,90,0);
     gunCal.rollDegrees=safe(gunCal.rollDegrees,-180,180,0);
+    g_liveGun=g_savedGun=gunCal;
     g_cfg.firstPersonRecenterKey     = GetIntAuto(L"FirstPersonRecenterKey",
                                                 g_cfg.firstPersonRecenterKey, ini);
     g_cfg.firstPersonBodyFollowsHead = GetBool (L"FirstPersonBodyFollowsHead",

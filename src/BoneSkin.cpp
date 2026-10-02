@@ -5,6 +5,8 @@
 #include "Config.h"
 #include "InlineHook.h"
 #include "Log.h"
+#include "FirstPerson.h"
+#include "HandSkin.h"
 
 #include <windows.h>
 #include <cmath>
@@ -143,6 +145,30 @@ bool CompilesOk(const std::string& src, std::string& err) {
     return ok != 0;
 }
 
+bool HandProgramCompiles(const std::string& vertex,const std::string& fragment) {
+    if (!gl::LoadedShaderApi()) return false;
+    const GLuint vs=gl::CreateShader(GL_VERTEX_SHADER),fs=gl::CreateShader(GL_FRAGMENT_SHADER);
+    const GLuint program=gl::CreateProgram();
+    bool ok=vs && fs && program;
+    if (ok) {
+        const char* v=vertex.c_str(); const char* f=fragment.c_str();
+        gl::ShaderSource(vs,1,&v,nullptr); gl::CompileShader(vs);
+        gl::ShaderSource(fs,1,&f,nullptr); gl::CompileShader(fs);
+        GLint compiledV=0,compiledF=0,linked=0;
+        gl::GetShaderiv(vs,GL_COMPILE_STATUS,&compiledV);
+        gl::GetShaderiv(fs,GL_COMPILE_STATUS,&compiledF);
+        if (compiledV && compiledF) {
+            gl::AttachShader(program,vs); gl::AttachShader(program,fs);
+            gl::LinkProgram(program); gl::GetProgramiv(program,GL_LINK_STATUS,&linked);
+        }
+        ok=compiledV && compiledF && linked;
+    }
+    if (program) gl::DeleteProgram(program);
+    if (vs) gl::DeleteShader(vs);
+    if (fs) gl::DeleteShader(fs);
+    return ok;
+}
+
 void InvalidateProgram(uint32_t program);   // with the per-program table below
 
 void __fastcall Detour_shader_init(Shader* shader, int cull, int fvf,
@@ -187,7 +213,18 @@ void __fastcall Detour_shader_init(Shader* shader, int cull, int fvf,
         }
     }
 
-    original(shader, cull, fvf, useVs, fs);
+    std::string handVs,handFs;
+    const char* useFs=fs;
+    if (c.enabled && c.firstPersonMotionGuns && useVs && fs && Recognise(useVs)) {
+        handVs=useVs; handFs=fs;
+        gl::Load();
+        if (handskin::Patch(handVs,handFs) && HandProgramCompiles(handVs,handFs)) {
+            useVs=handVs.c_str(); useFs=handFs.c_str();
+        } else {
+            Log("handskin: shader patch rejected; retaining native masked hand fallback");
+        }
+    }
+    original(shader, cull, fvf, useVs, useFs);
 
     // shader_init just gave this Shader a fresh program. If the name is being
     // reused -- a context reset rebuilds the programs -- any uniform locations
@@ -205,6 +242,10 @@ struct ProgramState {
     GLint locBone   = -2;     // -2 = not looked up yet, -1 = not one of ours
     GLint locRegion = -2;
     bool  live      = false;  // uDynBone.w currently uploaded as 1
+    GLint locHand = -2;
+    GLint locJoints = -2;
+    bool handLive = false;
+    bool handLogged = false;
 };
 ProgramState g_prog[kMaxProgram];
 
@@ -626,7 +667,8 @@ bool EnsureRegion(GLuint prog) {
 // ---------------------------------------------------------------------------
 
 void BoneSkinInstall() {
-    if (!Cfg().enabled || !Cfg().dynamicBones || Cfg().dynamicBonesShader != 1) return;
+    if (!Cfg().enabled ||
+        (!(Cfg().dynamicBones && Cfg().dynamicBonesShader==1) && !Cfg().firstPersonMotionGuns)) return;
     const Layout& lay = L();
     if (lay.shader_init == 0) {
         LogF("boneskin: not available on %s -- the per-vertex chest path needs "
@@ -683,6 +725,41 @@ void BoneSkinResetRegion() {
 }
 
 void BoneSkinAfterValidate(bool jointApplied) {
+    // This runs after native validate_draw uploads its masked palette and
+    // before either eye draws. The hand shader hides fragments, while every
+    // vertex retains all three bone contributions and its full normal.
+    int handJoint=-1;
+    const float* handPalette=FirstPersonHandSkin(handJoint);
+    const auto& state=VidState();
+    if (gl::LoadedSkinApi() && state.shader>=0 && state.shader<kShaderCount) {
+        const GLuint program=Shaders()[state.shader].id;
+        if (program && program<kMaxProgram) {
+            auto& p=g_prog[program];
+            if (p.locHand==-2) {
+                p.locHand=gl::GetUniformLocation(program,"uTrackedHand");
+                p.locJoints=gl::GetUniformLocation(program,"uJoints[0]");
+            }
+            if (p.locHand>=0) {
+                const bool active=handPalette && p.locJoints>=0;
+                if (active || p.handLive) {
+                    const float hand[4]={float(handJoint),0,0,active ? 1.f : 0.f};
+                    gl::Uniform4fv(p.locHand,1,hand);
+                    p.handLive=active;
+                }
+                if (active) {
+                    gl::Uniform4fv(p.locJoints,96,handPalette);
+                    if (!p.handLogged) {
+                        LogF("handskin: intact wrist palette and fragment clipping active (shader=%d joint=%d)",
+                             state.shader,handJoint);
+                        p.handLogged=true;
+                    }
+                    // The next normal draw must restore the engine's palette,
+                    // including when it reuses this same GL program.
+                    VidState().consts|=kJoints;
+                }
+            }
+        }
+    }
     // One summary, on the first draw after the programs are built. shader_init
     // runs once per program, so a line per call would be 74 of them.
     if (!g_summaryLogged && Cfg().dynamicBonesShader == 1) {
@@ -707,7 +784,7 @@ void BoneSkinAfterValidate(bool jointApplied) {
 
     // DynamicBonesApply is the one switch for "change what is drawn", and it
     // has to govern this path as well as the rigid one.
-    const bool body = Cfg().dynamicBonesApply && DynamicBonesRenderBody();
+    const bool body = !handPalette && Cfg().dynamicBonesApply && DynamicBonesRenderBody();
 
     if (ps.locBone < 0) {
         // The failure that went unreported the first time round: her body

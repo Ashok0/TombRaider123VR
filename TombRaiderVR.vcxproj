@@ -145,6 +145,7 @@
     <ClInclude Include="src\Callsite.h" />
     <ClInclude Include="src\DynamicBones.h" />
     <ClInclude Include="src\BoneSkin.h" />
+    <ClInclude Include="src\HandSkin.h" />
     <ClInclude Include="src\Config.h" />
     <ClInclude Include="src\DefaultIni.h" />
     <ClInclude Include="src\Engine.h" />

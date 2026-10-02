@@ -62,7 +62,8 @@ DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
           'nActionIndicator', 'ActionIndicator', 'phd_persp', 'phd_centerx',
           'phd_centery', 'phd_znear', 'phd_zfar', 'next_item_free', 'items',
           'FireHarpoon', 'FireRocket', 'FireGrenade', 'ItemNewRoom',
-              'AnimateShotgun', 'DrawGunFlash']
+              'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
+          'find_target_point', 'LOS']
 # Not a symbol: the return address of the ONE phd_GenerateW2V call that builds
 # the main scene view, inside S_InitialisePolyList. FirstPerson.cpp gates on it
 # so it rewrites the scene camera and nothing else (inventory, shadows, pickup

@@ -68,9 +68,9 @@ pull-ups and hanging keep their native animated camera with a retracted anchor.
 Switching views recenters the tracking neutral. Swimming and
 cutscenes temporarily use the game's camera; first person resumes afterward.
 Native Action prompts appear at their nearby world positions in VR. In TR3
-crouch/crawl states Lara's obstructing body is hidden; ledge hanging and the
-short two-click crate vault keep her hands and arms visible, while tall pull-up
-uses the native arm pose. With movement
+crouch/crawl states Lara's obstructing body is hidden. As in TR4/5, only ledge
+hanging uses the arms-only mesh mask; crate pull-ups, vaults, jumps and falls
+use the normal first-person head hiding and native body animation. With movement
 stabilization enabled, the rendered eye uses raw headset displacement while
 Lara's body drag retains neck compensation,
 preventing subtle world motion during physical head turns.
@@ -78,8 +78,11 @@ preventing subtle world motion during physical head turns.
 `FirstPersonMotionGuns=1` enables experimental HD tracked guns. The equipped
 hand follows each VR controller and the rest of Lara's arms are hidden. Shots
 start from the tracked muzzle while the game retains ammo, damage, collision
-and target selection. A native target within 12 degrees gets a narrow assist;
-otherwise the controller direction wins. This covers TR1's pistols, magnums,
+and hit testing. Bullet weapons select enemies independently for each barrel,
+even when Lara has no native head/body lock. Direct sphere hits take priority;
+otherwise a visible enemy within `FirstPersonAutoAimDegrees` gets assistance
+toward its animated body (default 45 degrees; 0 disables bending).
+This covers TR1's pistols, magnums,
 Uzis and shotgun; TR2's pistols, automatic pistols, Uzis, shotgun, M16,
 grenade launcher and harpoon gun; and TR3's pistols, Desert Eagle, Uzis,
 shotgun, MP5, rocket launcher, grenade launcher and harpoon gun. With dual
@@ -90,6 +93,15 @@ person, positional tracking and HD graphics. They default to off pending
 in-headset weapon checks; ordinary head-aimed arms remain the default.
 The gun pitch now defaults to the same -30 degrees as the installed TR4/5
 profile, and native muzzle flashes follow the tracked gun pose in first person.
+The flash uses the same world axes as the HD hand palette, so stick rotation
+is applied once. Bullet origins use the game's per-weapon HD flash offsets.
+Tracked hand draws preserve forearm bone contributions at the wrist and hide
+unwanted arm fragments in the skin shader. This avoids collapsing the wrist's
+blended vertices when the native mesh mask zeroes hidden bones. The hand shader
+works with chest physics disabled; unsupported shaders keep native masking.
+These targeting and rotation fixes pass offline checks; headset confirmation
+is still required. The first 100 tracked shots log the selected target and its
+health before/after native damage for that check.
 
 The TR5 3x scope is fitted to an HK mesh absent from TR1-3, so it has no direct
 weapon/mesh equivalent here. TR1/2 have no crouch/prone states. The TR4-6
@@ -886,9 +898,20 @@ ammo, effects and simulation. If a required controller pose or per-weapon hook
 is unavailable, that weapon uses its native pose. Enable with
 `FirstPersonMotionGuns=1`; grip and angle calibration are in the INI. Each
 weapon still needs an in-headset gameplay and appearance check.
+Tracked shots and projectiles steer toward a living enemy already selected by
+the game's auto-target logic when the controller barrel is within
+`FirstPersonAutoAimDegrees` (default 45 degrees). Set it to 0 for unassisted
+shots, or up to 60 degrees for stronger assistance. The first 12 tracked shots
+log whether a native target was present and whether assist engaged; if the
+game selected no target, the controller shot remains unassisted.
 `DrawGunFlash` uses the same tracked wrist correction as the HD gun mesh,
 including the current scene view rotation. Outside first-person tracked-gun
 mode, the native flash render path is unchanged.
+When tracked guns are ready, Ctrl+F1–F6 adjust their live grip position by
+quarter-inch steps; Ctrl+Shift+F1–F6 adjust yaw, pitch and roll by one degree.
+Ctrl+F7 saves the fit to the INI after making a backup, and Ctrl+Shift+F7
+restores the last loaded or saved fit. These keys are captured only in the
+focused gameplay window while tracked guns are ready.
 The runtime log reports why tracked hands are unavailable while first person
 is active, including classic graphics, missing controller poses and gun state.
 
@@ -1136,8 +1159,10 @@ forward jump, `head` and `cam` should agree even after turning.
 | `PositionalTracking` | `1` | required for leaning and physical-step movement |
 | `FirstPersonHeadTranslation` | `1` | track displacement from the captured neutral |
 | `FirstPersonHeadAim` | `1` | pose equipped gun arms toward the headset in first person when no auto-target is selected |
-| `FirstPersonMovementStabilization` | `1` | smooth ground gait/stop and use raw head displacement for a world-stable rendered eye |
+| `FirstPersonMovementStabilization` | `1` | smooth ground gait and use raw head displacement for a world-stable rendered eye; the stick-release stop also works when this is off |
 | `FirstPersonMotionGuns` | `0` | opt-in tracked HD hands and controller-directed shots |
+| `FirstPersonAutoAimDegrees` | `45` | controller-shot assist toward the game's selected enemy; 0 disables it, maximum 60 |
+| `FirstPersonMotionGunHotkeys` | `1` | live Ctrl+function-key gun fit while tracked guns are ready |
 | `FirstPersonRecenterKey` | `0x23` | END resets position without changing world heading |
 | `FirstPersonBodyFollowsHead` | `1` | follow HMD heading while idle or physically dragging on the ground |
 | `FirstPersonBodyDeadzoneDegrees` | `0` | permitted body/head yaw difference |
@@ -1175,9 +1200,8 @@ layout and hook-window checks, including hitscan and projectile detours.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-09-30 Release/x64 DLL with arms-only visibility during pull-ups,
-their transition frames, and first-person jumps/falls is installed in the
-Steam game folder. Its SHA-256 is
+An earlier 2026-09-30 Release/x64 DLL used arms-only visibility during pull-ups,
+their transition frames, and first-person jumps/falls. Its SHA-256 is
 `9454522F24F327FDA2D9F44451A1AF0DEEAD9FD4471F42D6BF5D47AF118F1CCD`.
 The previous first-person-only clamp DLL is backed up as
 `TombRaiderVR.dll.pre-jump-ceiling-20260930`.
@@ -1208,11 +1232,10 @@ holster gesture. SteamVR may deliver controller input while the game mirror is
 not the foreground Windows window; the gun adapter no longer drops its equip
 state in that case. The live failure log showed `foreground=0`, a native draw
 bit while LT was held, then `4 -> 3` holstering after LT release. A regression
-test now covers the focus-loss case. Direct crate vaults and ledge mounts use
-the arms-only mask for the full pull-up state, without assuming an animation
-index. Runtime logs showed a pull-up transitioning through state 28/animation
-27 and a short vault ending in standing animation 51; those frames retain the
-arms-only mask. The first grounded frame after a mount uses Lara's current root
+test now covers the focus-loss case. Runtime logs showed a pull-up transitioning
+through state 28/animation 27 and a short vault ending in standing animation 51.
+Those transitions now use the normal head-hidden mesh, matching TR4/5's
+hanging-only arm mask. The first grounded frame after a mount uses Lara's current root
 height if her native head is already at standing height, avoiding a one-frame
 camera lag from interpolating the previous climb root. Until a valid standing
 pose exists, the camera uses the native joint rather than a guessed height.
@@ -1234,19 +1257,50 @@ step; the main-game jump showed 99 frames, 9 late frames and a 95-unit step.
 The Manor log also showed the old ceiling clamp forcing the headset height to
 zero in third person. The clamp now remains available in both views, using the
 native camera in third person and Lara's rendered eye in first person, but
-pauses during jumps/falls and for 250 ms after landing. Close-bat firing, the
-corrected Manor jump and the revised crate/jump mesh mask still need headset
-verification.
+pauses during jumps/falls and for 250 ms after landing. Close-bat firing and
+the corrected Manor jump still need headset verification.
 The 2026-09-30 follow-up fixes the ceiling cap's coordinate system: it now
 limits headset rise relative to the recentered headset height, the same origin
 used by the rendered camera. The prior absolute cap could shift the view when
 it resumed after a jump or after a crate mount. Self-tests cover neutral-height
 continuity at landing and crate-height capping; the Release/x64 build and all
-1,734 address checks pass. The installed DLL SHA-256 is
+1,734 address checks pass. That DLL's SHA-256 is
 `71BA071CB619CB40FD957822FCC03706C607CE796CB60BEB2409B3806E3DADB2`;
 the preceding build is backed up as
 `TombRaiderVR.dll.pre-neutral-ceiling-20260930`. A headset check is still
 needed for the reported landing angle and crate-head appearance.
+The 2026-10-01 build matches TR4/5's mesh policy: only ledge hanging uses the
+arms-only mask. Crate pull-ups, their state 28/animation 27 and standing
+animation 51 transitions, and jumps/falls use the ordinary head-hidden body
+draw. The first-person camera, collision clearance and standing-eye fixes
+remain in place. The self-tests and 1,734 address checks passed; that
+Release/x64 DLL SHA-256 is
+`36F122D7C88112B922B59DF48B63CC2F4F0300BE279F503D9ED62D79BD6FBA47`.
+The prior DLL is backed up as `TombRaiderVR.dll.pre-tr45-hang-mask-20261001`.
+Crate mounting and edge jumps still need headset verification.
+The subsequent full first-person parity pass makes TR1–3's native stick-release
+brake match TR4/5 even with movement stabilization disabled, while excluding
+gravity frames, jumps and pull-ups. It also connects TR4/5's live tracked-gun
+fit keys and backed-up INI save to the existing TR1–3 calibration math. The HK
+3× scope remains TR5-specific because its scope mesh and optic path do not
+exist in TR1–3; TR1/2 also lack crouch/prone states. Existing camera-height
+and collision safeguards remain in place because their game-specific animation
+transitions differ. Headset checks remain necessary for movement feel and gun
+fit across all three games. The final Release/x64 DLL is installed in the
+Steam game folder, with SHA-256
+`0D56F4C922D4857991B7C9644D42EC77C0ED92700C38C32836FC8C5C20ED5D30`.
+The preceding installed DLL is backed up as
+`TombRaiderVR.dll.pre-full-fp-parity-20261001`.
+The 2026-10-01 first-person auto-aim follow-up widens tracked-shot assist from
+12 to 45 degrees around each controller barrel, using only the game's living
+selected enemy. Hitscan and projectile paths share the adjustable
+`FirstPersonAutoAimDegrees` setting (0–60). The first 12 tracked shots report
+native target and assist status in the log. The Release/x64 DLL is installed,
+with SHA-256
+`6D07B3C58798EBD612DB677E6DAC838E38AAD687BA41D3BD914A16F1ACD1E6BE`;
+the previous DLL is `TombRaiderVR.dll.pre-autoaim-20261001`. Self-tests and all
+1,734 address checks pass. Target selection and aiming feel need a headset
+check in TR1, TR2 and TR3.
 The earlier
 2026-09-25 build has SHA-256
 `5027B471FE34BA668A3D928167E440E865AD15BC8F700968C44E497527F1D51F`;

@@ -16,6 +16,9 @@ alignas(8) unsigned char testModule[32]{};
 alignas(8) unsigned char testItem[512]{};
 bool testWorld = true;
 int testLevel = 1;
+const float* testHandPalette=nullptr;
+int testHandJoint=-1;
+const float* FirstPersonHandSkin(int& joint) { joint=testHandJoint; return testHandPalette; }
 const Config& Cfg() { return testConfig; }
 RenderState& VidState() { return testState; }
 Shader* Shaders() { return testShaders; }
@@ -166,14 +169,40 @@ int main(int argc, char** argv) {
             if (Recognise(source)) sources.insert(source);
         }
         Require(!sources.empty(), "real TR1-3 skin shader family is recognized");
+        std::set<std::string> fragments;
+        for (size_t at=0;(at=data.find("#version",at))!=std::string::npos;++at) {
+            const size_t end=data.find('\0',at);
+            if (end==std::string::npos) continue;
+            const auto source=data.substr(at,end-at);
+            if (source.find("void main()")!=std::string::npos &&
+                source.find("gl_Position")==std::string::npos &&
+                source.find("fragColor")!=std::string::npos) fragments.insert(source);
+        }
+        int nativePairs=0;
         for (const auto& source : sources) {
             std::string error;
             onePatched = Patch(source);
             const bool ok = CompilesOk(onePatched, error);
             if (!ok) std::fprintf(stderr, "%s\n", error.c_str());
             Require(ok, "patched game vertex shader compiles on driver");
+            std::string handVertex=onePatched;
+            std::string handFragment="#version 150\nout vec4 color; void main(){ color=vec4(1.0); }";
+            Require(handskin::Patch(handVertex,handFragment) &&
+                    HandProgramCompiles(handVertex,handFragment),
+                    "hand visibility links with real game skin and chest patches");
+            int pairs=0;
+            for (const auto& nativeFragment : fragments) {
+                if (!HandProgramCompiles(source,nativeFragment)) continue;
+                handVertex=onePatched; handFragment=nativeFragment;
+                Require(handskin::Patch(handVertex,handFragment) &&
+                        HandProgramCompiles(handVertex,handFragment),
+                        "hand patch preserves a compatible native vertex/fragment pair");
+                ++pairs; ++nativePairs;
+            }
+            Require(pairs>0,"each real skin shader links with native fragments after patch");
         }
-        std::printf("%s: %zu distinct skin sources compiled\n", argv[arg], sources.size());
+        std::printf("%s: %zu skin sources, %d native hand shader pairs compiled\n",
+                    argv[arg], sources.size(),nativePairs);
     }
     GLuint vertex = gl::CreateShader(GL_VERTEX_SHADER), fragment = gl::CreateShader(GL_FRAGMENT_SHADER);
     const char* vertexText = onePatched.c_str();
@@ -209,6 +238,75 @@ int main(int argc, char** argv) {
     BoneSkinResetRegion();
     Require(!BoneSkinActive() && !g_regionReady && g_measuredBuffers.empty(), "game/level reset drops mesh calibration");
     Require(glGetError() == GL_NO_ERROR, "shader validation leaves no GL error");
+    gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
+
+    // Actual GPU regression: vertices split 50/50 between wrist and forearm
+    // must keep their full positions. Native masking supplies a zero forearm.
+    std::string handVertex=R"GLSL(#version 150
+uniform vec4 uJoints[96];
+uniform vec4 uWeights;
+void main() {
+    vec2 points[3]=vec2[3](vec2(-1,-1),vec2(3,-1),vec2(-1,3));
+    vec4 coord=vec4(points[gl_VertexID],0,1);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    ivec3 index=ivec3(j.xyz)*3;
+    float weight=w.x;
+    vec3 p=vec3(dot(uJoints[index[0]],coord),dot(uJoints[index[0]+1],coord),dot(uJoints[index[0]+2],coord))*weight;
+    weight=w.y;
+    p+=vec3(dot(uJoints[index[1]],coord),dot(uJoints[index[1]+1],coord),dot(uJoints[index[1]+2],coord))*weight;
+    weight=w.z;
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    gl_Position=vec4(p.xy,0,1);
+}
+)GLSL";
+    // Keep the real shader's j/w declarations for the production patcher.
+    handVertex.insert(handVertex.find("void main()"),
+        "#define aLight vec4(10,9,0,0)\n#define aColor uWeights\n");
+    std::string handFragment="#version 150\nout vec4 color; void main(){ color=vec4(1,1,1,1); }";
+    Require(handskin::Patch(handVertex,handFragment),"patch mixed wrist/forearm GPU regression");
+    vertex=gl::CreateShader(GL_VERTEX_SHADER); fragment=gl::CreateShader(GL_FRAGMENT_SHADER);
+    vertexText=handVertex.c_str(); fragmentText=handFragment.c_str();
+    gl::ShaderSource(vertex,1,&vertexText,nullptr); gl::CompileShader(vertex);
+    gl::ShaderSource(fragment,1,&fragmentText,nullptr); gl::CompileShader(fragment);
+    program=gl::CreateProgram(); gl::AttachShader(program,vertex); gl::AttachShader(program,fragment);
+    gl::LinkProgram(program); gl::GetProgramiv(program,GL_LINK_STATUS,&linked);
+    Require(linked!=0,"mixed wrist regression links");
+    gl::UseProgram(program); testShaders[0].id=program; InvalidateProgram(program);
+    GLuint vao=0; gl::GenVertexArrays(1,&vao); gl::BindVertexArray(vao);
+    glViewport(0,0,8,8); glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
+    float fullPalette[96*4]{};
+    for (int joint=0;joint<32;++joint) {
+        fullPalette[joint*12]=fullPalette[joint*12+5]=fullPalette[joint*12+10]=1;
+    }
+    float maskedPalette[96*4]{};
+    std::memcpy(maskedPalette+10*12,fullPalette+10*12,12*sizeof(float));
+    const GLint jointsLoc=gl::GetUniformLocation(program,"uJoints[0]");
+    const GLint weightsLoc=gl::GetUniformLocation(program,"uWeights");
+    const float mixedWeights[4]={.5f,.5f,0,0};
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    testHandPalette=fullPalette; testHandJoint=10;
+    testConfig.dynamicBones=false; // Hand correction must work independently.
+    BoneSkinAfterValidate(false);
+    const auto pixelWhite=[&]() {
+        glClearColor(0,0,0,1); glClear(GL_COLOR_BUFFER_BIT);
+        glDrawArrays(GL_TRIANGLES,0,3);
+        unsigned char pixel[4]{}; glReadPixels(6,6,1,1,GL_RGBA,GL_UNSIGNED_BYTE,pixel);
+        return pixel[0]>240 && pixel[1]>240 && pixel[2]>240;
+    };
+    Require(pixelWhite(),"mixed wrist vertices keep full shape with hidden forearm");
+    Require((testState.consts&kJoints)!=0,"hand GPU override dirties next native palette upload");
+    const float forearmWeights[4]={0,1,0,0};
+    gl::Uniform4fv(weightsLoc,1,forearmWeights);
+    Require(!pixelWhite(),"unwanted forearm fragments are hidden without collapsing bones");
+    testHandPalette=nullptr; testHandJoint=-1;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"following non-hand draw clears persistent wrist clipping");
+    Require(glGetError()==GL_NO_ERROR,"hand skin GPU regression leaves no GL errors");
+    gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);
     gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
     wglMakeCurrent(nullptr, nullptr); wglDeleteContext(context); ReleaseDC(window,dc); DestroyWindow(window);
     g_boundDll = nullptr;

@@ -342,13 +342,24 @@ FirstPersonMovementStabilization=1
 ; use that controller's barrel. LT tap fires the left dual gun on release,
 ; RT fires the right; hold LT for 0.5 s to draw/holster. Long guns keep RT.
 ; Requires first person, HD graphics and positional tracking.
+; When motion guns are unavailable, use headset yaw and pitch for native aiming.
+FirstPersonHeadAim=1
 FirstPersonMotionGuns=0
+; Controller bullets select enemies along each barrel, independently of head aim.
+; This angle permits assistance toward a visible enemy when the barrel misses.
+; 0 disables bending (direct hits still work); 45 is forgiving.
+FirstPersonAutoAimDegrees=45
 FirstPersonMotionGunGripForwardMetres=0.1778
 FirstPersonMotionGunRaiseMetres=0.0254
 FirstPersonMotionGunRightMetres=0
 FirstPersonMotionGunPitchDegrees=-30
 FirstPersonMotionGunYawDegrees=0
 FirstPersonMotionGunRollDegrees=0
+; Ctrl+F1/F2 left/right; F3/F4 down/up; F5/F6 back/forward (1/4 inch).
+; Ctrl+Shift+F1/F2 yaw; F3/F4 pitch; F5/F6 roll (1 degree).
+; Ctrl+F7 saves the fit to this INI after making a .motion-gun-calibration.bak.
+; Ctrl+Shift+F7 restores the last loaded/saved fit.
+FirstPersonMotionGunHotkeys=1
 
 ; Manual movement follows HMD world heading after physical and stick turns.
 ; Forward uses Lara's forward gait, back uses backpedal, and horizontal input

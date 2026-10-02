@@ -29,11 +29,13 @@
 #include "FirstPersonActionIcon.h"
 #include "MotionGunMath.h"
 #include "MotionGunInput.h"
+#include "Config.h"
 #include "HeadHeightClamp.h"
 
 #include <windows.h>
 #include <cstdio>
 #include <cmath>
+#include <string>
 
 static int g_fail = 0;
 
@@ -662,20 +664,18 @@ static void TestLocomotion() {
           IsClimbingCameraState(61) && !IsClimbingCameraState(10) &&
           !IsClimbingCameraState(36),
           "wall-climb camera sweep excludes pull-up, hanging and blocks");
+    Check(CanHardStopState(1,2,false) &&
+          CanHardStopState(2,1,false) &&
+          !CanHardStopState(1,2,true) &&
+          !CanHardStopState(1,3,false) &&
+          !CanHardStopState(19,2,false),
+          "stick-release stop excludes gravity, jumps and pull-ups");
     for (int state : {10, 30, 31, 75, 82, 83})
         Check(IsLedgeHangState(state),
               "hanging retains Lara's arms in first person");
-    for (int state : {2, 19, 36, 56, 61})
+    for (int state : {2, 3, 9, 15, 19, 28, 36, 56, 61})
         Check(!IsLedgeHangState(state),
-              "pull-up, walking, blocks and wall climbing leave the hanging arm mask");
-    Check(IsArmsOnlyFirstPersonState(19,42) &&
-          IsArmsOnlyFirstPersonState(28,27) &&
-          IsArmsOnlyFirstPersonState(2,51) &&
-          IsArmsOnlyFirstPersonState(10,96) &&
-          IsArmsOnlyFirstPersonState(3,11) &&
-          IsArmsOnlyFirstPersonState(9,11) &&
-          !IsArmsOnlyFirstPersonState(2,11),
-          "crate mounts and jumps retain arms without the torso");
+              "TR4/5-style arm mask ends before pull-up, crate and jump states");
     Check(IsJumpOrFallState(3) && IsJumpOrFallState(9) &&
           IsJumpOrFallState(15) && IsJumpOrFallState(25) &&
           IsJumpOrFallState(29) && !IsJumpOrFallState(2) &&
@@ -759,13 +759,45 @@ static void TestLocomotion() {
     CheckNear(barrel.z,1,"tracked barrel points along controller forward");
     int32_t flash[12]={16384,0,0,1600, 0,16384,0,3200,
                        0,0,16384,4800};
-    const int32_t view[12]={0,0,16384,0, 0,16384,0,0,
-                            -16384,0,0,0};
-    Check(RetargetFlashMatrix(flash,view,gun,{10,20,30}) &&
-          flash[0]==0 && flash[1]==16384 && flash[2]==0 &&
-          flash[3]==1600+30*16384 && flash[7]==3200+20*16384 &&
-          flash[11]==4800-10*16384,
-          "muzzle flash follows the tracked gun in the scene view");
+    Check(RetargetFlashMatrix(flash,gun,{10,20,30}) &&
+          flash[0]==16384 && flash[1]==0 && flash[2]==0 &&
+          flash[3]==1600+10*16384 && flash[7]==3200+20*16384 &&
+          flash[11]==4800+30*16384,
+          "muzzle flash keeps world axes used by the HD skin palette");
+    for (float heading : {0.f,Pi/2,Pi,-Pi/2,.73f}) {
+        const auto rotatedGun=GunBasis(ControllerBasis(controller,heading));
+        const tr::motiongun::Vec nativeHand{30,-400,120};
+        const tr::motiongun::Vec renderOrigin{200,0,300};
+        const auto trackedHand=HandInWorld({100,-500,200},.2f,-.1f,.4f,heading,1000);
+        const auto nativeRelative=Sub(nativeHand,renderOrigin);
+        int32_t matrix[12]={16384,0,0,int32_t(nativeRelative.x*16384),
+                           0,16384,0,int32_t(nativeRelative.y*16384),
+                           0,0,16384,int32_t(nativeRelative.z*16384)};
+        Check(RetargetFlashMatrix(matrix,rotatedGun,Sub(trackedHand,nativeHand)),
+              "flash correction accepts artificial turn");
+        const auto local=MuzzleLocal(1,1,0);
+        const auto muzzle=Add(trackedHand,Transform(rotatedGun,local));
+        // Native DrawGunFlash adds its local barrel offset before the shared
+        // renderer applies the scene view. Reconstruct that world position.
+        const tr::motiongun::Vec flashMuzzle{
+            renderOrigin.x+(matrix[3]+matrix[0]*local.x+matrix[1]*local.y+matrix[2]*local.z)/16384.f,
+            renderOrigin.y+(matrix[7]+matrix[4]*local.x+matrix[5]*local.y+matrix[6]*local.z)/16384.f,
+            renderOrigin.z+(matrix[11]+matrix[8]*local.x+matrix[9]*local.y+matrix[10]*local.z)/16384.f};
+        Check(std::fabs(flashMuzzle.x-muzzle.x)<.03f &&
+              std::fabs(flashMuzzle.y-muzzle.y)<.03f &&
+              std::fabs(flashMuzzle.z-muzzle.z)<.03f,
+              "flash and bullet muzzle agree after stick rotation");
+        const auto ray=Transform(rotatedGun,{0,1,0});
+        float hitDistance=0;
+        Check(ShotSphere(muzzle,ray,Add(muzzle,Scale(ray,1000)),100,hitDistance) &&
+              std::fabs(hitDistance-900)<.01f,
+              "barrel finds enemy sphere without head/body target at every heading");
+    }
+    float sphereDistance=0;
+    Check(!ShotSphere({0,0,0},{0,0,1},{200,0,600},100,sphereDistance) &&
+          !ShotSphere({0,0,0},{0,0,1},{0,0,-600},100,sphereDistance) &&
+          !ShotSphere({0,0,0},{0,0,1},{0,0,600},0,sphereDistance),
+          "sphere selection rejects sideways, rear and disabled hit spheres");
     const Basis identity{{{1,0,0},{0,1,0},{0,0,1}}};
     const Frame wrist{identity,{100,-500,200}};
     Frame inverseBind{},correction{};
@@ -783,6 +815,29 @@ static void TestLocomotion() {
     Check(AssistedDirection({0,0,0},{0,0,1},{30,0,600},assisted) &&
           !AssistedDirection({0,0,0},{0,0,1},{300,0,600},assisted),
           "native selected target assists only inside narrow barrel cone");
+    Check(AssistedDirection({0,0,0},{0,0,1},{300,0,600},assisted,45) &&
+          !AssistedDirection({0,0,0},{0,0,1},{900,0,600},assisted,45) &&
+          !AssistedDirection({0,0,0},{0,0,1},{30,0,600},assisted,0),
+          "configurable first-person aim widens native target assist and can be disabled");
+    CalibrationKeys calibrationKeys;
+    int command=-1;
+    Check(calibrationKeys.Event(0,true,true,false,false,true,false,command) &&
+          command==0 &&
+          calibrationKeys.Event(0,true,true,false,false,true,true,command) &&
+          command==-1 &&
+          calibrationKeys.Event(0,false,false,false,false,false,false,command),
+          "live gun-fit hotkeys consume one press and its release without repeats");
+    Check(!calibrationKeys.Event(1,true,false,false,false,true,false,command) &&
+          !calibrationKeys.Event(1,true,true,false,true,true,false,command),
+          "plain and Alt function keys retain their normal input");
+    Calibration fit{};
+    const float initialRight=fit.rightMetres;
+    AdjustCalibration(fit,1);
+    CheckNear(fit.rightMetres-initialRight,.00635f,
+              "live gun-fit position key moves one quarter inch");
+    AdjustCalibration(fit,10);
+    CheckNear(fit.pitchDegrees,-29.0f,
+              "live gun-fit angle key changes pitch by one degree");
     TriggerInput trigger;
     trigger.Update(true,true,false,false,0);
     trigger.Update(true,true,true,false,100);
@@ -894,6 +949,37 @@ static void TestLocomotion() {
           "distant Action prompt is not pulled into view");
 }
 
+static void TestGunCalibrationPersistence() {
+    printf("\nlive motion-gun fit persistence\n");
+    wchar_t folder[MAX_PATH]{}, path[MAX_PATH]{};
+    const DWORD length=GetTempPathW(MAX_PATH,folder);
+    Check(length>0 && length<MAX_PATH &&
+          GetTempFileNameW(folder,L"trv",0,path)!=0,
+          "temporary calibration INI created");
+    if (!path[0]) return;
+    const std::wstring backup=std::wstring(path)+L".motion-gun-calibration.bak";
+    WritePrivateProfileStringW(L"VR",L"FirstPersonMotionGunPitchDegrees",L"-30",path);
+    WritePrivateProfileStringW(L"VR",L"FirstPersonAutoAimDegrees",L"40",path);
+    tr::LoadConfig(path);
+    CheckNear(tr::Cfg().firstPersonAutoAimDegrees,40,
+              "first-person native-target assist cone loads from INI");
+    tr::AdjustMotionGunCalibration(10);
+    CheckNear(tr::LiveMotionGunCalibration().pitchDegrees,-29,
+              "live calibration updates the pose used by tracked guns");
+    Check(tr::SaveMotionGunCalibration() &&
+          GetFileAttributesW(backup.c_str())!=INVALID_FILE_ATTRIBUTES,
+          "saving live fit first backs up the INI");
+    wchar_t value[32]{};
+    GetPrivateProfileStringW(L"VR",L"FirstPersonMotionGunPitchDegrees",L"",value,32,path);
+    CheckNear(float(_wtof(value)),-29,"saved INI contains the live pitch");
+    tr::AdjustMotionGunCalibration(10);
+    tr::RestoreMotionGunCalibration();
+    CheckNear(tr::LiveMotionGunCalibration().pitchDegrees,-29,
+              "restore returns to the last saved gun fit");
+    DeleteFileW(backup.c_str());
+    DeleteFileW(path);
+}
+
 int main() {
     printf("TombRaiderVR self-test\n======================\n");
 
@@ -907,6 +993,7 @@ int main() {
     TestEngineConstBits();
     TestPortalGeometry();
     TestLocomotion();
+    TestGunCalibrationPersistence();
     TestInlineHook();
 
     printf("\n%s (%d failure%s)\n",

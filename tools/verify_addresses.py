@@ -164,7 +164,8 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'nActionIndicator', 'ActionIndicator', 'phd_persp', 'phd_centerx',
           'phd_centery', 'phd_znear', 'phd_zfar', 'next_item_free', 'items',
           'FireHarpoon', 'FireRocket', 'FireGrenade', 'ItemNewRoom',
-          'AnimateShotgun', 'DrawGunFlash']
+          'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
+          'find_target_point', 'LOS']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -267,6 +268,9 @@ for dll, stamp, vals in rows:
     # The layouts FirstPerson.cpp reads: Lara's pose and joints, and the
     # geometry pointer that identifies the face and sunglasses draws.
     size, f = udt(dll, 'ITEM_INFO')
+    check('%s sizeof(ITEM_INFO)' % dll, 0xE50, size)
+    check('%s ITEM_INFO::next_active' % dll, 32, f.get('next_active'))
+    check('%s ITEM_INFO::hit_points' % dll, 38, f.get('hit_points'))
     check('%s ITEM_INFO::mesh_bits' % dll, 12, f.get('mesh_bits'))
     check('%s ITEM_INFO::anim_number' % dll, 24, f.get('anim_number'))
     check('%s ITEM_INFO::room_number' % dll, 28, f.get('room_number'))
@@ -278,6 +282,7 @@ for dll, stamp, vals in rows:
 
     size, f = udt(dll, 'object_info')
     check('%s sizeof(object_info)' % dll, 2304, size)
+    check('%s object_info::nmeshes' % dll, 0, f.get('nmeshes'))
     check('%s object_info::geom' % dll, 88, f.get('geom'))
 
     size, f = udt(dll, 'GEOM_INFO')

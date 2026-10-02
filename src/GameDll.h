@@ -133,6 +133,10 @@ struct GameDllLayout {
     uint32_t itemNewRoom;
     uint32_t animateShotgun; // TR2 inlines its grenade launcher in this routine
     uint32_t drawGunFlash; // void DrawGunFlash(int gun, int unused, int joint)
+    uint32_t nextItemActive; // int16, native target candidate list
+    uint32_t getSpheres; // int GetSpheres(ITEM_INFO*, SPHERE*, int worldSpace)
+    uint32_t findTargetPoint; // void find_target_point(ITEM_INFO*, GAME_VECTOR*)
+    uint32_t los; // int LOS(GAME_VECTOR*, GAME_VECTOR*), no damage/effects
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

@@ -28,7 +28,7 @@ set "ROOT=%~dp0.."
 if not exist "%ROOT%\build\test" mkdir "%ROOT%\build\test"
 pushd "%ROOT%\build\test"
 
-cl /nologo /std:c++17 /permissive- /EHsc /W4 /MT /O2 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS /I "%ROOT%\src" "%ROOT%\tests\selftest.cpp" "%ROOT%\src\InlineHook.cpp" "%ROOT%\src\Log.cpp" /Fe:selftest.exe
+cl /nologo /std:c++17 /permissive- /EHsc /W4 /MT /O2 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS /I "%ROOT%\src" "%ROOT%\tests\selftest.cpp" "%ROOT%\src\InlineHook.cpp" "%ROOT%\src\Log.cpp" "%ROOT%\src\Config.cpp" /Fe:selftest.exe
 if errorlevel 1 goto build_failed
 
 .\selftest.exe

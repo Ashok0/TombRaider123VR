@@ -73,15 +73,17 @@ inline float Dot(Vec a, Vec b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
 inline Vec Cross(Vec a, Vec b) {
     return {a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x};
 }
-// Small per-hand assist, never a head/body-aim override. The caller supplies
-// only the native selected, living, unobstructed target.
-inline bool AssistedDirection(Vec muzzle, Vec barrel, Vec target, Vec& result) {
+// Per-hand assist, never a head/body-aim override. The caller supplies only
+// a living, unobstructed target. Zero disables assistance.
+inline bool AssistedDirection(Vec muzzle, Vec barrel, Vec target, Vec& result,
+                              float coneDegrees=12.0f) {
     const Vec delta=Sub(target,muzzle);
     const float length2=Dot(delta,delta), barrel2=Dot(barrel,barrel);
-    if (!std::isfinite(length2) || !std::isfinite(barrel2) ||
+    if (!std::isfinite(coneDegrees) || coneDegrees<=0 || coneDegrees>60 ||
+        !std::isfinite(length2) || !std::isfinite(barrel2) ||
         length2<1.f || length2>8192.f*8192.f || barrel2<.0001f) return false;
     const Vec direction=Scale(delta,1.f/std::sqrt(length2));
-    constexpr float cosCone=.978147601f; // 12 degrees
+    const float cosCone=std::cos(coneDegrees*(3.14159265358979323846f/180.0f));
     if (Dot(direction,barrel)/std::sqrt(barrel2)<cosCone) return false;
     result=direction;
     return true;
@@ -104,24 +106,17 @@ inline Basis Multiply(const Basis& a, const Basis& b) {
                 result.r[row][col] += a.r[row][k] * b.r[k][col];
     return result;
 }
-// DrawGunFlash receives Lara's interpolated wrist matrix in view space. Move
+// DrawGunFlash receives Lara's interpolated wrist matrix in world axes. Move
 // its origin by the same world-space correction as the HD hand palette and
-// replace its axes with the controller gun axes in that view. Native flash
+// replace its axes with the controller gun axes. Native flash
 // offsets and spin are still applied by DrawGunFlash itself.
-inline bool RetargetFlashMatrix(int32_t* wrist, const int32_t* worldToView,
-                                const Basis& gun, Vec handDelta) {
+inline bool RetargetFlashMatrix(int32_t* wrist, const Basis& gun, Vec handDelta) {
     constexpr float fixed=16384.f;
-    Basis view{};
-    for (int row=0; row<3; ++row)
-        for (int col=0; col<3; ++col)
-            view.r[row][col]=worldToView[row*4+col]/fixed;
-    const Basis rotated=Multiply(view,gun);
-    const Vec moved=Transform(view,handDelta);
-    const float displacement[3]={moved.x,moved.y,moved.z};
+    const float displacement[3]={handDelta.x,handDelta.y,handDelta.z};
     int32_t result[12];
     for (int row=0; row<3; ++row) {
         for (int col=0; col<3; ++col) {
-            const double value=double(rotated.r[row][col])*fixed;
+            const double value=double(gun.r[row][col])*fixed;
             if (!std::isfinite(value) ||
                 value<std::numeric_limits<int32_t>::min() ||
                 value>std::numeric_limits<int32_t>::max()) return false;
@@ -135,6 +130,20 @@ inline bool RetargetFlashMatrix(int32_t* wrist, const int32_t* worldToView,
         result[row*4+3]=int32_t(std::llround(value));
     }
     for (int i=0;i<12;++i) wrist[i]=result[i];
+    return true;
+}
+
+// Match FireWeapon's sphere test: centre in front by more than its radius,
+// and the ray passing inside the projected circle. The returned distance is
+// the same conservative near endpoint used by its native obstruction test.
+inline bool ShotSphere(Vec muzzle, Vec ray, Vec centre, float radius, float& distance) {
+    const Vec delta=Sub(centre,muzzle);
+    const float ray2=Dot(ray,ray);
+    if (!(radius>0) || !std::isfinite(ray2) || ray2<.0001f) return false;
+    const float along=Dot(delta,ray)/std::sqrt(ray2);
+    const float across2=Dot(delta,delta)-along*along;
+    if (!std::isfinite(along) || along<=radius || across2>=radius*radius) return false;
+    distance=along-radius;
     return true;
 }
 
@@ -222,14 +231,17 @@ inline Vec MuzzleLocal(int weapon, int hand, int game=0) {
     // HD flash offsets (hand 0=left, 1=right). TR1/2 weapon 2 is dual;
     // TR3 weapon 2 is the single Desert Eagle.
     switch (weapon) {
-    case 2: return {game==2 || hand ? -11.0f : 11.0f,195,60};
-    case 3: return {hand ? -10.0f : 10.0f,180,45};
+    case 2: return game==2 ? Vec{-20,215,52} :
+        Vec{hand ? -11.f : 10.f,game==1 ? 213.f : 185.f,game==1 ? 50.f : 33.f};
+    case 3: return game==2 ? Vec{hand ? -16.f : 14.f,206,40} :
+        Vec{hand ? -11.f : 10.f,208,38};
     case 4: return {0,228,32}; // FireShotgun's barrel/smoke origin
-    case 5: return game==2 ? Vec{0,270,78} : Vec{0,276,80};
+    case 5: return game==2 ? Vec{0,270,78} : Vec{0,335,93};
     case 6: return game==1 ? Vec{0,203,97} : Vec{0,228,72};
     case 7: return game==1 ? Vec{-2,368,92} : Vec{0,180,80};
     case 8: return {-2,593,141};
-    default: return {hand ? -10.0f : 10.0f,190,35};
+    default: return {hand ? -11.f : 10.f,game==0 ? 182.f : game==1 ? 183.f : 180.f,
+                    game==0 ? 33.f : game==1 ? 35.f : 30.f};
     }
 }
 
