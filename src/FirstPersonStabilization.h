@@ -70,6 +70,16 @@ struct GroundEye {
     bool valid = false;
     Point local{};
     void Reset() { *this = {}; }
+    void Resume(bool sameBody,float oldYaw,float newYaw,float scriptedBodyTurn) {
+        if (!sameBody) { Reset(); return; }
+        if (!valid) return;
+        // A new tracking neutral changes the coordinate basis, not Lara's
+        // calibrated eye position. Only a scripted turn of her body should
+        // rotate that offset in world space during a camera handoff.
+        const auto flat=locomotion::Rotate({local.x,local.z},
+            oldYaw+scriptedBodyTurn-newYaw);
+        local.x=flat.x; local.z=flat.z;
+    }
     Point Apply(Point root, float artificialYaw, Point animated) {
         using namespace locomotion;
         const float height=animated.y-root.y;

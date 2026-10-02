@@ -137,6 +137,7 @@ struct GameDllLayout {
     uint32_t getSpheres; // int GetSpheres(ITEM_INFO*, SPHERE*, int worldSpace)
     uint32_t findTargetPoint; // void find_target_point(ITEM_INFO*, GAME_VECTOR*)
     uint32_t los; // int LOS(GAME_VECTOR*, GAME_VECTOR*), no damage/effects
+    uint32_t animatePistols; // native cadence/flash animation; controller free-aim scope
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

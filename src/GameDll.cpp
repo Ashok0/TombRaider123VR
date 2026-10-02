@@ -106,7 +106,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* next_item_active  */ 0x003EC6D0,
           /* GetSpheres        */ 0x00043C50,
           /* find_target_point */ 0x00028CA0,
-          /* LOS               */ 0x00058E50 },
+          /* LOS               */ 0x00058E50,
+          /* AnimatePistols    */ 0x000278A0 },
 
         { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
           /* lara            */ 0x0037AD40,
@@ -172,7 +173,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* next_item_active  */ 0x0042B6E6,
           /* GetSpheres        */ 0x000791D0,
           /* find_target_point */ 0x0004C890,
-          /* LOS               */ 0x0008B390 },
+          /* LOS               */ 0x0008B390,
+          /* AnimatePistols    */ 0x00049650 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
           /* lara            */ 0x003D1C40,
@@ -238,7 +240,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* next_item_active  */ 0x0048B1E0,
           /* GetSpheres        */ 0x000B2E70,
           /* find_target_point */ 0x0006A7C0,
-          /* LOS               */ 0x000D2680 },
+          /* LOS               */ 0x000D2680,
+          /* AnimatePistols    */ 0x00066FA0 },
     },
 
     // Aspyr retail build, shipped without PDBs (exe row: kBuildAspyrRetail in
@@ -312,7 +315,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* next_item_active  */ 0x003ED610,
           /* GetSpheres        */ 0x00043B30,
           /* find_target_point */ 0x00028E40,
-          /* LOS               */ 0x00058D60 },
+          /* LOS               */ 0x00058D60,
+          /* AnimatePistols    */ 0x00027A30 },
 
         { L"tomb2.dll", "Tomb Raider II", 0x6A4B7C3F,
           /* lara            */ 0x0037AC80,
@@ -378,7 +382,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* next_item_active  */ 0x0042B626,
           /* GetSpheres        */ 0x00078C10,
           /* find_target_point */ 0x0004C8C0,
-          /* LOS               */ 0x0008AD60 },
+          /* LOS               */ 0x0008AD60,
+          /* AnimatePistols    */ 0x00049680 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B7C37,
           /* lara            */ 0x003D4B80,
@@ -444,7 +449,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* next_item_active  */ 0x0048E120,
           /* GetSpheres        */ 0x000B45B0,
           /* find_target_point */ 0x0006AAC0,
-          /* LOS               */ 0x000D3F10 },
+          /* LOS               */ 0x000D3F10,
+          /* AnimatePistols    */ 0x00067290 },
     },
 };
 

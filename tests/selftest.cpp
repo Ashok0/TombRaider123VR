@@ -875,6 +875,33 @@ static void TestLocomotion() {
     both.Update(true,true,true,true,4300);
     Check(both.Consume(0) && both.Consume(1) && !both.Equip(4300),
           "RT clears an already latched LT hold when guns are still ready");
+    int bat=1;
+    void* nativeTarget=&bat;
+    TriggerInput attackingBat;
+    attackingBat.Update(true,true,false,false,0);
+    unsigned shots=0;
+    // Native AnimatePistols raises/fires with an arm lock OR with fire input
+    // and a null native target. A bat can remain targeted after both arm
+    // locks are lost. Exercise sustained triggers through that transition.
+    for (uint64_t t=20;t<=120000;t+=20) {
+        attackingBat.Update(true,true,true,true,t);
+        const bool locked=t<2000;
+        const bool fire=attackingBat.WantsShot();
+        if (t==2000) Check(fire && !(locked || (fire && !nativeTarget)),
+            "reproduce drawn guns blocked by an unlocked native bat target");
+        {
+            ScopedControllerAim scope(nativeTarget,fire);
+            if ((locked || (fire && !nativeTarget)) && t%200==0) {
+                shots+=attackingBat.Consume(0);
+                shots+=attackingBat.Consume(1);
+            }
+        }
+        if (nativeTarget!=&bat || attackingBat.Equip(t)) break;
+    }
+    Check(shots==1200 && nativeTarget==&bat,
+          "two-minute dual-trigger hold keeps native cadence after arm-lock loss and restores targeting");
+    { ScopedControllerAim scope(nativeTarget,false);
+      Check(nativeTarget==&bat,"third-person/non-firing target remains untouched"); }
     TriggerInput hitRecovery;
     hitRecovery.Update(true,true,false,false,10);
     hitRecovery.Update(false,false,true,false,20); // interrupted by hit camera
@@ -989,6 +1016,35 @@ static void TestLocomotion() {
     const auto lateClimb=vaultEye.Apply({0,-768,0},0,{0,-1968,0});
     Check(lateClimb.y==-1480,
           "late pull-up skeleton cannot replace valid standing eye reference");
+
+    tr::stabilization::GroundEye handoffEye;
+    const auto calibrated=handoffEye.Apply({100,0,200},.35f,{120,-710,340});
+    // The user looks around during a fixed camera. On return, the HMD gets a
+    // new neutral while Lara's animation is looking sideways and leaning.
+    handoffEye.Resume(true,.35f,-1.1f,0);
+    auto resumed=handoffEye.Apply({400,0,500},-1.1f,{610,-650,510});
+    CheckNear(resumed.x,420,"camera handoff preserves horizontal body centering despite return-pose sway");
+    CheckNear(resumed.z,640,"headset yaw during a fixed camera cannot rotate the saved eye offset");
+    CheckNear(resumed.y,calibrated.y,"camera handoff preserves calibrated standing height");
+    // A scripted 90-degree body turn and teleport rotate/translate the same
+    // calibration; a new head pose is still not a new body calibration.
+    handoffEye.Resume(true,-1.1f,.8f,Pi/2);
+    resumed=handoffEye.Apply({5000,-768,6000},.8f,{5300,-1400,6040});
+    CheckNear(resumed.x,5140,"scripted body turn rotates the calibrated eye with Lara");
+    CheckNear(resumed.z,5980,"scripted relocation keeps the eye centered on the moved body");
+    CheckNear(resumed.y,-1478,"scripted relocation retains eye height above the new floor");
+    float basis=.8f;
+    for (int i=0;i<50;++i) {
+        const float next=(i%2) ? -.7f : 1.4f;
+        handoffEye.Resume(true,basis,next,0); basis=next;
+        resumed=handoffEye.Apply({5000,-768,6000},basis,{5600,-1380,5900});
+    }
+    Check(std::fabs(resumed.x-5140)<.01f && std::fabs(resumed.z-5980)<.01f,
+          "repeated camera takeovers do not accumulate a sideways mesh offset");
+    handoffEye.Resume(false,basis,0,0);
+    Check(!handoffEye.valid,"new level or Lara invalidates the old body calibration");
+    resumed=handoffEye.Apply({0,0,0},0,{0,-720,100});
+    CheckNear(resumed.z,100,"new body captures its own eye offset");
 
     const int32_t viewMatrix[12] = {
         16384,0,0,0, 0,16384,0,0, 0,0,16384,0

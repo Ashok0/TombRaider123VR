@@ -3,6 +3,23 @@
 
 namespace tr::motiongun {
 
+// AnimatePistols refuses free fire when a native target remains but its arm
+// lock has been lost. Controller aim chooses its own target in FireWeapon.
+// Hide only this obsolete lock dependency for the duration of animation;
+// preserve native target selection for the next normal simulation tick.
+struct ScopedControllerAim {
+    void*& target;
+    void* saved;
+    bool active;
+    ScopedControllerAim(void*& nativeTarget,bool enabled)
+        : target(nativeTarget),saved(nativeTarget),active(enabled) {
+        if (active) target=nullptr;
+    }
+    ~ScopedControllerAim() { if (active) target=saved; }
+    ScopedControllerAim(const ScopedControllerAim&)=delete;
+    ScopedControllerAim& operator=(const ScopedControllerAim&)=delete;
+};
+
 // SteamVR can keep controller polling the game after its desktop mirror loses
 // Win32 foreground focus. Native gun input keeps running in that situation,
 // so the persistent draw adapter must follow VR gameplay, not desktop focus.

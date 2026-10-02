@@ -129,6 +129,7 @@ hook::InlineHook g_hFireHarpoon;
 hook::InlineHook g_hFireRocket;
 hook::InlineHook g_hFireGrenade;
 hook::InlineHook g_hAnimateShotgun;
+hook::InlineHook g_hAnimatePistols;
 
 // Lara's head is mesh 14 of 15 in all three games -- the same index the camera
 // anchors to, because the HD skeleton's first meshes line up with the classic
@@ -169,6 +170,7 @@ const uint8_t kFireExplosivePrologue[] =
 const uint8_t kFireGrenadePrologue[] =
     {0x4C,0x8B,0xDC,0x48,0x81,0xEC,0x88,0x00,0x00,0x00};
 const uint8_t kAnimateShotgunPrologue[] = {0x89,0x4C,0x24,0x08,0x55};
+const uint8_t kAnimatePistolsPrologue[] = {0x48,0x89,0x5C,0x24,0x10};
 const uint8_t kDrawGunFlashTR1Prologue[] = {0x48,0x83,0xEC,0x28,0xF6,0x05};
 const int kDrawGunFlashTR1RipFixups[] = {6};
 const uint8_t kDrawGunFlashTR23Prologue[] =
@@ -234,6 +236,8 @@ stabilization::GroundEye g_groundEye;
 int g_lastClimbCameraState = -1;
 bool g_haveHeading = false;
 uint8_t* g_headingItem = nullptr;
+int g_headingLevel = -1;
+float g_lastBodyYaw = 0;
 locomotion::Vec g_previousBody;
 float g_lastHeadWorld = 0;
 locomotion::Vec g_manualLocal;
@@ -830,7 +834,8 @@ const char* MotionBlockedReason() {
     if (!g_boundDll || !g_boundBase || GameDllBound() != g_boundDll ||
         GameDllBase() != g_boundBase) return "game-DLL-changing";
     if (!g_hGetJoints.installed() || !g_hDrawCreatureHD.installed() ||
-        !g_hFireWeapon.installed() || !g_hGetTargetOnLOS.installed())
+        !g_hFireWeapon.installed() || !g_hGetTargetOnLOS.installed() ||
+        !g_hAnimatePistols.installed())
         return "motion-hooks-unavailable";
     if (!g_boundDll->nextItemActive || !g_boundDll->getSpheres ||
         !g_boundDll->findTargetPoint || !g_boundDll->los)
@@ -1106,7 +1111,8 @@ bool MotionTriggerMode() {
         GameDllBound()==g_boundDll && GameDllBase()==g_boundBase &&
         (AppFlag(drva::app_off::cfg_flags)&1))) return false;
     if (!Cfg().positionalTracking || !Cfg().firstPersonHeadTranslation ||
-        !g_hFireWeapon.installed() || !g_hGetTargetOnLOS.installed()) return false;
+        !g_hFireWeapon.installed() || !g_hGetTargetOnLOS.installed() ||
+        !g_hAnimatePistols.installed()) return false;
     const auto* item=*Ptr<uint8_t*>(g_boundDll->laraItem);
     if (!item || *reinterpret_cast<const int16_t*>(item+off::item_hit_points)<=0)
         return false;
@@ -1255,6 +1261,27 @@ int32_t __cdecl Detour_FireWeapon(int32_t weapon,void* target,void* extra,
                                motiongun::Sub(ray,gun.direction))>1e-8f),result,hpBefore,hpAfter);
     }
     return result;
+}
+
+void __cdecl Detour_AnimatePistols(int32_t weapon) {
+    const auto original=g_hAnimatePistols.Original<void (__cdecl*)(int32_t)>();
+    if (!MotionReady() || !g_gunTriggers.WantsShot() ||
+        weapon!=*Ptr<int16_t>(g_boundDll->lara+4)) {
+        original(weapon); return;
+    }
+    auto& target=*Ptr<void*>(g_boundDll->lara+off::lara_target);
+    static uint64_t nextLog=0;
+    if (target && GetTickCount64()>=nextLog) {
+        const int left=*Ptr<int16_t>(g_boundDll->lara+off::lara_left_arm+off::arm_lock);
+        const int right=*Ptr<int16_t>(g_boundDll->lara+off::lara_right_arm+off::arm_lock);
+        if (!left || !right) {
+            LogF("firstperson: controller free fire bypasses native target lock=%d/%d pending=%d/%d",
+                 left,right,int(g_gunTriggers.pending[0]),int(g_gunTriggers.pending[1]));
+            nextLog=GetTickCount64()+5000;
+        }
+    }
+    motiongun::ScopedControllerAim aim(target,true);
+    original(weapon);
 }
 
 int32_t __cdecl Detour_GetTargetOnLOS(ShotVector* source,ShotVector* dest,
@@ -1571,8 +1598,10 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     const Vec body{static_cast<float>(Lerp(prev.x_pos, pos.x_pos, frac)),
                    static_cast<float>(Lerp(prev.z_pos, pos.z_pos, frac))};
     const float scale = LiveWorldUnitsPerMetre();
+    const int level=AppFlag(drva::app_off::level);
+    const bool sameBody=g_headingItem==item && g_headingLevel==level;
     const bool relocated = Length(body - g_previousBody) > std::max(1024.0f, scale * 2);
-    if (g_haveHeading && g_headingItem == item && !relocated) {
+    if (g_haveHeading && sameBody && !relocated) {
         // Consume only roomscale displacement actually visible this frame.
         // Native stick movement is absent from these counters. Applying the
         // same interpolation as the body keeps both body and view smooth.
@@ -1581,17 +1610,20 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         VR().ConsumeHeadFloorOffset(used.x, used.z);
         g_dragShown = shown;
     }
-    if (!g_haveHeading || g_headingItem != item || relocated) {
+    if (!g_haveHeading || !sameBody || relocated) {
         g_rootMotion.Reset();
-        const float facing = g_headingItem == item && !relocated
-            ? g_lastHeadWorld : Radians(pos.y_rot);
+        const float oldBase=g_heading.base;
+        const float bodyTurn=sameBody ? Wrap(Radians(pos.y_rot)-g_lastBodyYaw) : 0;
+        const float facing = sameBody && !relocated
+            ? Wrap(g_lastHeadWorld+bodyTurn) : Radians(pos.y_rot);
         g_heading.Align(facing, VR().HeadYawRadians());
+        g_groundEye.Resume(sameBody,oldBase,g_heading.base,bodyTurn);
         g_haveHeading = true;
         g_headingItem = item;
+        g_headingLevel = level;
         g_haveManualInput = false;
         g_dragPrevious = g_dragCurrent = g_dragShown = {};
         g_renderTurn.Reset();
-        g_groundEye.Reset();
         g_bodyTime = {};
         VR().RecenterHead();
         LogF("locomotion: aligned base=%.1f body=%.1f controls=%s",
@@ -1637,6 +1669,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         VR().ConsumeHeadFloorOffset(pending.x, pending.z);
     }
     TurnBodyToHead(item, Elapsed(g_bodyTime));
+    g_lastBodyYaw=Radians(pos.y_rot);
     pose.y_rot = Angle(g_heading.base);
     g_lastHeadWorld = g_heading.World(VR().HeadYawRadians());
 }
@@ -1731,10 +1764,18 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_haveManualInput = false;
             g_rootMotion.Reset();
             g_renderTurn.Reset();
-            g_groundEye.Reset();
+            // Retain the calibrated body-relative eye through fixed cameras,
+            // inventory and scripted sequences. Resume rebases its yaw; a
+            // different Lara/level invalidates it before it can be applied.
             g_lastClimbCameraState = -1;
             g_dragPrevious = g_dragCurrent = g_dragShown = {};
             g_neutralTaken = false;
+        }
+        if (wasActive!=g_active) {
+            const int type=*Ptr<int32_t>(g_boundDll->camera+off::camera_type);
+            LogF("firstperson: camera handoff %s type=%d level=%d standing-eye=%d offset=(%.1f,%.1f,%.1f)",
+                 g_active ? "resumed" : "suspended",type,AppFlag(drva::app_off::level),
+                 int(g_groundEye.valid),g_groundEye.local.x,g_groundEye.local.y,g_groundEye.local.z);
         }
         const int state = item
             ? *reinterpret_cast<const int16_t*>(item + off::item_anim_state) : -1;
@@ -1958,6 +1999,11 @@ bool Install(const GameDllLayout& d, uint64_t base) {
             kAnimateShotgunPrologue,sizeof(kAnimateShotgunPrologue),
             "AnimateShotgun"))
         Log("firstperson: tracked TR2 grenade hook unavailable");
+    if (!d.animatePistols || !g_hAnimatePistols.Install(
+            reinterpret_cast<void*>(base+d.animatePistols),
+            reinterpret_cast<void*>(&Detour_AnimatePistols),5,
+            kAnimatePistolsPrologue,sizeof(kAnimatePistolsPrologue),"AnimatePistols"))
+        Log("firstperson: controller free-fire hook unavailable");
 
     if (d.drawHair != 0 &&
         !g_hDrawHair.Install(
@@ -1987,6 +2033,7 @@ void Remove() {
     g_hFireRocket.Remove();
     g_hFireGrenade.Remove();
     g_hAnimateShotgun.Remove();
+    g_hAnimatePistols.Remove();
     g_hFireWeapon.Remove();
     g_hDrawGunFlash.Remove();
     g_hGenerateW2V.Remove();
@@ -2004,6 +2051,8 @@ void Remove() {
     g_lastGunTraceStatus=-1;
     g_haveHeading = false;
     g_headingItem = nullptr;
+    g_headingLevel = -1;
+    g_groundEye.Reset();
     g_haveManualInput = false;
     g_directionalRootScale = 1;
     g_rootMotion.Reset();

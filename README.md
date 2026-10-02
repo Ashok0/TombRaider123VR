@@ -90,6 +90,9 @@ guns, press LT to draw immediately when holstered, tap/release LT to fire left
 when ready, press RT to fire right, or hold both triggers to fire both guns.
 Hold LT alone for 0.5 seconds to holster. A dual-fire hold cannot turn into a
 holster gesture until LT is released; held RT resumes after tracking interruptions.
+Controller-aimed pistols also keep firing when a moving enemy remains selected
+but Lara loses native arm lock. The pistol animation temporarily uses free aim;
+each shot still uses the controller's target, native cadence, ammo and effects.
 Long guns keep RT firing. Motion guns require first
 person, positional tracking and HD graphics. They default to off pending
 in-headset weapon checks; ordinary head-aimed arms remain the default.
@@ -768,6 +771,12 @@ offset while Lara is held against geometry; ledge pull-up state 19 is included.
 Hanging keeps its existing camera behavior. These camera corrections run only
 when the first-person gameplay view is active. Switching to third person clears
 that state immediately and leaves the native chase camera alone.
+
+Fixed-camera and scripted-camera handoffs retain the calibrated standing eye
+offset. On return it is rebased to the new tracking neutral and any scripted
+body turn, so a temporary sideways head animation cannot become a permanent
+mesh offset. A different Lara or level starts a new calibration. Camera
+suspension/resumption and the retained offset are recorded in the mod log.
 
 #### What headset testing changed
 

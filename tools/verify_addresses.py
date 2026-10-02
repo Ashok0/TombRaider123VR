@@ -165,7 +165,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'phd_centery', 'phd_znear', 'phd_zfar', 'next_item_free', 'items',
           'FireHarpoon', 'FireRocket', 'FireGrenade', 'ItemNewRoom',
           'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
-          'find_target_point', 'LOS']
+          'find_target_point', 'LOS', 'AnimatePistols']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -425,6 +425,7 @@ try:
                           'DrawGunFlashTR23'): 'DrawGunFlash',
                          'LaraGunTR%d' % int(dll[4]): 'LaraGun',
                          **({'FireHarpoonStock': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
+                         'AnimatePistols': 'AnimatePistols',
                          **({'AnimateShotgun': 'AnimateShotgun'} if dll == 'tomb2.dll' else {}),
                          **({'FireExplosive': 'FireRocket',
                              'FireGrenade': 'FireGrenade'} if dll == 'tomb3.dll' else {}),
@@ -609,6 +610,7 @@ try:
                               'DrawGunFlashTR23'): 'DrawGunFlash',
                              'LaraGunTR%d' % int(dll[4]): 'LaraGun',
                              **({'FireHarpoonRetail': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
+                             'AnimatePistols': 'AnimatePistols',
                              **({'AnimateShotgun': 'AnimateShotgun'} if dll == 'tomb2.dll' else {}),
                              **({'FireExplosive': 'FireRocket',
                                  'FireGrenade': 'FireGrenade'} if dll == 'tomb3.dll' else {}),
