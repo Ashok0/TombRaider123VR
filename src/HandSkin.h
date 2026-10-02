@@ -18,6 +18,13 @@ inline bool Patch(std::string& vertex, std::string& fragment) {
     if (brace==std::string::npos) return false;
     vertex.insert(at+anchor.size(),
         "\n    ivec3 handIndex = ivec3(j.xyz);\n"
+        "    uint bodyBits = uint(uVisibleBody.x) | (uint(uVisibleBody.y) << 16u);\n"
+        "    vVisibleBodyWeight = 0.0;\n"
+        "    for (int b = 0; b < 3; ++b) {\n"
+        "        if (handIndex[b] >= 0 && handIndex[b] < 32 &&\n"
+        "            (bodyBits & (1u << uint(handIndex[b]))) != 0u)\n"
+        "            vVisibleBodyWeight += w[b];\n"
+        "    }\n"
         "    int handJoint = int(uTrackedHand.x);\n"
         "    vTrackedHandWeight = (handIndex.x == handJoint ? w.x : 0.0)\n"
         "                       + (handIndex.y == handJoint ? w.y : 0.0)\n"
@@ -27,10 +34,13 @@ inline bool Patch(std::string& vertex, std::string& fragment) {
         "        w.xyz = vec3(1.0, 0.0, 0.0);\n"
         "    }\n");
     vertex.insert(vertex.find(main),
-        "uniform vec4 uTrackedHand;\nout float vTrackedHandWeight;\n");
+        "uniform vec4 uTrackedHand;\nout float vTrackedHandWeight;\n"
+        "uniform vec4 uVisibleBody;\nout float vVisibleBodyWeight;\n");
     fragment.insert(brace+1,
-        "\n    if (uTrackedHand.w > 0.5 && vTrackedHandWeight < 0.5) discard;\n");
-    fragment.insert(fm,"uniform vec4 uTrackedHand;\nin float vTrackedHandWeight;\n");
+        "\n    if (uTrackedHand.w > 0.5 && vTrackedHandWeight < 0.5) discard;\n"
+        "    if (uVisibleBody.w > 0.5 && vVisibleBodyWeight < 0.5) discard;\n");
+    fragment.insert(fm,"uniform vec4 uTrackedHand;\nin float vTrackedHandWeight;\n"
+        "uniform vec4 uVisibleBody;\nin float vVisibleBodyWeight;\n");
     return true;
 }
 } // namespace tr::handskin

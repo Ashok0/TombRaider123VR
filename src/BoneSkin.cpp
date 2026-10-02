@@ -217,7 +217,9 @@ void __fastcall Detour_shader_init(Shader* shader, int cull, int fvf,
 
     std::string handVs,handFs;
     const char* useFs=fs;
-    if (c.enabled && c.firstPersonMotionGuns && useVs && fs && Recognise(useVs)) {
+    // Body visibility is also needed with motion guns disabled. Compile it
+    // ahead of time so toggling first person can use the existing programs.
+    if (c.enabled && useVs && fs && Recognise(useVs)) {
         handVs=useVs; handFs=fs;
         gl::Load();
         if (handskin::Patch(handVs,handFs) && HandProgramCompiles(handVs,handFs)) {
@@ -248,6 +250,8 @@ struct ProgramState {
     GLint locJoints = -2;
     bool handLive = false;
     bool handLogged = false;
+    GLint locVisibleBody = -2;
+    bool bodyMaskLive = false;
 };
 ProgramState g_prog[kMaxProgram];
 
@@ -898,8 +902,7 @@ void BoneSkinDrawWristCap(void* mesh,unsigned firstIndex,unsigned count) {
 }
 
 void BoneSkinInstall() {
-    if (!Cfg().enabled ||
-        (!(Cfg().dynamicBones && Cfg().dynamicBonesShader==1) && !Cfg().firstPersonMotionGuns)) return;
+    if (!Cfg().enabled) return;
     const Layout& lay = L();
     if (lay.shader_init == 0) {
         LogF("boneskin: not available on %s -- the per-vertex chest path needs "
@@ -963,6 +966,8 @@ void BoneSkinAfterValidate(bool jointApplied) {
     // rigidly for position/normal and hides the original forearm-side weights.
     int handJoint=-1;
     const float* handPalette=FirstPersonHandSkin(handJoint);
+    uint32_t visibleJoints=0;
+    const float* bodyPalette=FirstPersonBodySkin(visibleJoints);
     const auto& state=VidState();
     if (gl::LoadedSkinApi() && state.shader>=0 && state.shader<kShaderCount) {
         const GLuint program=Shaders()[state.shader].id;
@@ -971,6 +976,7 @@ void BoneSkinAfterValidate(bool jointApplied) {
             if (p.locHand==-2) {
                 p.locHand=gl::GetUniformLocation(program,"uTrackedHand");
                 p.locJoints=gl::GetUniformLocation(program,"uJoints[0]");
+                p.locVisibleBody=gl::GetUniformLocation(program,"uVisibleBody");
             }
             if (p.locHand>=0) {
                 const bool active=handPalette && p.locJoints>=0;
@@ -988,6 +994,19 @@ void BoneSkinAfterValidate(bool jointApplied) {
                     }
                     // The next normal draw must restore the engine's palette,
                     // including when it reuses this same GL program.
+                    VidState().consts|=kJoints;
+                }
+            }
+            if (p.locVisibleBody>=0) {
+                const bool active=bodyPalette && !handPalette && p.locJoints>=0;
+                if (active || p.bodyMaskLive) {
+                    const float mask[4]={float(visibleJoints&0xffffu),
+                        float(visibleJoints>>16),0,active ? 1.f : 0.f};
+                    gl::Uniform4fv(p.locVisibleBody,1,mask);
+                    p.bodyMaskLive=active;
+                }
+                if (active) {
+                    gl::Uniform4fv(p.locJoints,96,bodyPalette);
                     VidState().consts|=kJoints;
                 }
             }

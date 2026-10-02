@@ -13,6 +13,13 @@ inline Vec operator-(Vec a, Vec b) { return {a.x - b.x, a.z - b.z}; }
 inline Vec operator*(Vec a, float s) { return {a.x * s, a.z * s}; }
 inline float Dot(Vec a, Vec b) { return a.x * b.x + a.z * b.z; }
 inline float Length(Vec a) { return std::sqrt(Dot(a, a)); }
+// Collision pushback is not physical travel. Only consume a shortened or
+// sliding projection of the requested step, never a correction away from it.
+inline bool AcceptCollisionDragStep(Vec requested, Vec accepted) {
+    const float travel=Dot(accepted,accepted), along=Dot(accepted,requested);
+    return std::isfinite(travel) && std::isfinite(along) && travel>0 &&
+           travel<=64.f*64.f && travel<=along+.001f;
+}
 inline float Wrap(float a) { return std::remainder(a, 2 * Pi); }
 inline float Radians(int16_t a) { return a * (2 * Pi / 65536); }
 inline int16_t Angle(float a) { return static_cast<int16_t>(static_cast<int>(Wrap(a) * (65536 / (2 * Pi)))); }

@@ -44,6 +44,19 @@ FirstPersonRoomscaleNeckMetres=0.15 estimates the horizontal neck-to-HMD pivot.
 11. Check TR1, TR2 and TR3. Inspect locomotion logs: manual stays zero during
     pure physical movement; drag reports accepted physical movement in metres;
     head and cam agree throughout compression (state 15) and forward flight (3).
+12. Die from enemy damage and a fall. The native death camera should take over
+    immediately, with Lara's full body visible; loading a live save should
+    restore first person and normal hand placement.
+13. Hang, shimmy, release, fall, land and regrab repeatedly. Check both arms and
+    shoulders during the transition, then draw/holster guns and switch views.
+    No skin should stretch toward the old ledge or the room origin. Repeat with
+    motion guns disabled and check that nearby enemies remain fully visible.
+14. Stand at the very edge of a crate facing forward, sideways and backward.
+    Turn physically and with the stick, then jump off and land. Repeat several
+    times without toggling views. The torso should stay aligned; looking over
+    the edge must not retract the eye as though the empty drop were a wall.
+    Test real walls and low ceilings too. Logs should not show a stationary
+    headset's pending roomscale offset growing toward two metres at an edge.
 
 The neck-pivot correction is an estimate from the headset. If turning in place
 still translates the body, adjust FirstPersonRoomscaleNeckMetres and recenter.

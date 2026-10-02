@@ -29,12 +29,14 @@ void FirstPersonShutdown();
 
 // True while the scene camera is being anchored to Lara's head, i.e. what the
 // headset is showing is first person. False at the title screen, in the
-// inventory, during fixed and cinematic cameras, and whenever the anchor could
+// inventory, during death, fixed and cinematic cameras, and whenever the anchor could
 // not be resolved.
 bool FirstPersonActive();
 bool FirstPersonCalibrationKeyReserved(int virtualKey);
 // Corrected, unmasked palette for a tracked hand draw; null outside that scope.
 const float* FirstPersonHandSkin(int& wristJoint);
+// Full native palette during a masked first-person body draw only.
+const float* FirstPersonBodySkin(uint32_t& visibleJoints);
 bool FirstPersonWristCentre(float out[3]);
 // The last rendered scene eye, before stereo head translation. False when the
 // first-person gameplay camera is unavailable.

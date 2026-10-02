@@ -116,13 +116,21 @@ struct GroundEye {
     }
     locomotion::Vec BodyOffset(float artificialYaw,float bodyYaw,
                               locomotion::Vec view,locomotion::Vec floor,float units) const {
+        return BodyOffsetAtEye(artificialYaw,bodyYaw,view,floor,units,
+            locomotion::Rotate({local.x,local.z},artificialYaw));
+    }
+    locomotion::Vec BodyOffsetAtEye(float artificialYaw,float bodyYaw,
+            locomotion::Vec view,locomotion::Vec floor,float units,
+            locomotion::Vec eyeFromRoot) const {
         if (!valid) return {};
         using namespace locomotion;
         // The stabilized eye stays in its tracking frame while Lara turns.
         // Fit her rendered body beneath it, without changing camera/world or
         // collision positions. Subtract floor motion so genuine leaning and
         // roomscale steps are not mistaken for a rotation correction.
-        return Rotate({local.x,local.z},artificialYaw)-Rotate(bodyLocal,bodyYaw)
+        // Fit this frame's final collision-resolved scene eye. Never save a
+        // wall/ledge retraction into the standing calibration or tracking neutral.
+        return eyeFromRoot-Rotate(bodyLocal,bodyYaw)
              + Rotate(view-floor,artificialYaw)*units;
     }
 };

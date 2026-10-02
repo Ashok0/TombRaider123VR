@@ -256,6 +256,9 @@ bool g_scenePoseValid = false;
 int g_renderArm = -1;
 int g_renderWrist = -1;
 float g_handSkinPalette[32*12]{};
+bool g_bodySkinScope=false, g_bodySkinReady=false;
+uint32_t g_bodySkinMask=0;
+float g_bodySkinPalette[32*12]{};
 motiongun::Vec g_handSkinCentre{};
 int g_firingHand = -1;
 int16_t g_firingBaseAim[2]{};
@@ -336,6 +339,11 @@ bool Gate() {
     if (!VR().active() || !VR().poseValid())       return false;
     // The inventory ring and the title screen draw a scene of their own.
     if (InInventory() || InTitle() || InCutscene()) return false;
+    const auto* item=*Ptr<uint8_t*>(g_boundDll->laraItem);
+    // A dying head can rotate through the floor. Let the native death camera
+    // own that animation; first person resumes automatically on a live Lara.
+    if (!item || !firstperson::UseHeadCamera(
+            *reinterpret_cast<const int16_t*>(item+off::item_hit_points))) return false;
     const int water = LaraWaterStatus();
     if (water == 1 || water == 2) return false; // native underwater/surface camera
 
@@ -377,7 +385,7 @@ bool CanHardStop(const uint8_t* item) {
 // using the same room collision query as roomscale movement. Leave enough
 // space for both eyes and the near plane at the last clear point.
 void ClampHeadToCollision(const uint8_t* item, const int32_t body[3],
-                          int32_t head[3], bool airborne, double eyeY) {
+                          int32_t head[3], double eyeY) {
     const int32_t dx = head[0] - body[0], dz = head[2] - body[2];
     const float distance = std::hypot(float(dx), float(dz));
     if (distance < 1.0f) return;
@@ -395,21 +403,17 @@ void ClampHeadToCollision(const uint8_t* item, const int32_t body[3],
         const int32_t z = body[2] + static_cast<int32_t>(int64_t(dz) * i / steps);
         RoomCollision coll{};
         coll.radius = 64;
-        // Airborne Lara can be more than 384 units above the floor. Keep the
-        // wall query active without treating the drop below her as a wall.
-        coll.badPos = airborne ? 4096 : 384;
-        coll.badNeg = airborne ? -4096 : -384;
+        // Eye clearance must not treat the empty space over a ledge as a wall.
+        // Floor and ceiling obstruction are tested at the rendered eye height.
+        coll.badPos = 32767;
+        coll.badNeg = -32767;
         coll.badCeiling = 0;
-        coll.flags = airborne ? 0 : 5;
+        coll.flags = 0;
         coll.old[0] = clearX; coll.old[1] = body[1]; coll.old[2] = clearZ;
         coll.facing = locomotion::Angle(std::atan2(float(x - clearX), float(z - clearZ)));
         reinterpret_cast<Fn_GetCollisionInfo>(g_boundBase + g_boundDll->getCollisionInfo)(
             &coll, x, body[1], z, room, 762);
-        if ((airborne && firstperson::AirborneEyeBlocked(
-                coll.floorSamples, body[1], eyeY, coll.hitStatic)) ||
-            (!airborne && (coll.floorSamples[0] < -384 ||
-                           coll.floorSamples[0] > 384 ||
-                           coll.floorSamples[1] >= 0)) ||
+        if (firstperson::EyeBlocked(coll.floorSamples, body[1], eyeY, coll.hitStatic) ||
             coll.type == 8 || coll.type == 16 || coll.type == 32 ||
             coll.shift[0] || coll.shift[2]) {
             head[0] = clearX;
@@ -732,7 +736,10 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
         const uint32_t saved=bits;
         bits=firstperson::HdDrawMeshBits(saved,useMeshBits!=0,g_ledgeArmsOnly);
         if (useMeshBits==0) ++g_headDraws;
+        g_bodySkinScope=true;
+        g_bodySkinReady=false;
         g_hDrawCreatureHD.Original<Fn_DrawCreatureHD>()(item,1);
+        g_bodySkinScope=g_bodySkinReady=false;
         bits=saved;
         return;
     }
@@ -806,7 +813,8 @@ locomotion::Vec DragBody(uint8_t* item) {
             break;
         const int acceptedX = x + coll.shift[0] - pos.x_pos;
         const int acceptedZ = z + coll.shift[2] - pos.z_pos;
-        if (Length(Vec{float(acceptedX), float(acceptedZ)}) > 64) break;
+        if (!AcceptCollisionDragStep({float(dx),float(dz)},
+                                      {float(acceptedX),float(acceptedZ)})) break;
         pos.x_pos += acceptedX; pos.z_pos += acceptedZ;
         reinterpret_cast<Fn_UpdateLaraRoom>(g_boundBase + g_boundDll->updateLaraRoom)(item, -381);
         if (!acceptedX && !acceptedZ) break;
@@ -1035,6 +1043,7 @@ void __cdecl Detour_DrawGunFlash(int32_t weapon,int32_t unused,int32_t joint) {
 
 void __cdecl Detour_GetJoints(uint8_t* item) {
     g_renderWrist=-1;
+    g_bodySkinReady=false;
     g_hGetJoints.Original<Fn_GetJoints>()(item);
     if (g_renderArm>=0 && g_renderArm<2) ++g_motionJointCalls[g_renderArm];
     if (g_renderArm<0) {
@@ -1047,6 +1056,28 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
             CanWalk(item) && (g_bodyVisualOffset.x!=0 || g_bodyVisualOffset.z!=0)) {
             float* palette=Ptr<float>(g_boundDll->joints);
             stabilization::OffsetBodyPalette(palette,32,g_bodyVisualOffset);
+        }
+        // Save before DrawCreatureHD zeroes hidden bones. Mixed shoulder and
+        // neck vertices must retain their native transforms; visibility is
+        // trimmed in the shader instead of stretching them toward zero.
+        if (g_bodySkinScope && g_active && g_boundDll && g_boundBase &&
+            g_boundDll->joints && item && item==*Ptr<uint8_t*>(g_boundDll->laraItem)) {
+            const int object=*reinterpret_cast<const int16_t*>(item+off::item_object_number);
+            if (object>=0) {
+                const uint8_t* geom=Ptr<uint8_t>(g_boundDll->objects)+
+                    object*off::object_stride+off::object_geom;
+                const int bones=*reinterpret_cast<const int32_t*>(geom+28);
+                const int count=bones>0 ? bones : 15;
+                const auto* mapping=bones>0 ?
+                    *reinterpret_cast<const int32_t* const*>(geom+48) : nullptr;
+                if (count>0 && count<=32 && (bones<=0 || mapping)) {
+                    g_bodySkinMask=firstperson::SkinJointMask(
+                        *reinterpret_cast<const uint32_t*>(item+off::item_mesh_bits),mapping,count);
+                    std::memset(g_bodySkinPalette,0,sizeof(g_bodySkinPalette));
+                    std::memcpy(g_bodySkinPalette,Ptr<float>(g_boundDll->joints),count*12*sizeof(float));
+                    g_bodySkinReady=true;
+                }
+            }
         }
         return;
     }
@@ -1666,20 +1697,6 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         pose.x_pos = static_cast<int32_t>(std::lround(eye.x));
         pose.y_pos = static_cast<int32_t>(std::lround(eye.y));
         pose.z_pos = static_cast<int32_t>(std::lround(eye.z));
-        Vec view{},floor{};
-        if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation) {
-            VR().FirstPersonViewOffset(view.x,view.z);
-            VR().HeadFloorOffset(floor.x,floor.z);
-        }
-        const float bodyYaw=Radians(prev.y_rot)+
-            Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f);
-        g_bodyVisualOffset=g_groundEye.BodyOffset(g_heading.base,bodyYaw,view,floor,scale);
-        static uint64_t nextFitLog=0;
-        if (Cfg().firstPersonDriftLog && GetTickCount64()>=nextFitLog) {
-            nextFitLog=GetTickCount64()+5000;
-            LogF("firstperson: body fit yaw=%.1f base=%.1f offset=(%.1f,%.1f)",
-                 bodyYaw*180/Pi,g_heading.base*180/Pi,g_bodyVisualOffset.x,g_bodyVisualOffset.z);
-        }
     }
     if (state != g_lastClimbCameraState &&
         (state == 19 || g_lastClimbCameraState == 19)) {
@@ -1733,18 +1750,41 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     const int32_t offsetZ = static_cast<int32_t>(std::lround(tracked.z));
     int32_t renderedHead[3] = {pose.x_pos + offsetX, pose.y_pos,
                                pose.z_pos + offsetZ};
-    // AS_SPLAT (12) is a grounded wall-impact reaction, not an airborne fall.
-    const bool airborne = !ground && state != 15 && state != 12;
     double eyeY = pose.y_pos;
-    if (airborne && Cfg().positionalTracking && Cfg().firstPersonHeadTranslation)
+    if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation)
         eyeY -= VR().HeadVerticalOffset() * LiveWorldUnitsPerMetre();
     if (!std::isfinite(eyeY) || std::fabs(eyeY - pose.y_pos) > 4096) return;
-    ClampHeadToCollision(item, body, renderedHead, airborne, eyeY);
+    ClampHeadToCollision(item, body, renderedHead, eyeY);
     // The stereo layer adds tracking after this scene pose. Move the anchor by
     // the same amount in reverse so the actual eye centre stays on the clear
     // side of the wall, even when the player physically leans toward it.
     pose.x_pos = renderedHead[0] - offsetX;
     pose.z_pos = renderedHead[2] - offsetZ;
+}
+
+void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose) {
+    using namespace locomotion;
+    g_bodyVisualOffset={};
+    if (!CanWalk(item)) return;
+    const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
+    const auto& prev=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos_prev);
+    const int frac=std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac),0,256);
+    Vec view{},floor{};
+    if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation) {
+        VR().FirstPersonViewOffset(view.x,view.z);
+        VR().HeadFloorOffset(floor.x,floor.z);
+    }
+    const float bodyYaw=Radians(prev.y_rot)+Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f);
+    const Vec eyeFromRoot{float(pose.x_pos-Lerp(prev.x_pos,pos.x_pos,frac)),
+                          float(pose.z_pos-Lerp(prev.z_pos,pos.z_pos,frac))};
+    g_bodyVisualOffset=g_groundEye.BodyOffsetAtEye(g_heading.base,bodyYaw,
+        view,floor,LiveWorldUnitsPerMetre(),eyeFromRoot);
+    static uint64_t nextFitLog=0;
+    if (Cfg().firstPersonDriftLog && GetTickCount64()>=nextFitLog) {
+        nextFitLog=GetTickCount64()+5000;
+        LogF("firstperson: resolved body fit yaw=%.1f base=%.1f offset=(%.1f,%.1f) pending=(%.3f,%.3f)m",
+             bodyYaw*180/Pi,g_heading.base*180/Pi,g_bodyVisualOffset.x,g_bodyVisualOffset.z,floor.x,floor.z);
+    }
 }
 
 void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
@@ -1784,6 +1824,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         if (g_active) {
             UpdateLocomotion(*pose);
             ClampRenderedHeadToCollision(item, *pose);
+            FitBodyToRenderedEye(item, *pose);
             g_scenePose=*pose;
             g_scenePoseValid=true;
         }
@@ -2214,6 +2255,10 @@ void FirstPersonShutdown() {
 }
 
 bool FirstPersonActive() { return g_active; }
+const float* FirstPersonBodySkin(uint32_t& visibleJoints) {
+    visibleJoints=g_bodySkinMask;
+    return g_bodySkinScope && g_bodySkinReady && g_renderArm<0 ? g_bodySkinPalette : nullptr;
+}
 const float* FirstPersonHandSkin(int& wristJoint) {
     wristJoint=g_renderWrist;
     return g_renderArm>=0 && g_renderWrist>=0 ? g_handSkinPalette : nullptr;

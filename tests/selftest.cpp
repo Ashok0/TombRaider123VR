@@ -696,6 +696,14 @@ static void TestLocomotion() {
               neutralY+(658.0f-128.0f)/scale,
               "crate ceiling caps only the excess head rise");
     using tr::firstperson::HdDrawMeshBits;
+    Check(!tr::firstperson::UseHeadCamera(0) && !tr::firstperson::UseHeadCamera(-1) &&
+          tr::firstperson::UseHeadCamera(1),
+          "death yields the head camera and respawn restores eligibility");
+    const int32_t outfitMapping[]={14,8,9,10,7,13,-1,32};
+    Check(tr::firstperson::SkinJointMask(tr::firstperson::ArmMeshBits,outfitMapping,8)==0x2eu &&
+          tr::firstperson::SkinJointMask(tr::firstperson::ArmMeshBits,nullptr,15)==0x3f00u &&
+          tr::firstperson::SkinJointMask(0xffffffffu,nullptr,32)==0xffffffffu,
+          "body visibility maps outfit bones and handles legacy and high palette slots");
     Check(HdDrawMeshBits(0, false, true) == tr::firstperson::ArmMeshBits &&
           HdDrawMeshBits(0x400, false, true) == tr::firstperson::ArmMeshBits,
           "unmasked HD hang body draws both complete arms despite stale item mask");
@@ -985,15 +993,15 @@ static void TestLocomotion() {
     for (int i = 0; i < 18; i += 3) {
         samples[i] = 900; samples[i + 1] = -900; samples[i + 2] = 0;
     }
-    Check(!tr::firstperson::AirborneEyeBlocked(samples, 0, -500, false),
+    Check(!tr::firstperson::EyeBlocked(samples, 0, -500, false),
           "airborne eye may see over a floor drop");
     samples[3] = -480;
-    Check(tr::firstperson::AirborneEyeBlocked(samples, 0, -500, false),
+    Check(tr::firstperson::EyeBlocked(samples, 0, -500, false),
           "raised crate floor blocks airborne eye at its height");
     samples[3] = 900;
-    Check(!tr::firstperson::AirborneEyeBlocked(samples, 0, -1000, false),
+    Check(!tr::firstperson::EyeBlocked(samples, 0, -1000, false),
           "airborne eye above crate clears its top");
-    Check(tr::firstperson::AirborneEyeBlocked(samples, 0, -500, true),
+    Check(tr::firstperson::EyeBlocked(samples, 0, -500, true),
           "static obstacle blocks airborne eye");
 
     tr::stabilization::GroundEye standing;
@@ -1127,6 +1135,77 @@ static void TestPhysicalBodyCentering() {
     Check(stableWorld,"physical body correction does not move the stable camera or world");
     Check(realLean,"body centering preserves genuine roomscale translation and leaning");
     Check(paddingClear,"body palette fit preserves rotations, height and hidden/padding matrices");
+
+    // The grounded camera may look beyond a crate edge without requiring a
+    // walkable floor there. Walls, ceilings and invalid rooms still block it.
+    int32_t samples[18]{};
+    for (int i=0;i<18;i+=3) { samples[i]=8192; samples[i+1]=-1000; }
+    Check(!tr::firstperson::EyeBlocked(samples,0,-710,false),
+          "grounded eye looks over deep ledge without camera retraction");
+    samples[3]=-700;
+    Check(tr::firstperson::EyeBlocked(samples,0,-710,false),"eye-height crate wall still blocks camera");
+    samples[3]=8192; samples[4]=0;
+    Check(tr::firstperson::EyeBlocked(samples,0,-710,false),"near ceiling still blocks camera at an edge");
+    samples[4]=-32512;
+    Check(tr::firstperson::EyeBlocked(samples,0,-710,false),"missing room is not treated as an open ledge");
+
+    Check(AcceptCollisionDragStep({20,20},{0,20}) &&
+          AcceptCollisionDragStep({0,32},{0,5}) &&
+          !AcceptCollisionDragStep({0,5},{0,-30}) &&
+          !AcceptCollisionDragStep({0,5},{0,30}) &&
+          !AcceptCollisionDragStep({0,5},{30,0}) &&
+          !AcceptCollisionDragStep({0,5},{0,0}),
+          "roomscale accepts shortened/sliding travel but rejects collision pushback and overshoot");
+    // Same feedback as DragBody -> interpolated ConsumeHeadFloorOffset. A
+    // near-edge native pushback used to move the neutral the wrong way each
+    // tick, eventually hitting the two-metre guard and persisting after jumps.
+    bool noDrift=true,releases=true;
+    float oldPending=.03f;
+    for (int tick=0;tick<40;++tick) {
+        if (Length(DragRequest({0,oldPending},.02f))<=2.f) oldPending+=30.f/units;
+    }
+    Check(oldPending>2.f,"reproduce accumulated ledge pushback reaching the persistent roomscale guard");
+    for (int degrees=0;degrees<360;degrees+=15) {
+        const float yaw=degrees*Pi/180;
+        Vec pending{0,.03f};
+        for (int tick=0;tick<300;++tick) {
+            const Vec request=Rotate(DragRequest(pending,.02f),yaw)*units;
+            const Vec pushback=Rotate({0,-30},yaw);
+            if (AcceptCollisionDragStep(request,pushback)) pending=pending-Rotate(pushback,-yaw)*(1/units);
+        }
+        noDrift &= Length(pending-Vec{0,.03f})<.0001f;
+        // Airborne frames consume nothing; landing on clear ground can then
+        // accept the small remaining physical step without a view toggle.
+        const Vec clear=Rotate(DragRequest(pending,.02f),yaw)*units;
+        if (AcceptCollisionDragStep(clear,clear)) pending=pending-Rotate(clear,-yaw)*(1/units);
+        releases &= Length(pending)<=.02001f;
+    }
+    Check(noDrift,"five seconds of ledge pushback at every heading cannot corrupt the tracking neutral");
+    Check(releases,"jump and landing recover the remaining roomscale step without toggling views");
+
+    GroundEye edgeFit;
+    edgeFit.Apply({0,0,0},0,{17,-710,155},0);
+    bool finalEyeCentered=true,calibrationStable=true;
+    for (int frame=0;frame<120;++frame) {
+        const float yaw=frame*Pi/30;
+        const Vec native=Rotate(nativeEye,yaw);
+        const Vec root{float(frame*20),float(frame*-10)};
+        const auto eye=edgeFit.Apply({root.x,-768,root.z},0,
+            {root.x+native.x,-1478,root.z+native.z},yaw);
+        // Alternate free edge views and real wall retractions, including
+        // leaving the obstacle. Only the current resolved eye is fitted.
+        const Vec collision=(frame%3)==0 ? Vec{-40,-90} : Vec{};
+        const Vec finalAnchor=Vec{eye.x,eye.z}+collision;
+        const Vec view{.04f,.03f},floor{.01f,.02f};
+        const Vec shift=edgeFit.BodyOffsetAtEye(0,yaw,view,floor,units,finalAnchor-root);
+        float palette[12]={1,0,0,root.x+native.x,0,1,0,-1478,0,0,1,root.z+native.z};
+        tr::stabilization::OffsetBodyPalette(palette,1,shift);
+        finalEyeCentered &= Length(finalAnchor+view*units-
+            Vec{palette[3],palette[11]}-floor*units)<.002f;
+        calibrationStable &= edgeFit.local.x==17 && edgeFit.local.z==155;
+    }
+    Check(finalEyeCentered,"rendered torso follows final collision-resolved eye through repeated edges and turns");
+    Check(calibrationStable,"edge and wall camera retractions never become permanent standing offsets");
 }
 
 static void TestGunCalibrationPersistence() {

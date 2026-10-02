@@ -20,6 +20,9 @@ int testLevel = 1;
 const float* testHandPalette=nullptr;
 int testHandJoint=-1;
 const float* FirstPersonHandSkin(int& joint) { joint=testHandJoint; return testHandPalette; }
+const float* testBodyPalette=nullptr;
+uint32_t testVisibleJoints=0;
+const float* FirstPersonBodySkin(uint32_t& mask) { mask=testVisibleJoints; return testBodyPalette; }
 bool FirstPersonWristCentre(float out[3]) {
     out[0]=out[1]=out[2]=0; return testHandPalette!=nullptr;
 }
@@ -320,11 +323,39 @@ void main() {
     Require(pixelWhite(),"following non-hand draw clears persistent wrist clipping");
     float fittedBody[384]{};
     std::memcpy(fittedBody,fullPalette,sizeof(fittedBody));
-    stabilization::OffsetBodyPalette(fittedBody,32,{4,0});
+    stabilization::GroundEye resolvedFit;
+    resolvedFit.Apply({0,0,0},0,{0,-710,0},0);
+    stabilization::OffsetBodyPalette(fittedBody,32,
+        resolvedFit.BodyOffsetAtEye(0,0,{},{},423,{4,0}));
     gl::Uniform4fv(jointsLoc,96,fittedBody);
     Require(!pixelWhite(),"ordinary body skin follows physical-turn palette correction on the GPU");
+    // A following clear frame computes its own zero offset; no camera toggle
+    // is needed to undo the prior collision-resolved body fit.
+    stabilization::OffsetBodyPalette(fullPalette,32,
+        resolvedFit.BodyOffsetAtEye(0,0,{},{},423,{0,0}));
     gl::Uniform4fv(jointsLoc,96,fullPalette);
     Require(pixelWhite(),"fresh native palette restores ordinary body pixels without accumulated fit");
+    // Reproduce hidden shoulder/torso collapse with a mixed skin vertex.
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    Require(!pixelWhite(),"native zero-bone masking deforms the mixed ledge seam");
+    testBodyPalette=fullPalette; testVisibleJoints=1u<<10;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"ledge arm seam retains full native positions with torso hidden");
+    gl::Uniform4fv(weightsLoc,1,forearmWeights);
+    Require(!pixelWhite(),"body mask discards hidden torso fragments");
+    // Drop, walk, rehang, and exit first person on the same shader program.
+    for (int transition=0;transition<8;++transition) {
+        gl::Uniform4fv(weightsLoc,1,mixedWeights);
+        testBodyPalette=(transition%2)==0 ? fullPalette : nullptr;
+        gl::Uniform4fv(jointsLoc,96,fullPalette); // native validate on next draw
+        BoneSkinAfterValidate(false);
+        Require(pixelWhite(),"ledge transition preserves fresh native mesh positions");
+        gl::Uniform4fv(weightsLoc,1,forearmWeights);
+        Require(pixelWhite()==(testBodyPalette==nullptr),"visibility clears on each ledge/NPC transition");
+    }
+    testBodyPalette=nullptr;
+    BoneSkinAfterValidate(false);
     Require(glGetError()==GL_NO_ERROR,"hand skin GPU regression leaves no GL errors");
     gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);
     gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
