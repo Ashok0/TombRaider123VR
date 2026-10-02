@@ -1173,6 +1173,7 @@ void __cdecl Detour_ogl_draw(void* mesh, unsigned firstIndex, unsigned count) {
     if (!VrLive() || g_inDuplicate || Cfg().monoTracking
         || !Cfg().duplicateDraws || !TargetIsBackbuffer()) {
         g_hDraw.Original<Fn_ogl_draw>()(mesh, firstIndex, count);
+        BoneSkinDrawWristCap(mesh,firstIndex,count);
         if (skyDepth) glDepthRange(oldDepthRange[0], oldDepthRange[1]);
         return;
     }
@@ -1212,6 +1213,7 @@ void __cdecl Detour_ogl_draw(void* mesh, unsigned firstIndex, unsigned count) {
         g_currentEye = eye;
         Stereo().SetEyeViewport(eye);
         g_hDraw.Original<Fn_ogl_draw>()(mesh, firstIndex, count);
+        BoneSkinDrawWristCap(mesh,firstIndex,count);
     }
     g_currentEye = 0;
     g_inDuplicate = false;

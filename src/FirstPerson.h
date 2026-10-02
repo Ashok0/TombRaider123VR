@@ -35,6 +35,7 @@ bool FirstPersonActive();
 bool FirstPersonCalibrationKeyReserved(int virtualKey);
 // Corrected, unmasked palette for a tracked hand draw; null outside that scope.
 const float* FirstPersonHandSkin(int& wristJoint);
+bool FirstPersonWristCentre(float out[3]);
 // The last rendered scene eye, before stereo head translation. False when the
 // first-person gameplay camera is unavailable.
 bool FirstPersonSceneEye(int32_t out[3]);

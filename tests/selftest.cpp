@@ -29,6 +29,7 @@
 #include "FirstPersonActionIcon.h"
 #include "MotionGunMath.h"
 #include "MotionGunInput.h"
+#include "WristCap.h"
 #include "Config.h"
 #include "HeadHeightClamp.h"
 
@@ -857,13 +858,30 @@ static void TestLocomotion() {
     sustainedRight.Update(true,false,false,true,120);
     sustainedRight.Update(true,true,false,true,180);
     Check(sustainedRight.Consume(1),"held RT resumes after a hit interruption");
+    TriggerInput both;
+    both.Update(true,true,false,false,0);
+    for (uint64_t t=10;t<3000;t+=100) {
+        both.Update(true,true,true,true,t);
+        Check(both.Consume(0) && both.Consume(1) && !both.Equip(t),
+              "both triggers keep firing beyond holster threshold while guns stay armed");
+    }
+    both.Update(true,true,true,false,3200);
+    Check(both.Consume(0) && !both.Equip(3200),
+          "releasing RT first cannot turn a dual fire hold into holstering");
+    both.Update(true,true,false,false,3300);
+    both.Update(true,true,true,false,3400);
+    both.Update(true,true,true,false,4000);
+    Check(both.Equip(4000),"fresh solo LT hold still holsters after dual firing");
+    both.Update(true,true,true,true,4300);
+    Check(both.Consume(0) && both.Consume(1) && !both.Equip(4300),
+          "RT clears an already latched LT hold when guns are still ready");
     TriggerInput hitRecovery;
     hitRecovery.Update(true,true,false,false,10);
     hitRecovery.Update(false,false,true,false,20); // interrupted by hit camera
     hitRecovery.Update(true,true,true,false,30);   // LT was already held
     hitRecovery.Update(true,true,true,true,40);    // fresh RT press
-    Check(hitRecovery.Consume(1) && !hitRecovery.Consume(0),
-          "fresh RT fires after hit even while inherited LT awaits release");
+    Check(hitRecovery.Consume(1) && hitRecovery.Consume(0),
+          "both held triggers resume dual firing after a hit interruption");
     hitRecovery.Update(true,true,false,false,50);
     hitRecovery.Update(true,true,true,false,60);
     hitRecovery.Update(true,true,false,false,80);
@@ -871,12 +889,35 @@ static void TestLocomotion() {
           "LT release and new tap recover after interrupted armed state");
     TriggerInput leftRecovery;
     leftRecovery.Update(false,false,false,true,100);
-    leftRecovery.Update(true,true,false,true,110); // inherited RT is suppressed
+    leftRecovery.Update(true,true,false,true,110);
+    Check(leftRecovery.Consume(1),"held RT resumes after adapter reset without a release");
     leftRecovery.Update(true,true,true,true,120);
     leftRecovery.Update(true,true,false,true,180);
-    Check(leftRecovery.Consume(0) && !leftRecovery.Consume(1) &&
+    Check(leftRecovery.Consume(0) && leftRecovery.Consume(1) &&
           !leftRecovery.leftWaitRelease,
-          "fresh LT tap works while inherited RT awaits release after damage");
+          "LT works alongside resumed RT after damage");
+    float verticalYaw=0,verticalPitch=0;
+    Check(DirectionAngles({0,-1,0},verticalYaw,verticalPitch) &&
+          std::fabs(verticalPitch-Pi/2)<.0001f &&
+          DirectionAngles({0,1,0},verticalYaw,verticalPitch) &&
+          std::fabs(verticalPitch+Pi/2)<.0001f &&
+          !DirectionAngles({0,0,0},verticalYaw,verticalPitch),
+          "aiming vertically at flying enemies remains a valid shot direction");
+    tr::wristcap::Vertex cut[3]{};
+    cut[0].position={-10,0,0}; cut[1].position={10,0,0}; cut[2].position={0,10,0};
+    for (auto& v:cut) { v.joint[0]=10; v.joint[1]=9; }
+    cut[0].weight[1]=cut[1].weight[1]=1;
+    cut[2].weight[0]=1;
+    tr::wristcap::Edge rim[2];
+    Check(tr::wristcap::CutTriangle(cut,10,rim),"mixed wrist triangle contributes a sealing rim segment");
+    float capPalette[384]{};
+    for (int j=0;j<32;++j) { capPalette[j*12]=capPalette[j*12+5]=capPalette[j*12+10]=1; capPalette[j*12+3]=100; }
+    const auto edgeA=tr::wristcap::Rim(rim[0],capPalette);
+    const auto edgeB=tr::wristcap::Rim(rim[1],capPalette);
+    Check(std::fabs(edgeA.y-.5f)<.001f && std::fabs(edgeB.y-.5f)<.001f &&
+          std::fabs(edgeA.x-109.5f)<.001f && std::fabs(edgeB.x-90.5f)<.001f,
+          "wrist cap rim matches the shader cutoff after weighted skinning and translation");
+    Check(!tr::wristcap::CutTriangle(cut,13,rim),"opposite hand contributes no cap geometry");
     EquipInput nativeEquip;
     Check(nativeEquip.Update(true,0,true) &&
           nativeEquip.Update(true,2,false) &&

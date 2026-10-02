@@ -87,7 +87,9 @@ Uzis and shotgun; TR2's pistols, automatic pistols, Uzis, shotgun, M16,
 grenade launcher and harpoon gun; and TR3's pistols, Desert Eagle, Uzis,
 shotgun, MP5, rocket launcher, grenade launcher and harpoon gun. With dual
 guns, press LT to draw immediately when holstered, tap/release LT to fire left
-when ready, press RT to fire right, or hold LT for 0.5 seconds to holster.
+when ready, press RT to fire right, or hold both triggers to fire both guns.
+Hold LT alone for 0.5 seconds to holster. A dual-fire hold cannot turn into a
+holster gesture until LT is released; held RT resumes after tracking interruptions.
 Long guns keep RT firing. Motion guns require first
 person, positional tracking and HD graphics. They default to off pending
 in-headset weapon checks; ordinary head-aimed arms remain the default.
@@ -99,6 +101,8 @@ Tracked hand draws preserve forearm bone contributions at the wrist and hide
 unwanted arm fragments in the skin shader. This avoids collapsing the wrist's
 blended vertices when the native mesh mask zeroes hidden bones. The hand shader
 works with chest physics disabled; unsupported shaders keep native masking.
+Opaque, two-sided caps close the actual clipped wrist rims. Their boundary
+follows the same skin weights and controller pose as the hand in each eye.
 These targeting and rotation fixes pass offline checks; headset confirmation
 is still required. The first 100 tracked shots log the selected target and its
 health before/after native damage for that check.

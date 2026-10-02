@@ -14,4 +14,6 @@ bool BoneSkinActive();
 // Run after program/VAO binding and before glDrawElements. Clear persistent
 // uniforms on non-body draws, and avoid double motion on the fallback handoff.
 void BoneSkinAfterValidate(bool jointApplied = false);
+// Close the wrist rim after the native hand draw, using its per-eye uniforms.
+void BoneSkinDrawWristCap(void* mesh,unsigned firstIndex,unsigned count);
 } // namespace tr

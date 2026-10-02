@@ -259,6 +259,15 @@ inline Vec ShotForward(float yaw, float pitch) {
     const float flat = std::cos(pitch);
     return {std::sin(yaw)*flat, -std::sin(pitch), std::cos(yaw)*flat};
 }
+inline bool DirectionAngles(Vec direction,float& yaw,float& pitch) {
+    const float length2=Dot(direction,direction);
+    if (!std::isfinite(length2) || length2<.0001f) return false;
+    const float flat=std::hypot(direction.x,direction.z);
+    // Straight up/down is a valid shot (not tracking loss).
+    yaw=std::atan2(direction.x,direction.z);
+    pitch=std::atan2(-direction.y,flat);
+    return true;
+}
 
 // OpenVR's -Z forward/Y up becomes TR's +Z forward/Y down. The physical
 // controller's +Z basis is consequently the ray Lara should fire along.

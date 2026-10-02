@@ -21,6 +21,7 @@ struct TriggerInput {
     bool active=false, waitRelease=false, leftHeld=false, rightHeld=false;
     bool leftWaitRelease=false, rightWaitRelease=false;
     bool leftCanTap=false, leftGesture=false, longFired=false, pending[2]={};
+    bool dualFireGesture=false;
     uint64_t leftSince=0, equipUntil=0;
 
     void Reset() { *this={}; }
@@ -28,11 +29,11 @@ struct TriggerInput {
         if (!enabled) { Reset(); return; }
         if (!active) {
             active=true;
-            leftWaitRelease=left; rightWaitRelease=right;
+            leftWaitRelease=left; rightWaitRelease=false;
         }
         // A hit animation or temporary loss of tracking can re-enable this
-        // adapter while one trigger is still held. Suppress that hand until
-        // release, but do not block a fresh press on the other controller.
+        // adapter while a trigger is still held. LT must not become a holster
+        // gesture on recovery; held RT is a continuous fire request and resumes.
         if (!left) leftWaitRelease=false;
         if (!right) rightWaitRelease=false;
         waitRelease=leftWaitRelease || rightWaitRelease;
@@ -40,9 +41,15 @@ struct TriggerInput {
         if (!leftWaitRelease && left && !leftHeld) {
             leftSince=now; leftCanTap=ready; leftGesture=true; longFired=false;
         }
+        if (left && right && ready) {
+            // Holding both triggers means fire both guns, never holster. Keep
+            // that interpretation until LT releases, even if RT releases first.
+            dualFireGesture=true; leftCanTap=false; leftGesture=false;
+            longFired=false; equipUntil=0;
+        }
         // Use elapsed wall-clock time, including a release poll which may
         // arrive after the threshold without any intervening held poll.
-        if (leftGesture && (left || leftHeld) && !longFired &&
+        if (leftGesture && !dualFireGesture && !right && (left || leftHeld) && !longFired &&
             now-leftSince>=500) {
             longFired=true; leftCanTap=false;
             pending[0]=pending[1]=false;
@@ -51,11 +58,11 @@ struct TriggerInput {
         if (!leftWaitRelease && !left && leftHeld && !longFired &&
             leftCanTap && ready)
             pending[0]=true;
-        if (!rightWaitRelease && right && ready &&
-            !longFired && now>=equipUntil)
+        if (dualFireGesture && left && ready) pending[0]=true;
+        if (right && ready && now>=equipUntil)
             pending[1]=true;
         leftHeld=left; rightHeld=right;
-        if (!left) { longFired=false; leftCanTap=false; leftGesture=false; }
+        if (!left) { longFired=false; leftCanTap=false; leftGesture=false; dualFireGesture=false; }
     }
     bool Equip(uint64_t now) const { return active && now<equipUntil; }
     bool WantsShot() const { return active && (pending[0] || pending[1]); }

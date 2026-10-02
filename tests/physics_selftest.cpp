@@ -19,6 +19,9 @@ int testLevel = 1;
 const float* testHandPalette=nullptr;
 int testHandJoint=-1;
 const float* FirstPersonHandSkin(int& joint) { joint=testHandJoint; return testHandPalette; }
+bool FirstPersonWristCentre(float out[3]) {
+    out[0]=out[1]=out[2]=0; return testHandPalette!=nullptr;
+}
 const Config& Cfg() { return testConfig; }
 RenderState& VidState() { return testState; }
 Shader* Shaders() { return testShaders; }
@@ -308,6 +311,96 @@ void main() {
     Require(glGetError()==GL_NO_ERROR,"hand skin GPU regression leaves no GL errors");
     gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);
     gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
+
+    // An open four-sided sleeve viewed through its wrist has an empty centre.
+    // Extract its actual indexed rim and verify the production cap fills it.
+    std::string capVertex=handVertex;
+    auto replace=[&](const char* from,const char* to) {
+        const auto at=capVertex.find(from); Require(at!=std::string::npos,"cap fixture source anchor");
+        capVertex.replace(at,std::strlen(from),to);
+    };
+    replace("#define aLight vec4(10,9,0,0)\n#define aColor uWeights\n",
+            "in vec3 aCoord;\nin vec4 aLight;\nin vec4 aColor;\n"
+            "uniform mat4 uProjMatrix;\nuniform vec4 uViewMatrix[3];\n");
+    replace("vec2 points[3]=vec2[3](vec2(-1,-1),vec2(3,-1),vec2(-1,3));\n    vec4 coord=vec4(points[gl_VertexID],0,1);",
+            "vec4 coord=vec4(aCoord,1);");
+    replace("gl_Position=vec4(p.xy,0,1);",
+            "gl_Position=uProjMatrix*vec4(dot(uViewMatrix[0].xyz,p),dot(uViewMatrix[1].xyz,p),dot(uViewMatrix[2].xyz,p),1);");
+    vertex=gl::CreateShader(GL_VERTEX_SHADER); fragment=gl::CreateShader(GL_FRAGMENT_SHADER);
+    vertexText=capVertex.c_str(); fragmentText=handFragment.c_str();
+    gl::ShaderSource(vertex,1,&vertexText,nullptr); gl::CompileShader(vertex);
+    gl::ShaderSource(fragment,1,&fragmentText,nullptr); gl::CompileShader(fragment);
+    program=gl::CreateProgram(); gl::AttachShader(program,vertex); gl::AttachShader(program,fragment);
+    gl::LinkProgram(program); gl::GetProgramiv(program,GL_LINK_STATUS,&linked);
+    Require(linked!=0,"wrist cap mesh fixture links");
+    gl::UseProgram(program); testShaders[0].id=program; InvalidateProgram(program);
+    struct CapVertex { float pos[3],joints[4],weights[4]; } sleeve[8]{};
+    const float corners[4][2]={{-.7f,-.7f},{.7f,-.7f},{.7f,.7f},{-.7f,.7f}};
+    for (int i=0;i<8;++i) {
+        sleeve[i].pos[0]=corners[i%4][0]; sleeve[i].pos[1]=corners[i%4][1];
+        sleeve[i].pos[2]=i<4 ? .4f : .8f;
+        sleeve[i].joints[0]=10; sleeve[i].joints[1]=9;
+        sleeve[i].weights[i<4 ? 1 : 0]=1;
+    }
+    uint16_t sleeveIndices[24]{};
+    for (int i=0;i<4;++i) {
+        const uint16_t face[6]={uint16_t(i),uint16_t((i+1)%4),uint16_t(i+4),
+            uint16_t((i+1)%4),uint16_t((i+1)%4+4),uint16_t(i+4)};
+        std::memcpy(sleeveIndices+i*6,face,sizeof(face));
+    }
+    GLuint vertexBuffer=0,indexBuffer=0;
+    gl::GenVertexArrays(1,&vao); gl::BindVertexArray(vao);
+    gl::GenBuffers(1,&vertexBuffer); gl::BindBuffer(GL_ARRAY_BUFFER,vertexBuffer);
+    gl::BufferData(GL_ARRAY_BUFFER,sizeof(sleeve),sleeve,GL_STATIC_DRAW);
+    const char* attrs[]={"aCoord","aLight","aColor"};
+    const size_t offsets[]={0,3*sizeof(float),7*sizeof(float)};
+    for (int i=0;i<3;++i) {
+        const GLint attrLoc=gl::GetAttribLocation(program,attrs[i]);
+        Require(attrLoc>=0,"wrist cap reads active native skin attributes");
+        gl::VertexAttribPointer(attrLoc,i==0 ? 3 : 4,GL_FLOAT,GL_FALSE,sizeof(CapVertex),reinterpret_cast<void*>(offsets[i]));
+        gl::EnableVertexAttribArray(attrLoc);
+    }
+    gl::GenBuffers(1,&indexBuffer); gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,indexBuffer);
+    gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(sleeveIndices),sleeveIndices,GL_STATIC_DRAW);
+    uint32_t mesh[5]={vao,indexBuffer,vertexBuffer,0,2};
+    const float capProjection[16]={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+    float view[12]={1,0,0,0,0,1,0,0,0,0,1,0};
+    gl::UniformMatrix4fv(gl::GetUniformLocation(program,"uProjMatrix"),1,GL_FALSE,capProjection);
+    gl::Uniform4fv(gl::GetUniformLocation(program,"uViewMatrix[0]"),3,view);
+    gl::Uniform4fv(gl::GetUniformLocation(program,"uJoints[0]"),96,maskedPalette);
+    testHandPalette=fullPalette; testHandJoint=10;
+    BoneSkinAfterValidate(false);
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_CULL_FACE); glDepthMask(GL_FALSE);
+    for (int side=0;side<2;++side) {
+        view[0]=side ? -1.f : 1.f;
+        gl::Uniform4fv(gl::GetUniformLocation(program,"uViewMatrix[0]"),3,view);
+        glClearColor(0,0,0,0); glClear(GL_COLOR_BUFFER_BIT);
+        glDrawElements(GL_TRIANGLES,24,GL_UNSIGNED_SHORT,nullptr);
+        unsigned char empty[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,empty);
+        Require(empty[0]==0,"native clipped sleeve leaves an open wrist");
+        BoneSkinDrawWristCap(mesh,0,24);
+        unsigned char sealed[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,sealed);
+        Require(sealed[0]>40 && sealed[1]>25 && sealed[2]>20,
+                "opaque cap closes the wrist from both winding directions");
+        GLint restoredProgram=0,restoredVao=0,restoredBuffer=0;
+        GLboolean restoredDepth=GL_TRUE;
+        glGetIntegerv(GL_CURRENT_PROGRAM,&restoredProgram); glGetIntegerv(GL_VERTEX_ARRAY_BINDING,&restoredVao);
+        glGetIntegerv(GL_ARRAY_BUFFER_BINDING,&restoredBuffer); glGetBooleanv(GL_DEPTH_WRITEMASK,&restoredDepth);
+        Require(restoredProgram==GLint(program) && restoredVao==GLint(vao) &&
+                restoredBuffer==GLint(vertexBuffer) && glIsEnabled(GL_BLEND) &&
+                glIsEnabled(GL_CULL_FACE) && !restoredDepth,"cap draw restores native rendering state");
+    }
+    Require(!g_wristRims.empty() && g_wristRims.back().edges.size()==16,
+            "indexed sleeve produces all eight cap rim segments");
+    Require(glGetError()==GL_NO_ERROR,"wrist cap GPU regression leaves no GL errors");
+    testHandPalette=nullptr; testHandJoint=-1;
+    gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);
+    gl::DeleteBuffers(1,&vertexBuffer); gl::DeleteBuffers(1,&indexBuffer);
+    gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
+    ResetWristCaps();
+    Require(g_capProgram==0 && g_capVao==0 && g_capBuffer==0 && g_wristRims.empty(),
+            "wrist cap resources and mesh cache reset safely");
     wglMakeCurrent(nullptr, nullptr); wglDeleteContext(context); ReleaseDC(window,dc); DestroyWindow(window);
     g_boundDll = nullptr;
     std::printf("Physics self-test: %d checks passed\n", checks);

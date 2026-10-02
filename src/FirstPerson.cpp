@@ -251,6 +251,7 @@ bool g_scenePoseValid = false;
 int g_renderArm = -1;
 int g_renderWrist = -1;
 float g_handSkinPalette[32*12]{};
+motiongun::Vec g_handSkinCentre{};
 int g_firingHand = -1;
 int16_t g_firingBaseAim[2]{};
 PHD_3DPOS g_firingPose{};
@@ -987,10 +988,10 @@ bool BuildGunPose(int hand, GunPose& out) {
     out.muzzle=motiongun::Add(out.hand,motiongun::Transform(
         out.basis,motiongun::MuzzleLocal(gun,hand,g_boundDll->module[4]-L'1')));
     out.direction={controller.r[0][2],controller.r[1][2],controller.r[2][2]};
-    const float flat=std::hypot(out.direction.x,out.direction.z);
-    if (!std::isfinite(flat) || flat<0.01f) return rejected("invalid-barrel-direction");
-    out.yaw=locomotion::Angle(std::atan2(out.direction.x,out.direction.z));
-    out.pitch=locomotion::Angle(std::atan2(-out.direction.y,flat));
+    float yaw=0,pitch=0;
+    if (!motiongun::DirectionAngles(out.direction,yaw,pitch)) return rejected("invalid-barrel-direction");
+    out.yaw=locomotion::Angle(yaw);
+    out.pitch=locomotion::Angle(pitch);
     if (!std::isfinite(out.hand.x) || !std::isfinite(out.hand.y) ||
         !std::isfinite(out.hand.z)) return rejected("nonfinite-hand");
     g_motionPoseFailure[hand]="pose-ok";
@@ -1090,6 +1091,7 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
     // DrawCreatureHD zeroes masked entries AFTER this hook. Preserve the
     // complete palette for the skin shader, including forearm wrist weights.
     std::memcpy(g_handSkinPalette,joints,sizeof(g_handSkinPalette));
+    g_handSkinCentre=desired.origin;
     g_renderWrist=pivot;
     ++g_motionCorrections[g_renderArm];
     g_motionPoseFailure[g_renderArm]="corrected";
@@ -1103,15 +1105,16 @@ bool MotionTriggerMode() {
     if (!(Cfg().firstPersonMotionGuns && g_active && g_boundDll && g_boundBase &&
         GameDllBound()==g_boundDll && GameDllBase()==g_boundBase &&
         (AppFlag(drva::app_off::cfg_flags)&1))) return false;
+    if (!Cfg().positionalTracking || !Cfg().firstPersonHeadTranslation ||
+        !g_hFireWeapon.installed() || !g_hGetTargetOnLOS.installed()) return false;
     const auto* item=*Ptr<uint8_t*>(g_boundDll->laraItem);
     if (!item || *reinterpret_cast<const int16_t*>(item+off::item_hit_points)<=0)
         return false;
     const int gun=*Ptr<int16_t>(g_boundDll->lara+4);
     const int last=*Ptr<int16_t>(g_boundDll->lara+8);
-    // Keep native firing intact whenever tracking is unavailable. Holstered
-    // guns still need this path so LT can draw them immediately.
-    return MotionWeaponSupported(gun ? gun : last) &&
-        (*Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status)!=4 || MotionReady());
+    // Keep input intent through temporary tracking loss. MotionReady pauses
+    // shots, but must not reset equip intent or latch held RT off on recovery.
+    return MotionWeaponSupported(gun ? gun : last);
 }
 
 // FireWeapon tests ONLY the supplied target's spheres. Its miss LOS handles
@@ -1220,14 +1223,14 @@ int32_t __cdecl Detour_FireWeapon(int32_t weapon,void* target,void* extra,
     const bool trace=g_autoAimTraceShots++<100;
     const int hpBefore=target ? *reinterpret_cast<int16_t*>(
         static_cast<uint8_t*>(target)+off::item_hit_points) : 0;
-    const float flat=std::hypot(ray.x,ray.z);
-    if (!std::isfinite(flat) || flat<0.01f) return 0;
+    float yaw=0,pitch=0;
+    if (!motiongun::DirectionAngles(ray,yaw,pitch)) return 0;
     g_firingPose={};
     g_firingPose.x_pos=int32_t(std::lround(gun.muzzle.x));
     g_firingPose.y_pos=int32_t(std::lround(gun.muzzle.y));
     g_firingPose.z_pos=int32_t(std::lround(gun.muzzle.z));
-    g_firingPose.y_rot=locomotion::Angle(std::atan2(ray.x,ray.z));
-    g_firingPose.x_rot=locomotion::Angle(std::atan2(-ray.y,flat));
+    g_firingPose.y_rot=locomotion::Angle(yaw);
+    g_firingPose.x_rot=locomotion::Angle(pitch);
     if (weapon>=4) {
         const auto* item=*Ptr<uint8_t*>(g_boundDll->laraItem);
         const auto& body=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
@@ -2134,6 +2137,11 @@ const float* FirstPersonHandSkin(int& wristJoint) {
     wristJoint=g_renderWrist;
     return g_renderArm>=0 && g_renderWrist>=0 ? g_handSkinPalette : nullptr;
 }
+bool FirstPersonWristCentre(float out[3]) {
+    if (g_renderArm<0 || g_renderWrist<0) return false;
+    out[0]=g_handSkinCentre.x; out[1]=g_handSkinCentre.y; out[2]=g_handSkinCentre.z;
+    return true;
+}
 bool FirstPersonCalibrationKeyReserved(int key) {
     if (!g_calibrationMessageHook || key<VK_F1 || key>VK_F7) return false;
     if (g_calibrationKeys.captured[key-VK_F1]) return true;
@@ -2182,6 +2190,10 @@ void FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed) {
              g_motionJointCalls[0],g_motionJointCalls[1],
              g_motionCorrections[0],g_motionCorrections[1],
              g_motionPoseFailure[0],g_motionPoseFailure[1]);
+        LogF("firstperson: trigger state pending=%d/%d dual=%d long=%d wait=%d/%d",
+             int(g_gunTriggers.pending[0]),int(g_gunTriggers.pending[1]),
+             int(g_gunTriggers.dualFireGesture),int(g_gunTriggers.longFired),
+             int(g_gunTriggers.leftWaitRelease),int(g_gunTriggers.rightWaitRelease));
         g_motionHandPasses[0]=g_motionHandPasses[1]=0;
         g_motionJointCalls[0]=g_motionJointCalls[1]=0;
         g_motionCorrections[0]=g_motionCorrections[1]=0;
