@@ -47,6 +47,7 @@ GLint  (APIENTRY* GetAttribLocation)(GLuint, const char*) = nullptr;
 void   (APIENTRY* ActiveTexture)(GLenum) = nullptr;
 
 void (APIENTRY* Uniform4fv)(GLint, GLsizei, const GLfloat*) = nullptr;
+void (APIENTRY* Uniform4iv)(GLint, GLsizei, const GLint*) = nullptr;
 void (APIENTRY* GetVertexAttribiv)(GLuint, GLenum, GLint*) = nullptr;
 void (APIENTRY* GetVertexAttribPointerv)(GLuint, GLenum, void**) = nullptr;
 void (APIENTRY* GetBufferParameteriv)(GLenum, GLenum, GLint*) = nullptr;
@@ -138,6 +139,7 @@ bool Load() {
     // for the test compile that guards every patched shader.
     bool sk = sh;
     sk &= Grab(Uniform4fv,              "glUniform4fv");
+    Grab(Uniform4iv,                   "glUniform4iv");
     sk &= Grab(GetVertexAttribiv,       "glGetVertexAttribiv");
     sk &= Grab(GetVertexAttribPointerv, "glGetVertexAttribPointerv");
     sk &= Grab(GetBufferParameteriv,    "glGetBufferParameteriv");

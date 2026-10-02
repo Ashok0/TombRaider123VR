@@ -127,6 +127,7 @@
     <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="src\Engine.cpp" />
+    <ClCompile Include="src\EnhancedEffects.cpp" />
     <ClCompile Include="src\GL.cpp" />
     <ClCompile Include="src\GameDll.cpp" />
     <ClCompile Include="src\Gamepad.cpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="src\Config.h" />
     <ClInclude Include="src\DefaultIni.h" />
     <ClInclude Include="src\Engine.h" />
+    <ClInclude Include="src\EnhancedEffects.h" />
     <ClInclude Include="src\GL.h" />
     <ClInclude Include="src\GameDll.h" />
     <ClInclude Include="src\Gamepad.h" />

@@ -4,6 +4,7 @@ C:\dev\TombRaider123VR\src\BoneSkin.cpp;C:\dev\TombRaider123VR\build\obj\x64\Rel
 C:\dev\TombRaider123VR\src\Config.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Config.obj
 C:\dev\TombRaider123VR\src\dllmain.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\dllmain.obj
 C:\dev\TombRaider123VR\src\Engine.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Engine.obj
+C:\dev\TombRaider123VR\src\EnhancedEffects.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\EnhancedEffects.obj
 C:\dev\TombRaider123VR\src\GL.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\GL.obj
 C:\dev\TombRaider123VR\src\GameDll.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\GameDll.obj
 C:\dev\TombRaider123VR\src\Gamepad.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Gamepad.obj

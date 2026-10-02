@@ -1267,6 +1267,30 @@ static void TestGroundRollHeading() {
     Heading twice; twice.Turn(GroundRollTurn(45,23,0,-32768));
     twice.Turn(GroundRollTurn(45,23,-32768,0));
     CheckNear(twice.World(0),0,"two completed ground rolls return to original heading");
+
+    using tr::firstperson::RollEyeAboveFloor;
+    bool aboveFloor=true,animationPreserved=true;
+    for (int rootY : {0,-768,2048}) for (int floorDelta : {-120,0,200})
+        for (double rise : {-180.,0.,120.}) for (int frame=0;frame<=90;++frame) {
+            // A complete down/up roll, including frames where its skull
+            // crosses the floor, physical ducking and different floor heights.
+            const double animated=rootY-710+790*std::sin(frame*Pi/90);
+            const double floor=rootY+floorDelta;
+            const double resolved=RollEyeAboveFloor(animated,rise,rootY,floorDelta);
+            aboveFloor &= resolved-rise<=floor-64+.0001;
+            if (animated-rise<=floor-64)
+                animationPreserved &= std::fabs(resolved-animated)<.0001;
+        }
+    Check(aboveFloor,"roll floor clearance protects the final tracked eye on flat, raised and sloping floors");
+    Check(animationPreserved,"roll descent and recovery remain native whenever the eye clears the floor");
+    CheckNear(float(RollEyeAboveFloor(-200,0,0,0)),-200,"low roll view is preserved above the clearance limit");
+    CheckNear(float(RollEyeAboveFloor(80,0,0,0)),-64,"below-floor roll head stops close to the floor instead of standing height");
+    CheckNear(float(RollEyeAboveFloor(-100,-180,0,0)),-244,"physical ducking is included before clamping and compensated in the anchor");
+    CheckNear(float(RollEyeAboveFloor(20,120,0,0)),20,"physical head rise can already put the animated eye safely above the floor");
+    CheckNear(float(RollEyeAboveFloor(-700,0,-768,-32512)),-832,"missing floor sample falls back to Lara's root plane");
+    Check(IsGroundRollState(23) && IsGroundRollState(45) &&
+          !IsGroundRollState(66) && !IsGroundRollState(72) && !IsGroundRollState(19),
+          "roll floor clearance is limited to ground rolls, excluding water, air and pull-ups");
 }
 
 static void TestGunCalibrationPersistence() {

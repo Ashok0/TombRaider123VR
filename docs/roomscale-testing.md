@@ -68,3 +68,8 @@ new facing direction. Repeat twice to face the original direction. Repeat after
 physical and stick turns, with a sideways lean, and near a wall or ledge. Check
 that a cancelled roll does not flip the view and that third-person rolls remain
 unchanged. The body should reappear centered when its roll visibility ends.
+Throughout a ground roll, the camera should drop with the animation and stop
+just above the floor, then rise again. Test flat ground, a crate top, slopes,
+nearby walls, and physical ducking/leaning during the roll. Also enter first
+person mid-roll and check the return to standing; the roll must not save a low
+camera calibration. Confirm the 180-degree turnaround still occurs exactly once.

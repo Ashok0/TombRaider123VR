@@ -146,6 +146,10 @@ constexpr uint32_t ogl_setScissor     = 0x0000FC60;
 
 constexpr uint32_t vidInit            = 0x0000B430;
 constexpr uint32_t shader_init        = 0x0000EC10; // void(Shader*, cull, fvf, vs, fs)
+constexpr uint32_t vidLoadTexture     = 0x00009BB0; // void(char*, slot, layer)
+constexpr uint32_t vidLoadTextureUpscaled = 0x00009FF0; // void(char*, unused, layer)
+constexpr uint32_t ogl_texCreate      = 0x000106C0; // void(slot)
+constexpr uint32_t ogl_texUpdate      = 0x00010890; // void(slot, layer, mip, pixels)
 constexpr uint32_t init_ogl           = 0x00011200;
 constexpr uint32_t appGetGame         = 0x000084D0;
 
@@ -254,6 +258,7 @@ struct Layout {
     uint32_t gTargetWidth;
     uint32_t gTargetHeight;
     uint32_t shader_init;
+    uint32_t vidLoadTexture, vidLoadTextureUpscaled, ogl_texCreate, ogl_texUpdate;
 };
 
 // The build every address above was read out of the PDB for.
@@ -272,6 +277,7 @@ constexpr Layout kBuildStock = {
     drva::FBO_custom,  drva::FBO_default,    drva::app,
     drva::gWidth,      drva::gHeight,        drva::gTargetWidth, drva::gTargetHeight,
     rva::shader_init,
+    rva::vidLoadTexture, rva::vidLoadTextureUpscaled, rva::ogl_texCreate, rva::ogl_texUpdate,
 };
 
 // The current Aspyr retail build: PE TimeDateStamp 0x6A4B7C52, SizeOfImage
@@ -330,6 +336,10 @@ constexpr Layout kBuildAspyrRetail = {
     /* gTargetWidth        */ 0x0269E220,
     /* gTargetHeight       */ 0x0041E1EC,
     /* shader_init         */ 0x0000EC40,
+    /* vidLoadTexture      */ 0x00009B90,
+    /* vidLoadTextureUpscaled */ 0x0000A000,
+    /* ogl_texCreate       */ 0x00010590,
+    /* ogl_texUpdate       */ 0x00010760,
 };
 
 // ---------------------------------------------------------------------------

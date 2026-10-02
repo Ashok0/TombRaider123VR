@@ -85,6 +85,7 @@ EXE = ['vid_setPass', 'validate_draw', 'ogl_draw', 'ogl_present', 'fmvShow',
        'ogl_setRenderTarget', 'ogl_setPersp', 'ogl_setOrtho', 'vid_setOrtho3D',
        'vid_setViewMatrix', 'ogl_setViewport', 'ogl_setScissor', 'vidInit',
        'init_ogl', 'appGetGame', 'shader_init',
+       'vidLoadTexture', 'vidLoadTextureUpscaled', 'ogl_texCreate', 'ogl_texUpdate',
        'gGame', 'vid_state', 'vid_state_prev', 'mProj', 'mView', 'mView_packed',
        'mShadow', 'mContacts', 'shaders', 'ogl_textures', 'FBO_custom',
        'FBO_default', 'texDesc', 'app', 'gWidth', 'gHeight', 'gTargetHeight',
@@ -410,6 +411,9 @@ try:
                      'FmvShow': 'fmvShow', 'SetRt': 'ogl_setRenderTarget'})
 
     check_prologues('tomb123.exe', 'BoneSkin.cpp', {'ShaderInit': 'shader_init'})
+    effect_hooks = {'EffectUpscale': 'vidLoadTextureUpscaled',
+                    'EffectCreate': 'ogl_texCreate', 'EffectUpdate': 'ogl_texUpdate'}
+    check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, 'EffectLoadStock': 'vidLoadTexture'})
     for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
         check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'})
         check_prologues(dll, 'PortalCull.cpp',
@@ -453,7 +457,8 @@ try:
                   'fmvShow', 'ogl_setRenderTarget', 'gGame', '_XInputGetState',
                   'vid_state', 'vid_state_prev', 'mProj', 'mView_packed', 'shaders',
                   'ogl_textures', 'FBO_custom', 'FBO_default', 'app', 'gWidth',
-                  'gHeight', 'gTargetWidth', 'gTargetHeight', 'shader_init']
+                  'gHeight', 'gTargetWidth', 'gTargetHeight', 'shader_init',
+                  'vidLoadTexture', 'vidLoadTextureUpscaled', 'ogl_texCreate', 'ogl_texUpdate']
 
     # Engine.h rows written as hex literals -- i.e. not the stock row, which is
     # spelled with the rva::/drva:: names checked above.
@@ -509,6 +514,7 @@ try:
         P = {img: {n: e['new'] for n, e in pj[img]['symbols'].items()} for img in pj}
 
         check_prologues('tomb123.exe', 'BoneSkin.cpp', {'ShaderInit': 'shader_init'}, d, P['tomb123.exe'], tag)
+        check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, 'EffectLoadRetail': 'vidLoadTexture'}, d, P['tomb123.exe'], tag)
         for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
             check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'}, d, P[dll], tag)
 

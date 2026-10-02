@@ -9,6 +9,7 @@
 #include "FirstPerson.h"
 #include "HandSkin.h"
 #include "WristCap.h"
+#include "EnhancedEffects.h"
 
 #include <windows.h>
 #include <cmath>
@@ -228,12 +229,27 @@ void __fastcall Detour_shader_init(Shader* shader, int cull, int fvf,
             Log("handskin: shader patch rejected; retaining native masked hand fallback");
         }
     }
+    std::string effectVs, effectFs;
+    if (EnhancedEffectsReady() && useVs && useFs) {
+        effectVs = useVs; effectFs = useFs;
+        gl::Load();
+        if (gl::Uniform4iv && effects::Patch(effectVs, effectFs)) {
+            if (HandProgramCompiles(effectVs, effectFs)) {
+                useVs = effectVs.c_str(); useFs = effectFs.c_str();
+            } else {
+                Log("effects: shader pair rejected; keeping the previous source");
+            }
+        }
+    }
     original(shader, cull, fvf, useVs, useFs);
 
     // shader_init just gave this Shader a fresh program. If the name is being
     // reused -- a context reset rebuilds the programs -- any uniform locations
     // cached under it belong to the old program.
-    if (shader) InvalidateProgram(shader->id);
+    if (shader) {
+        InvalidateProgram(shader->id);
+        EnhancedEffectsInvalidateProgram(shader->id);
+    }
 }
 
 // --- per-program uniform state ------------------------------------------------

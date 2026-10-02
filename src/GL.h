@@ -120,6 +120,7 @@ bool LoadedShaderApi();
 // the one-shot readback that measures Lara's torso mesh. Its own flag, because
 // losing it should cost the chest deformation and nothing else.
 extern void (APIENTRY* Uniform4fv)(GLint, GLsizei, const GLfloat*);
+extern void (APIENTRY* Uniform4iv)(GLint, GLsizei, const GLint*);
 extern void (APIENTRY* GetVertexAttribiv)(GLuint, GLenum, GLint*);
 extern void (APIENTRY* GetVertexAttribPointerv)(GLuint, GLenum, void**);
 extern void (APIENTRY* GetBufferParameteriv)(GLenum, GLenum, GLint*);

@@ -96,6 +96,7 @@
 #include "GameDll.h"
 #include "DynamicBones.h"
 #include "BoneSkin.h"
+#include "EnhancedEffects.h"
 #include "PortalCull.h"
 #include "Sky.h"
 #include "FirstPerson.h"
@@ -550,6 +551,7 @@ void __cdecl Detour_validate_draw() {
             const bool jointApplied = DynamicBonesAppliedToDraw();
             DynamicBonesRestoreDraw();
             BoneSkinAfterValidate(jointApplied);
+            EnhancedEffectsAfterValidate();
         }
     } physicsDrawGuard;
 
@@ -1574,6 +1576,7 @@ bool InstallHooks() {
         return false;
     }
 
+    EnhancedEffectsInstall();
     BoneSkinInstall();
     Log("hooks: all six installed");
     return true;
@@ -1582,6 +1585,7 @@ bool InstallHooks() {
 void RemoveHooks() {
     DynamicBonesShutdown();
     BoneSkinShutdown();
+    EnhancedEffectsShutdown();
     GamepadShutdown();
     FirstPersonShutdown();
     SkyShutdown();

@@ -1,6 +1,7 @@
 ﻿// Exercises the actual port with synthetic game state and a hidden OpenGL context.
 #include "../src/DynamicBones.cpp"
 #include "../src/BoneSkin.cpp"
+#include "../src/EnhancedEffects.cpp"
 #include "../src/FirstPersonStabilization.h"
 #include <fstream>
 #include <iterator>
@@ -16,6 +17,8 @@ GameDllLayout testDll{};
 alignas(8) unsigned char testModule[32]{};
 alignas(8) unsigned char testItem[512]{};
 bool testWorld = true;
+int testGame = 0;
+int CurrentGame() { return testGame; }
 int testLevel = 1;
 const float* testHandPalette=nullptr;
 int testHandJoint=-1;
@@ -42,6 +45,7 @@ void Require(bool pass, const char* what) {
     ++checks;
     if (!pass) { std::fprintf(stderr, "FAIL: %s\n", what); std::exit(1); }
 }
+#include "effects_selftest.h"
 void Air(bool air, int fall) {
     uint16_t flags = air ? 8 : 0;
     int16_t speed = static_cast<int16_t>(fall);
@@ -163,11 +167,13 @@ int main(int argc, char** argv) {
     Require(format && SetPixelFormat(dc, format, &pfd), "OpenGL pixel format");
     HGLRC context = wglCreateContext(dc);
     Require(context && wglMakeCurrent(dc, context) && gl::Load() && gl::LoadedSkinApi(), "OpenGL shader and mesh API");
+    TestEnhancedEffects();
     std::string onePatched;
     for (int arg = 1; arg < argc; ++arg) {
         std::ifstream input(argv[arg], std::ios::binary);
         const std::string data((std::istreambuf_iterator<char>(input)), {});
         Require(!data.empty(), "read real game executable");
+        TestNativeEffectShaders(data);
         std::set<std::string> sources;
         for (size_t at = 0; (at = data.find(kAnchor, at)) != std::string::npos; ++at) {
             const size_t prev = data.rfind('\0', at), next = data.find('\0', at);
@@ -204,6 +210,9 @@ int main(int argc, char** argv) {
                 Require(handskin::Patch(handVertex,handFragment) &&
                         HandProgramCompiles(handVertex,handFragment),
                         "hand patch preserves a compatible native vertex/fragment pair");
+                if (effects::Patch(handVertex,handFragment))
+                    Require(HandProgramCompiles(handVertex,handFragment),
+                            "effects compose with native hand, chest and body-mask shaders");
                 ++pairs; ++nativePairs;
             }
             Require(pairs>0,"each real skin shader links with native fragments after patch");

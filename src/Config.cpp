@@ -202,6 +202,7 @@ void LoadConfig(const wchar_t* ini) {
     }
 
     g_cfg.enabled             = GetBool (L"Enabled",            g_cfg.enabled,            ini);
+    g_cfg.enhancedEffects     = GetBool (L"EnhancedEffects",    g_cfg.enhancedEffects,    ini);
 
     // Mode=mono | stereo
     {

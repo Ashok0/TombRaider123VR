@@ -30,6 +30,9 @@ inline const char* DefaultIniText() {
 
 [VR]
 Enabled=1
+; Built-in stock-texture effect enhancement. No EffectRetex DDS installation.
+; Set to 0 to restore native appearance; restart the game after changing.
+EnhancedEffects=1
 
 ; Mode = mono | stereo
 ;

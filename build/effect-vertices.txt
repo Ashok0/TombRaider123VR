@@ -1,0 +1,1938 @@
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+	vLight = aColor.xyz * aLight.xyz * 2.0;
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out float vLayer;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vTexCoord = vec2(light.w, color.w);
+    vLayer = normal.w;
+    vec4 p = vec4(coord.xyz, 1.0);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w))).xyww;
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+    vec3 light = aLight.xyz;
+    light.xyz *= mix(vec3(1.0, 1.0, 1.0), vec3(0.6, 0.843, 0.901), uModelMatrix[3].y);
+    vColor = vec4(aColor.xyz * light * uParams.w, aColor.w);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = (1.0 - clamp((length(p.xyz) - 12288.0) / 8192.0, 0.0, 1.0));
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+    vec3 light = aLight.xyz;
+    light.xyz *= mix(vec3(1.0, 1.0, 1.0), vec3(0.6, 0.843, 0.901), uModelMatrix[3].y);
+    vColor = vec4(pow(aColor.xyz * light * uParams.w, vec3(2.2, 2.2, 2.2)), aColor.w);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = (1.0 - clamp((length(p.xyz) - 12288.0) / 8192.0, 0.0, 1.0));
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+    vec3 light = aLight.xyz;
+    light = pow(max((light), vec3(0.0, 0.0, 0.0)), uBrightness.xxx); 
+    vColor = vec4(aColor.xyz * light * uParams.w, aColor.w);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = (1.0 - clamp((length(p.xyz) - 12288.0) / 8192.0, 0.0, 1.0));
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+    vColor = vec4(pow(aColor.xyz, vec3(2.2, 2.2, 2.2)), aColor.w);
+    vLight = vec3(0.0, 0.0, 0.0);
+    vNormal = normalize(aNormal.xyz);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+    vColor = vec4(pow(aColor.xyz, vec3(2.2, 2.2, 2.2)), aColor.w);
+    vLight = vec3(0.0, 0.0, 0.0);
+    vNormal = normalize(aNormal.xyz);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = 0.0;
+    vPos = p.xyz;
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    out vec3 vWorldPos;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vec3 n;
+    n.x = dot(uJoints[index[0] + 0].xyz, normal.xyz) * weight;
+    n.y = dot(uJoints[index[0] + 1].xyz, normal.xyz) * weight;
+    n.z = dot(uJoints[index[0] + 2].xyz, normal.xyz) * weight;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    n.x += dot(uJoints[index[1] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[1] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[1] + 2].xyz, normal.xyz) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    n.x += dot(uJoints[index[2] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[2] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[2] + 2].xyz, normal.xyz) * weight;
+    vNormal = n.xyz;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vWorldPos = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    vTexCoord = vec3(j.w / 255.0, w.w, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    vTexCoord = vec3(j.w / 255.0, w.w, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vec3 n;
+    n.x = dot(uJoints[index[0] + 0].xyz, normal.xyz) * weight;
+    n.y = dot(uJoints[index[0] + 1].xyz, normal.xyz) * weight;
+    n.z = dot(uJoints[index[0] + 2].xyz, normal.xyz) * weight;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    n.x += dot(uJoints[index[1] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[1] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[1] + 2].xyz, normal.xyz) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    n.x += dot(uJoints[index[2] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[2] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[2] + 2].xyz, normal.xyz) * weight;
+    vNormal = n.xyz;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vTexCoord = vec3(j.w / 255.0, w.w, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    int mask = int(uParams.w);
+    spec = ((mask >> index[0]) & 1) * w[0] +
+           ((mask >> index[1]) & 1) * w[1] +
+           ((mask >> index[2]) & 1) * w[2];
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vec3 n;
+    n.x = dot(uJoints[index[0] + 0].xyz, normal.xyz) * weight;
+    n.y = dot(uJoints[index[0] + 1].xyz, normal.xyz) * weight;
+    n.z = dot(uJoints[index[0] + 2].xyz, normal.xyz) * weight;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    n.x += dot(uJoints[index[1] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[1] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[1] + 2].xyz, normal.xyz) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    n.x += dot(uJoints[index[2] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[2] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[2] + 2].xyz, normal.xyz) * weight;
+    vNormal = n.xyz;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vTexCoord = vec3(j.w / 255.0, w.w, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    out vec3 vWorldPos;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+    in vec2 aTexUV;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vec3 n;
+    n.x = dot(uJoints[index[0] + 0].xyz, normal.xyz) * weight;
+    n.y = dot(uJoints[index[0] + 1].xyz, normal.xyz) * weight;
+    n.z = dot(uJoints[index[0] + 2].xyz, normal.xyz) * weight;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    n.x += dot(uJoints[index[1] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[1] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[1] + 2].xyz, normal.xyz) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    n.x += dot(uJoints[index[2] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[2] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[2] + 2].xyz, normal.xyz) * weight;
+    vNormal = n.xyz;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vWorldPos = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    vTexCoord = vec3(aTexUV, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+    in vec2 aTexUV;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    int mask = int(uParams.w);
+    spec = ((mask >> index[0]) & 1) * w[0] +
+           ((mask >> index[1]) & 1) * w[1] +
+           ((mask >> index[2]) & 1) * w[2];
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vec3 n;
+    n.x = dot(uJoints[index[0] + 0].xyz, normal.xyz) * weight;
+    n.y = dot(uJoints[index[0] + 1].xyz, normal.xyz) * weight;
+    n.z = dot(uJoints[index[0] + 2].xyz, normal.xyz) * weight;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    n.x += dot(uJoints[index[1] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[1] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[1] + 2].xyz, normal.xyz) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    n.x += dot(uJoints[index[2] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[2] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[2] + 2].xyz, normal.xyz) * weight;
+    vNormal = n.xyz;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vTexCoord = vec3(aTexUV, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+    in vec2 aTexUV;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    vTexCoord = vec3(aTexUV, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vTexCoord;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    in vec3 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+    in vec2 aTexUV;   
+void main() {
+    vec4 coord = vec4(aCoord, 1.0);
+    vec4 normal = vec4(aNormal);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    vLayer = normal.w;
+    vec4 p;
+    float weight;
+    float spec = 0.0;
+    ivec3 index = ivec3(j.xyz);
+    index *= 3;
+    weight = w[0];
+    p.x = dot(uJoints[index[0] + 0], coord) * weight;
+    p.y = dot(uJoints[index[0] + 1], coord) * weight;
+    p.z = dot(uJoints[index[0] + 2], coord) * weight;
+    p.w = 1.0;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vec3 n;
+    n.x = dot(uJoints[index[0] + 0].xyz, normal.xyz) * weight;
+    n.y = dot(uJoints[index[0] + 1].xyz, normal.xyz) * weight;
+    n.z = dot(uJoints[index[0] + 2].xyz, normal.xyz) * weight;
+    weight = w[1];
+    p.x += dot(uJoints[index[1] + 0], coord) * weight;
+    p.y += dot(uJoints[index[1] + 1], coord) * weight;
+    p.z += dot(uJoints[index[1] + 2], coord) * weight;
+    n.x += dot(uJoints[index[1] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[1] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[1] + 2].xyz, normal.xyz) * weight;
+    weight = w[2];
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    n.x += dot(uJoints[index[2] + 0].xyz, normal.xyz) * weight;
+    n.y += dot(uJoints[index[2] + 1].xyz, normal.xyz) * weight;
+    n.z += dot(uJoints[index[2] + 2].xyz, normal.xyz) * weight;
+    vNormal = n.xyz;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vTexCoord = vec3(aTexUV, spec);
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+	vLight = aLight.xyz * 2.0;
+	vLight = pow(max((vLight), vec3(0.0, 0.0, 0.0)), uBrightness.xxx); 
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = (1.0 - clamp((length(p.xyz) - 12288.0) / 8192.0, 0.0, 1.0));
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    vLayer = normal.w;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    out vec3 vWorldPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    vLayer = normal.w;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vWorldPos = wp;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	uv.zw *= (1.0 / 32767.0);
+	uv.xy *= uv.zw;
+	vTexCoord = uv;
+	vLight = aLight.xyz * 2.0;
+	vLight = (pow(max((vLight), vec3(0.0, 0.0, 0.0)), uBrightness.xxx) + (vLight) * (1.0 - uBrightness.x) * 2.0); 
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vTexCoord = vec2(light.w, color.w);
+    vLayer = normal.w;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vec3 viewVec = normalize(-p.xyz);
+    light.xyz = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    light.xyz *= uParams.w * (1.0 + sin( (dot(coord.xyz, vec3(uParams.x, uParams.x, uParams.x)) + uModelMatrix[3].x) * uParams.y * 3.1415926536 ) * uParams.z);
+    light.xyz *= max(0.0, dot(normal.xyz, viewVec));
+    light.xyz = max(vec3(0.0, 0.0, 0.0), light.xyz);
+    vLight = light.xyz;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    out vec3 vWorldPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    vLayer = normal.w;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    float weight = coord.w / 32767.0;
+    float k = dot(wp.xyz, vec3(1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0));
+    float t = uModelMatrix[3].x * uParams.y;
+    vec3 offset = weight * vec3(sin(k + t), cos(k + t * 0.333), sin(k + t * 0.25)) * uParams.zwz;
+        p.xyz += offset;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vWorldPos = wp;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    out vec3 vWorldPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    vLayer = normal.w;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    float weight = coord.w / 32767.0;
+    float k = dot(wp.xyz, vec3(1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0));
+    float t = uModelMatrix[3].x * uParams.y;
+    vec3 offset = weight * vec3(sin(k + t), cos(k + t * 0.333), sin(k + t * 0.25)) * uParams.zwz;
+        p.xyz += normal.xyz * offset;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vWorldPos = wp;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    uv += uParams.xy * uModelMatrix[3].x;
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    vLayer = normal.w;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    float weight = coord.w / 32767.0;
+    float k = texture(sNoise, wp * uParams.z).x;
+    float t = uModelMatrix[3].x * 1.25;
+    float offset = sin(k * (3.1415926536 * 2.0) + t) * weight * uParams.w;
+    p.xyz += normal.xyz * offset;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    out vec3 vWorldPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    float x = uModelMatrix[3].x / uParams.w;
+    float y = 4.0;
+    int frame = int(x - y * floor(x/y + 0.001));
+    vec4 anim;
+    anim.x = normal.w;
+    anim.y = uParams.x;
+    anim.z = uParams.y;
+    anim.w = uParams.z;
+    vLayer = anim[frame];
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vWorldPos = wp;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    out vec3 vWorldPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    float x = uModelMatrix[3].x / uParams.z + uParams.x;
+    float y = uParams.y;
+    int frame = int(x - y * floor(x/y + 0.001));
+    vLayer = normal.w + frame;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    vWorldPos = wp;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec2 vTexCoord;
+    out vec3 vColor;
+    out vec3 vLight;
+    out float vLayer;
+    out float vFog;
+    out vec3 vNormal;
+    out vec3 vPos;
+    in vec4 aCoord; 
+    in vec4 aNormal;   
+    in vec4 aLight;   
+    in vec4 aColor;   
+void main() {
+    vec4 coord = vec4(aCoord);
+    vec4 normal = vec4(aNormal);
+    vec4 light = aLight;
+    vec4 color = aColor;
+    vec2 uv = vec2(light.w, color.w);
+    vTexCoord = uv;
+    normal.xyz = normalize(normal.xyz - 127.0);
+    vNormal = normal.xyz;
+    vLight = pow(light.xyz, vec3(2.2, 2.2, 2.2));
+    vColor = pow(color.xyz, vec3(2.2, 2.2, 2.2));
+    vLayer = normal.w;
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(coord.xyz, 1.0)), dot(uModelMatrix[1], vec4(coord.xyz, 1.0)), dot(uModelMatrix[2], vec4(coord.xyz, 1.0)), 1.0);
+    vec3 wp = p.xyz + vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w);
+    float weight = coord.w / 1024.0;
+    float k = texture(sNoise, wp / (32.0 * 1024.0)).x;
+    float t = uModelMatrix[3].x;
+    p.y += sin(k * (3.1415926536 * 2.0) + t) * weight;
+    vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+    vPos = p.xyz;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vPos;
+    out vec2 vTexCoord;
+    out vec3 vrgb0;
+    out vec3 vrgb1;
+    out vec3 vrgb2;
+    out vec3 vrgb3;
+    out vec3 vrgb4;
+    out vec3 vrgb5;
+    in vec3 aCoord; 
+    in vec4 aTexCoord; 
+    in vec4 aExtra; 
+    in vec4 aNormal; 
+    in vec4 aLight; 
+    in vec4 aColor; 
+    in vec4 aFlags; 
+void main() {
+    vTexCoord = aTexCoord.xy * 0.125;
+    vec4 rgb0_r5 = aExtra;
+    vec4 rgb1_g5 = aNormal;
+    vec4 rgb2_b5 = aLight;
+    vec4 rgb3_w = aColor;
+    vec4 rgb4_p = aFlags;
+    rgb0_r5 = pow(rgb0_r5, vec4(2.2, 2.2, 2.2, 2.2));
+    rgb1_g5 = pow(rgb1_g5, vec4(2.2, 2.2, 2.2, 2.2));
+    rgb2_b5 = pow(rgb2_b5, vec4(2.2, 2.2, 2.2, 2.2));
+    rgb3_w.xyz = pow(rgb3_w.xyz, vec3(2.2, 2.2, 2.2));
+    rgb4_p.xyz = pow(rgb4_p.xyz, vec3(2.2, 2.2, 2.2));
+    vrgb0 = rgb0_r5.xyz;
+    vrgb1 = rgb1_g5.xyz;
+    vrgb2 = rgb2_b5.xyz;
+    vrgb3 = rgb3_w.xyz;
+    vrgb4 = rgb4_p.xyz;
+    vrgb5 = vec3(rgb0_r5.w, rgb1_g5.w, rgb2_b5.w);
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+    vPos = p.xyz;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vPos;
+    in vec3 aCoord; 
+    in vec4 aTexCoord; 
+    in vec4 aExtra; 
+    in vec4 aNormal; 
+    in vec4 aLight; 
+    in vec4 aColor; 
+    in vec4 aFlags; 
+void main() {
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+    vPos = p.xyz;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+    out vec3 vPos;
+    out vec4 vFog;
+    in vec3 aCoord; 
+    in vec4 aTexCoord; 
+    in vec4 aExtra; 
+    in vec4 aNormal; 
+    in vec4 aLight; 
+    in vec4 aColor; 
+    in vec4 aFlags; 
+void main() {
+    vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	if (uModelMatrix[3].y < vec3(uViewMatrix[0].w, uViewMatrix[1].w, uViewMatrix[2].w).y)
+		vFog = vec4(vec3(0.0036, 0.0169, 0.0231), 1.0 - clamp(exp(-((length(p.xyz) / (12.0 * 1024.0))*(length(p.xyz) / (12.0 * 1024.0)))), 0.0, 1.0));
+	else
+		vFog = vec4(uFogColor.xyz, 1.0 - clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0));
+    vPos = p.xyz;
+    gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+vec2 rotate(vec2 v, float angle) {
+	angle *= (3.1415926536 * 2.0) / 4096.0;
+	vec2 cs = vec2(cos(angle), sin(angle));
+	return vec2(v.x*cs.x - v.y*cs.y, v.x*cs.y + v.y*cs.x);
+}
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	vTexCoord = uv;
+    vec3 light = aLight.xyz;
+	light.xyz *= mix(vec3(1.0, 1.0, 1.0), vec3(0.6, 0.843, 0.901), uModelMatrix[3].y);
+	vColor = vec4(aColor.xyz * light * 2.0, aColor.w);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	p = vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w);
+	vFog = (1.0 - clamp((length(p.xyz) - 12288.0) / 8192.0, 0.0, 1.0));
+	p.xy += rotate(uv.zw, aNormal.w);
+	gl_Position = ((uProjMatrix) * (p));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+vec2 rotate(vec2 v, float angle) {
+	angle *= (3.1415926536 * 2.0) / 4096.0;
+	vec2 cs = vec2(cos(angle), sin(angle));
+	return vec2(v.x*cs.x - v.y*cs.y, v.x*cs.y + v.y*cs.x);
+}
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	vTexCoord = uv;
+    vec3 light = aLight.xyz;
+    light.xyz *= mix(vec3(1.0, 1.0, 1.0), vec3(0.6, 0.843, 0.901), uModelMatrix[3].y);
+    vColor = vec4(aColor.xyz * light * 2.0, aColor.w);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	p = vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w);
+	vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+	p.xy += rotate(uv.zw, aNormal.w);
+	gl_Position = ((uProjMatrix) * (p));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+vec2 rotate(vec2 v, float angle) {
+	angle *= (3.1415926536 * 2.0) / 4096.0;
+	vec2 cs = vec2(cos(angle), sin(angle));
+	return vec2(v.x*cs.x - v.y*cs.y, v.x*cs.y + v.y*cs.x);
+}
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	vTexCoord = uv;
+    vec3 light = aLight.xyz;
+    light.xyz *= mix(vec3(1.0, 1.0, 1.0), vec3(0.6, 0.843, 0.901), uModelMatrix[3].y);
+    vColor = vec4(pow(aColor.xyz * light * 3.0, vec3(2.2, 2.2, 2.2)), aColor.w);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	p = vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w);
+	vFog = clamp(exp(-((length(p.xyz) / ((30.0 * 1000.0) / 2))*(length(p.xyz) / ((30.0 * 1000.0) / 2)))), 0.0, 1.0);
+	p.xy += rotate(uv.zw, aNormal.w) * aExtra.w;
+	gl_Position = ((uProjMatrix) * (p));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vColor = aColor;
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = (1.0 - clamp((length(p.xyz) - 12288.0) / 8192.0, 0.0, 1.0));
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	vTexCoord = uv;
+	vColor = aColor;
+    vColor.xyz *= 2.0;
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = (1.0 - clamp((length(p.xyz) - 12288.0) / 8192.0, 0.0, 1.0));
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	vTexCoord = uv;
+	vColor = aColor;
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(dot(uModelMatrix[0], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[1], vec4(aCoord.xyz, 1.0)), dot(uModelMatrix[2], vec4(aCoord.xyz, 1.0)), 1.0);
+	vFog = 0.0;
+	gl_Position = ((uProjMatrix) * (vec4(dot(uViewMatrix[0].xyz, (p).xyz), dot(uViewMatrix[1].xyz, (p).xyz), dot(uViewMatrix[2].xyz, (p).xyz), (p).w)));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vTexCoord = aTexCoord;
+	vColor = aColor;
+	vec4 p = vec4(aCoord.xyz, 1.0);
+	p.xy += (aTexCoord.xy * 2.0 - 1.0) * uParams.xy;
+	gl_Position = ((uProjMatrix) * (p));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vTexCoord = vec4(aTexCoord.x, 1.0 - aTexCoord.y, aTexCoord.z, aTexCoord.w);
+	vColor = aColor;
+	gl_Position = vec4(aTexCoord.x * 2.0 - 1.0, -(aTexCoord.y * 2.0 - 1.0), 0.0, 1.0);
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vTexCoord = aTexCoord;
+	vec2 p = aTexCoord.xy * 2.0 - 1.0; 
+	gl_Position = vec4(p.x, -p.y, 0.0, 1.0);
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	vTexCoord = uv;
+	vColor = aColor;
+	vColor.xyz *= pow(2.0 * aLight.x, 1.0/2.2);
+    vColor.w = pow(vColor.w, 1.0/2.2);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(aCoord.xy, 0.0, 1.0);
+	p.xy += uv.zw;
+	gl_Position = ((uProjMatrix) * (p));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vec4 uv = aTexCoord;
+	uv.xy *= uParams.xx;
+	vTexCoord = uv;
+	vColor = vec4(aColor.xyz * 2.0, aColor.w);
+	vLayer = floor(aExtra.x * 255.0 + 0.5);
+	vec4 p = vec4(aCoord.xy, 0.0, 1.0);
+	p.xy += uv.zw;
+	gl_Position = ((uProjMatrix) * (p));
+}
+
+
+#version 150 
+uniform sampler3D sNoise;
+	in vec3 aCoord;
+	in vec4 aExtra;
+	in vec4 aNormal;
+	in vec4 aTexCoord;
+	in vec4 aLight;
+	in vec4 aColor;
+	out vec4 vTexCoord;
+	out vec4 vColor;
+	out vec3 vLight;
+	out float vLayer;
+	out float vFog;
+	out vec3 vNormal;
+	out vec3 vPos;
+	out vec4 vSProj;
+	uniform mat4 uProjMatrix;
+	uniform vec4 uViewMatrix[4];
+	uniform mat4 uShadowMatrix;
+	uniform vec4 uFogColor;
+    uniform vec4 uContacts[16];
+    uniform vec4 uBrightness; 
+    uniform vec4 uModelMatrix[4];
+    uniform vec4 uParams;
+    uniform vec4 uJoints[32 * 3];
+    uniform vec4 uLightPos[4];
+    uniform vec4 uLightCol[4];
+    uniform vec4 uAmbient[6];
+void main() {
+	vTexCoord = aTexCoord;
+	vTexCoord.xy /= aNormal.xy;
+	vec4 p = vec4(aCoord.xy, 0.0, 1.0);
+	p.xy += (aTexCoord.zw * 2.0 - 1.0) * uParams.xy;
+	gl_Position = ((uProjMatrix) * (p));
+}

@@ -46,7 +46,8 @@ EXE_LAYOUT = ['vid_setPass', 'validate_draw', 'ogl_draw', 'ogl_present', 'fmvSho
               'ogl_setRenderTarget', 'gGame', '_XInputGetState', 'vid_state',
               'vid_state_prev', 'mProj', 'mView_packed', 'shaders', 'ogl_textures',
               'FBO_custom', 'FBO_default', 'app', 'gWidth', 'gHeight',
-              'gTargetWidth', 'gTargetHeight', 'shader_init']
+              'gTargetWidth', 'gTargetHeight', 'shader_init',
+              'vidLoadTexture', 'vidLoadTextureUpscaled', 'ogl_texCreate', 'ogl_texUpdate']
 DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
               'number_draw_rooms', 'w2v_matrix', 'phd_mxptr', 'phd_winxmax',
               'phd_winymax', 'outside', 'outside_left', 'outside_right',

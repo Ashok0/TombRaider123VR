@@ -303,6 +303,12 @@ bool CanWalk(const uint8_t* item) {
 template <typename T>
 T* Ptr(uint32_t rva) { return reinterpret_cast<T*>(g_boundBase + rva); }
 
+bool UseGroundRollCamera(const uint8_t* item) {
+    return item && LaraWaterStatus()==0 &&
+        *reinterpret_cast<const int16_t*>(item+off::item_hit_points)>0 &&
+        locomotion::IsGroundRollState(*reinterpret_cast<const int16_t*>(item+off::item_anim_state));
+}
+
 // PDB coll_info, shared by all three games. This is a private query object;
 // never reuse laracoll, whose old position belongs to the animation tick.
 struct RoomCollision {
@@ -1757,7 +1763,7 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     // Wall climbing can briefly place the head joint beyond the contact wall.
     // Pull-up and hanging retain their native animated eye and retracted anchor.
     const bool climb=locomotion::IsClimbingCameraState(state);
-    if (!ground && !jump && !climb) return;
+    if (!ground && !jump && !climb && !UseGroundRollCamera(item)) return;
 
     const auto& pos = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos);
     const auto& prev = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos_prev);
@@ -1785,6 +1791,42 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     // side of the wall, even when the player physically leans toward it.
     pose.x_pos = renderedHead[0] - offsetX;
     pose.z_pos = renderedHead[2] - offsetZ;
+}
+
+void ClampRollCameraToFloor(const uint8_t* item,PHD_3DPOS& pose) {
+    if (!UseGroundRollCamera(item)) return;
+    const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
+    const auto& prev=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos_prev);
+    const int frac=std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac),0,256);
+    const int32_t bodyY=Lerp(prev.y_pos,pos.y_pos,frac);
+    locomotion::Vec tracked{};
+    double rise=0;
+    if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation) {
+        VR().FirstPersonViewOffset(tracked.x,tracked.z);
+        tracked=locomotion::Rotate(tracked,g_heading.base)*LiveWorldUnitsPerMetre();
+        rise=VR().HeadVerticalOffset()*LiveWorldUnitsPerMetre();
+    }
+    if (!std::isfinite(tracked.x) || !std::isfinite(tracked.z) || !std::isfinite(rise)) return;
+    // Sample under the resolved eye, including physical leaning. Query at
+    // Lara's root height so a skull already below the floor cannot select a
+    // lower stacked room. Keep the animation everywhere above the clearance.
+    const int32_t x=pose.x_pos+int32_t(std::lround(tracked.x));
+    const int32_t z=pose.z_pos+int32_t(std::lround(tracked.z));
+    RoomCollision coll{};
+    coll.radius=64; coll.badPos=32767; coll.badNeg=-32767;
+    coll.old[0]=x; coll.old[1]=bodyY; coll.old[2]=z;
+    const int16_t room=*reinterpret_cast<const int16_t*>(item+off::item_room_number);
+    reinterpret_cast<Fn_GetCollisionInfo>(g_boundBase+g_boundDll->getCollisionInfo)(
+        &coll,x,bodyY,z,room,762);
+    const int32_t animatedY=pose.y_pos;
+    pose.y_pos=int32_t(std::floor(firstperson::RollEyeAboveFloor(
+        animatedY,rise,bodyY,coll.floorSamples[0])));
+    static uint64_t nextLog=0;
+    if (pose.y_pos!=animatedY && Cfg().firstPersonDriftLog && GetTickCount64()>=nextLog) {
+        nextLog=GetTickCount64()+1000;
+        LogF("firstperson: roll floor clearance animatedY=%d viewY=%d floorDelta=%d trackedRise=%.1f",
+             animatedY,pose.y_pos,coll.floorSamples[0],rise);
+    }
 }
 
 void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose) {
@@ -1849,6 +1891,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         if (g_active) {
             UpdateLocomotion(*pose);
             ClampRenderedHeadToCollision(item, *pose);
+            ClampRollCameraToFloor(item, *pose);
             FitBodyToRenderedEye(item, *pose);
             g_scenePose=*pose;
             g_scenePoseValid=true;

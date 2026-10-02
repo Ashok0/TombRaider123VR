@@ -113,6 +113,26 @@
     "new": 60480,
     "how": "function match"
    },
+   "vidLoadTexture": {
+    "old": 39856,
+    "new": 39824,
+    "how": "function match"
+   },
+   "vidLoadTextureUpscaled": {
+    "old": 40944,
+    "new": 40960,
+    "how": "function match"
+   },
+   "ogl_texCreate": {
+    "old": 67264,
+    "new": 66960,
+    "how": "function match"
+   },
+   "ogl_texUpdate": {
+    "old": 67728,
+    "new": 67424,
+    "how": "function match"
+   },
    "vidInit": {
     "old": 46128,
     "new": 46128,
@@ -451,6 +471,11 @@
     "new": 363872,
     "how": "function match"
    },
+   "AnimatePistols": {
+    "old": 161952,
+    "new": 162352,
+    "how": "fuzzy 0.99"
+   },
    "w2v_scene_return": {
     "old": 406918,
     "new": 406968,
@@ -480,11 +505,6 @@
     "old": 169262,
     "new": 169680,
     "how": "return address of the GetTargetOnLOS call in FireWeapon"
-   },
-   "AnimatePistols": {
-    "old": 161952,
-    "new": 162352,
-    "how": "unwind function containing both independently mapped AnimatePistols FireWeapon call sites"
    }
   }
  },
@@ -795,6 +815,11 @@
     "new": 568672,
     "how": "function match"
    },
+   "AnimatePistols": {
+    "old": 300624,
+    "new": 300672,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 610006,
     "new": 608696,
@@ -824,11 +849,6 @@
     "old": 315908,
     "new": 315973,
     "how": "return address of the GetTargetOnLOS call in FireWeapon"
-   },
-   "AnimatePistols": {
-    "old": 300624,
-    "new": 300672,
-    "how": "unwind function containing both independently mapped AnimatePistols FireWeapon call sites"
    }
   }
  },
@@ -1141,6 +1161,11 @@
     "new": 868112,
     "how": "function match"
    },
+   "AnimatePistols": {
+    "old": 421792,
+    "new": 422544,
+    "how": "function match"
+   },
    "w2v_scene_return": {
     "old": 914182,
     "new": 920648,
@@ -1170,11 +1195,6 @@
     "old": 438496,
     "new": 439282,
     "how": "return address of the GetTargetOnLOS call in FireWeapon"
-   },
-   "AnimatePistols": {
-    "old": 421792,
-    "new": 422544,
-    "how": "unwind function containing both independently mapped AnimatePistols FireWeapon call sites"
    }
   }
  }

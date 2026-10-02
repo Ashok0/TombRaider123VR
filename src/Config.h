@@ -14,6 +14,7 @@ namespace tr {
 
 struct Config {
     bool  enabled          = true;
+    bool  enhancedEffects  = true; // Stock-texture fire, glow, particle and bubble enhancement.
 
     // Mono head-tracking bring-up mode.
     //

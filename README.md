@@ -32,6 +32,9 @@ rewrite also has independent maths tests and verifies its newly required
 
 - Native stereo 3D, 6DOF head tracking, per-eye asymmetric frustums.
 - All three games (TR1, TR2, TR3) through one build.
+- Built-in effect enhancement using stock textures: warmer muzzle flashes and
+  flames, brighter glow details and TR1 particles, and clearer TR3 bubbles.
+  No separate EffectRetex DDS pack is required; see below.
 - HD Lara chest physics ported from TR4/5, with the same landing response and
   tuning controls. Enabled by default; see [chest physics](docs/chest-physics.md).
 - Head-driven room culling, so geometry does not vanish when you look away
@@ -55,6 +58,34 @@ rewrite also has independent maths tests and verifies its newly required
 - First-person movement smoothing, wall/jump clearance, camera recentering on
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
+
+### Built-in enhanced effects (2026-10-02)
+
+`EnhancedEffects=1` (default) adds a code-only interpretation of the visual
+improvements in the supplied EffectRetex 2026 pack. The VR DLL uses the game's
+original textures and ships no replacement DDS artwork. Fire and muzzle flashes
+gain warmer edges and brighter cores; selected equipment glow strips, TR1
+particles and TR3 bubble animations gain brightness and contrast. The stock
+sprite shapes remain, so redrawn smoke, lightning and ring artwork from the
+texture pack will look different. This changes the appearance of effect
+textures; scene lighting still follows the game's renderer.
+
+The texture loader records the actual array layer assigned to each supported
+`TEX` filename. Shader code applies the appropriate adjustment before native
+vertex tint, fog and blending. The mixed equipment and particle atlases use
+region masks to preserve ordinary scenery, footprints and solid strips. Alpha
+is retained, and true black stays black. This works in both camera modes with
+remastered graphics. Set `EnhancedEffects=0` under `[VR]` and restart to restore
+the original appearance; that also avoids stacking this adjustment on separately
+installed effect texture packs.
+
+The layer map clears when textures are recreated or overwritten. A packed
+vertex lookup selects the effect without extra texture samples or a per-pixel
+layer search. Shader patches are compiled and linked before use, and hook byte
+guards cover the PDB, Aspyr retail and Gold builds. GPU regressions exercise
+real game shader sources, composition with the hand/body/chest patches, atlas
+masks, transparency, texture reuse, UI transitions and the disabled setting.
+In-headset appearance and performance still need gameplay confirmation.
 
 ### First-person feature port (2026-09-29)
 
@@ -147,6 +178,10 @@ working feature; TR3 crouch keeps native collision and movement.
   and movement heading by 180 degrees. Lara keeps her native roll animation;
   the standing eye offset rotates to her new forward side. The change follows
   the actual animation turn, so cancelled rolls do not flip the view.
+- **Ground-roll floor clipping:** the camera retains its animated drop during
+  a B roll, but the final tracked eye stops 64 game units above the local floor.
+  Wall clearance, the 180-degree turnaround and the new forward direction remain
+  active. This replaces the earlier fixed upright roll-camera height.
 
 The death, mesh-stretching and edge-centering changes pass automated tests;
 their reported gameplay cases still need headset confirmation. See
@@ -719,10 +754,10 @@ first-person gameplay gate succeeds. It is forcibly cleared before title,
 inventory, cutscene and third-person draws so Lara's retained animation state
 cannot alter those visual passes.
 
-The camera rides Lara's animated head. Her animations then move your head for
-you -- through every roll, swan dive and grab -- which is not something the game
-was ever designed to do, so treat it as a different way to play rather than a
-better camera.
+Ordinary ground movement uses the stabilized standing eye. B rolls follow the
+animated head drop, limited by clearance above the local floor; the native
+180-degree turn still rotates the viewpoint and forward direction.
+Other animations, such as swan dives and grabs, retain their animated head anchor.
 
 #### The scene camera hook
 
@@ -1086,6 +1121,15 @@ and the standing eye anchor rotates to Lara's new facing direction. No second
 body turn is injected. Third person and water/air roll states keep their native
 behavior. Headset confirmation is still needed for the new first-person turn.
 
+During ground-roll states the camera follows its interpolated animated head
+anchor and retains the drop toward the ground. After horizontal wall clearance,
+a native collision query samples the floor beneath the resolved eye, including
+physical leaning. The final eye is limited to 64 game units above that floor;
+tracked head rise/ducking is included before the limit is applied. The query
+uses Lara's root height so a below-floor skull cannot select a lower stacked
+room. A missing floor sample uses Lara's root plane as a fallback. Roll frames
+do not recalibrate the standing eye.
+
 Idle ground states and manual first-person movement follow the HMD heading.
 Manual forward input selects Lara's native forward walk/run, backward selects
 her backpedal, and horizontal input selects her dedicated left/right sidestep
@@ -1315,18 +1359,32 @@ needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump, wall-climb and pull-up changes have not yet been
 confirmed there.
 
-The last `tools/verify_addresses.py` run passed all 1,836 PDB, retail and Gold
-address, layout and hook-window checks, including the added `AnimatePistols`
-hook. The subsequent death and ledge fixes add no engine addresses.
+The last `tools/verify_addresses.py` run passed all 1,908 PDB, retail and Gold
+address, layout and hook-window checks, including `AnimatePistols` and the
+four effect texture-loader/upload hooks. Death, ledge and roll fixes add no
+engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-10-02 black wrist-seal Release/x64 DLL is installed and its SHA-256
-matches the build output:
-`67605EC6AE1772CEF32225A9663B0919F2ABBCFD1140AE49108E8ECCAAEDC9CD`.
+The 2026-10-02 built-in enhanced-effects Release/x64 DLL is installed, with
+SHA-256 matching the build output:
+`178FE9FEBCC1670EEA430078C04334F44CEF284A60C084AE79EE7A9640527968`.
 The prior DLL, INI and log are preserved under
-`build/pre-black-wrist-seals-20261002-091021/`. Hand calibration was preserved.
-The Release build and CPU self-tests passed for the roll change. The black-seal
+`build/pre-enhanced-effects-20261002-100741/`. The installed INI and hand
+calibration were retained; the absent `EnhancedEffects` key defaults to enabled.
+No effect DDS files were installed. Release build and CPU tests passed; the GPU
+suite passed all 2,264 checks against both PDB and installed retail shader sources,
+including 33 effect vertex sources, 46 effect fragment sources and 288 native
+hand shader pairs per image. Gameplay appearance and performance remain to be
+confirmed in the headset.
+
+The preceding 2026-10-02 roll floor-clearance Release/x64 DLL had SHA-256:
+`780E8E43EC440F14BA242EF83D22D69F9F102EBB41B3E765B0C0A4385ACE1BCC`.
+The prior DLL, INI and log are preserved under
+`build/pre-roll-floor-clearance-20261002-093934/`. Hand calibration was preserved.
+The Release build and CPU self-tests passed for the roll changes, including
+preserved descent/recovery, clearance on flat/raised/sloping floors, tracked
+ducking/rise, missing floor samples and the 180-degree turnaround. The earlier black-seal
 update passed 949 graphics checks with the PDB executable, including opaque
 black coverage of both wrist openings from both sides against a colored background.
 Ground rolls, death-camera and rare ledge-transition
