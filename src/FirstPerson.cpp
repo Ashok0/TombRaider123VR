@@ -233,6 +233,7 @@ unsigned g_skipped     = 0;
 locomotion::Heading g_heading;
 stabilization::RenderTurn g_renderTurn;
 stabilization::GroundEye g_groundEye;
+locomotion::Vec g_bodyVisualOffset;
 int g_lastClimbCameraState = -1;
 bool g_haveHeading = false;
 uint8_t* g_headingItem = nullptr;
@@ -1036,7 +1037,19 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
     g_renderWrist=-1;
     g_hGetJoints.Original<Fn_GetJoints>()(item);
     if (g_renderArm>=0 && g_renderArm<2) ++g_motionJointCalls[g_renderArm];
-    if (g_renderArm<0) return;
+    if (g_renderArm<0) {
+        // Fit only Lara's ordinary HD body/attachments. Tracked gun hands
+        // already have their own controller transform and must not inherit
+        // this visual-only correction. GetJoints rebuilds the palette on each
+        // draw, so the translation is never accumulated or applied to NPCs.
+        if (g_active && g_scenePoseValid && g_boundDll && g_boundBase && g_boundDll->joints &&
+            item && item==g_headingItem && item==*Ptr<uint8_t*>(g_boundDll->laraItem) &&
+            CanWalk(item) && (g_bodyVisualOffset.x!=0 || g_bodyVisualOffset.z!=0)) {
+            float* palette=Ptr<float>(g_boundDll->joints);
+            stabilization::OffsetBodyPalette(palette,32,g_bodyVisualOffset);
+        }
+        return;
+    }
     if (!item || !g_boundDll || !g_boundDll->joints || !MotionReady() ||
         item!=*Ptr<uint8_t*>(g_boundDll->laraItem)) {
         if (g_renderArm>=0 && g_renderArm<2)
@@ -1589,6 +1602,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
 
 void UpdateLocomotion(PHD_3DPOS& pose) {
     using namespace locomotion;
+    g_bodyVisualOffset={};
     auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
     const int state = *reinterpret_cast<const int16_t*>(item + off::item_anim_state);
     const int nativeEyeY = pose.y_pos;
@@ -1647,10 +1661,25 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
             static_cast<float>(Lerp(prev.y_pos, pos.y_pos, frac));
         const auto eye = g_groundEye.Apply(
             {body.x, bodyY, body.z}, g_heading.base,
-            {float(pose.x_pos), float(pose.y_pos), float(pose.z_pos)});
+            {float(pose.x_pos), float(pose.y_pos), float(pose.z_pos)},
+            Radians(prev.y_rot)+Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f));
         pose.x_pos = static_cast<int32_t>(std::lround(eye.x));
         pose.y_pos = static_cast<int32_t>(std::lround(eye.y));
         pose.z_pos = static_cast<int32_t>(std::lround(eye.z));
+        Vec view{},floor{};
+        if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation) {
+            VR().FirstPersonViewOffset(view.x,view.z);
+            VR().HeadFloorOffset(floor.x,floor.z);
+        }
+        const float bodyYaw=Radians(prev.y_rot)+
+            Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f);
+        g_bodyVisualOffset=g_groundEye.BodyOffset(g_heading.base,bodyYaw,view,floor,scale);
+        static uint64_t nextFitLog=0;
+        if (Cfg().firstPersonDriftLog && GetTickCount64()>=nextFitLog) {
+            nextFitLog=GetTickCount64()+5000;
+            LogF("firstperson: body fit yaw=%.1f base=%.1f offset=(%.1f,%.1f)",
+                 bodyYaw*180/Pi,g_heading.base*180/Pi,g_bodyVisualOffset.x,g_bodyVisualOffset.z);
+        }
     }
     if (state != g_lastClimbCameraState &&
         (state == 19 || g_lastClimbCameraState == 19)) {
@@ -1760,6 +1789,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         }
         else {
             g_scenePoseValid=false;
+            g_bodyVisualOffset={};
             g_haveHeading = false;
             g_haveManualInput = false;
             g_rootMotion.Reset();
@@ -2053,6 +2083,7 @@ void Remove() {
     g_headingItem = nullptr;
     g_headingLevel = -1;
     g_groundEye.Reset();
+    g_bodyVisualOffset={};
     g_haveManualInput = false;
     g_directionalRootScale = 1;
     g_rootMotion.Reset();
@@ -2151,6 +2182,7 @@ void FirstPersonToggle() {
     g_dragPrevious = g_dragCurrent = g_dragShown = {};
     g_renderTurn.Reset();
     g_groundEye.Reset();
+    g_bodyVisualOffset={};
     g_bodyTime = {};
     g_neutralTaken = false;
     LogF("firstperson: Y+LT switched to %s",

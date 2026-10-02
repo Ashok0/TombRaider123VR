@@ -644,7 +644,7 @@ static void TestLocomotion() {
             }
         }
     }
-    Check(stationaryTurn, "physical rotation produces no duplicate camera/body neck arc through 360 degrees");
+    Check(stationaryTurn, "neck-pivot correction produces no body-drag request through 360 degrees");
     Check(lateralDrag, "direct sideways drag remains lateral after physical and artificial turns");
     Check(jumpHeading, "compression and forward flight keep the HMD direction after every turn");
     Check(!IsJumpSteeringState(10), "jump steering excludes hanging interactions");
@@ -1062,6 +1062,73 @@ static void TestLocomotion() {
           "distant Action prompt is not pulled into view");
 }
 
+static void TestPhysicalBodyCentering() {
+    using namespace tr::locomotion;
+    using tr::stabilization::GroundEye;
+    printf("\nphysical body centering with the stabilized camera and skin palette\n");
+    const float units=423,neutralYaw=.37f,neck=.15f;
+    const Vec nativeEye{17,155};
+    bool centered=true,stableWorld=true,realLean=true,paddingClear=true;
+    float previousBugPeak=0;
+    for (float base : {0.f,.7f,-Pi/2,Pi}) for (bool stabilized : {false,true}) {
+        GroundEye fit;
+        const Vec initial=Rotate(nativeEye,base+neutralYaw);
+        fit.Apply({0,0,0},base,{initial.x,-710,initial.z},base+neutralYaw);
+        for (int degrees=-720;degrees<=720;degrees+=5) {
+            const float headYaw=neutralYaw+degrees*Pi/180;
+            const Vec arc=NeckToHead(headYaw,neck)-NeckToHead(neutralYaw,neck);
+            for (Vec step : {Vec{},Vec{.3f,-.2f}}) {
+                // Same tracking functions as VRSystem: neck displacement for
+                // collision drag, raw eye displacement for the stable view.
+                const Vec raw=arc+step;
+                const Vec view=ViewFloorOffset(raw,arc,stabilized);
+                const Vec floor=NeckFloorOffset(raw,arc);
+                const float bodyYaw=base+headYaw;
+                const Vec animated=Rotate(nativeEye,bodyYaw);
+                const auto eye=fit.Apply({0,0,0},base,
+                    {animated.x,-710,animated.z},bodyYaw);
+                const Vec camera=Vec{eye.x,eye.z}+Rotate(view,base)*units;
+                previousBugPeak=std::max(previousBugPeak,Length(camera-animated));
+                const Vec shift=fit.BodyOffset(base,bodyYaw,view,floor,units);
+                float palette[24]{};
+                palette[0]=palette[5]=palette[10]=1;
+                palette[3]=animated.x; palette[7]=-710; palette[11]=animated.z;
+                tr::stabilization::OffsetBodyPalette(palette,2,shift);
+                const Vec renderedEye{palette[3],palette[11]};
+                centered &= Length(camera-renderedEye-Rotate(floor,base)*units)<.001f;
+                stableWorld &= Length(camera-initial-Rotate(view,base)*units)<.001f;
+                realLean &= Length(camera-renderedEye-Rotate(step,base)*units)<.001f;
+                const float stick=Pi/3;
+                const Vec pivoted=stabilized ? Rotate(raw,-stick) : PivotFloorOffset(raw,arc,stick);
+                const Vec turnedView=ViewFloorOffset(pivoted,arc,stabilized);
+                const Vec turnedFloor=NeckFloorOffset(pivoted,arc);
+                const auto turned=fit.Apply({0,0,0},base+stick,{0,-710,0},bodyYaw+stick);
+                const Vec turnedShift=fit.BodyOffset(base+stick,bodyYaw+stick,turnedView,turnedFloor,units);
+                centered &= Length(Vec{turned.x,turned.z}+Rotate(turnedView,base+stick)*units-
+                    Rotate(nativeEye,bodyYaw+stick)-turnedShift-Rotate(turnedFloor,base+stick)*units)<.001f;
+                if (stabilized) stableWorld &= Length(Rotate(turnedView,base+stick)-Rotate(view,base))<.0001f;
+                for (int i=12;i<24;++i) paddingClear &= palette[i]==0;
+                paddingClear &= palette[0]==1 && palette[5]==1 && palette[10]==1 && palette[7]==-710;
+            }
+        }
+        // A fixed camera changes the tracking basis. Subsequent physical
+        // rotation must still use the original body-space calibration.
+        const float nextBase=base+.9f;
+        fit.Resume(true,base,nextBase,Pi/2);
+        const float yaw=nextBase+1.1f;
+        const Vec view{.08f,-.12f},floor{.03f,.04f};
+        const auto eye=fit.Apply({0,0,0},nextBase,{300,-650,200},yaw);
+        const Vec shift=fit.BodyOffset(nextBase,yaw,view,floor,units);
+        centered &= Length(Vec{eye.x,eye.z}+Rotate(view,nextBase)*units-
+            (Rotate(nativeEye,yaw)+shift)-Rotate(floor,nextBase)*units)<.001f;
+    }
+    Check(previousBugPeak>200,"reproduce the old intermediate-angle camera/mesh mismatch");
+    Check(centered,"rendered mesh stays centered throughout two full physical turns in both directions and after camera handoff");
+    Check(stableWorld,"physical body correction does not move the stable camera or world");
+    Check(realLean,"body centering preserves genuine roomscale translation and leaning");
+    Check(paddingClear,"body palette fit preserves rotations, height and hidden/padding matrices");
+}
+
 static void TestGunCalibrationPersistence() {
     printf("\nlive motion-gun fit persistence\n");
     wchar_t folder[MAX_PATH]{}, path[MAX_PATH]{};
@@ -1106,6 +1173,7 @@ int main() {
     TestEngineConstBits();
     TestPortalGeometry();
     TestLocomotion();
+    TestPhysicalBodyCentering();
     TestGunCalibrationPersistence();
     TestInlineHook();
 

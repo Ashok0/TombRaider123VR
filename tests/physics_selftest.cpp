@@ -1,6 +1,7 @@
 ﻿// Exercises the actual port with synthetic game state and a hidden OpenGL context.
 #include "../src/DynamicBones.cpp"
 #include "../src/BoneSkin.cpp"
+#include "../src/FirstPersonStabilization.h"
 #include <fstream>
 #include <iterator>
 #include <set>
@@ -317,6 +318,13 @@ void main() {
     testHandPalette=nullptr; testHandJoint=-1;
     BoneSkinAfterValidate(false);
     Require(pixelWhite(),"following non-hand draw clears persistent wrist clipping");
+    float fittedBody[384]{};
+    std::memcpy(fittedBody,fullPalette,sizeof(fittedBody));
+    stabilization::OffsetBodyPalette(fittedBody,32,{4,0});
+    gl::Uniform4fv(jointsLoc,96,fittedBody);
+    Require(!pixelWhite(),"ordinary body skin follows physical-turn palette correction on the GPU");
+    gl::Uniform4fv(jointsLoc,96,fullPalette);
+    Require(pixelWhite(),"fresh native palette restores ordinary body pixels without accumulated fit");
     Require(glGetError()==GL_NO_ERROR,"hand skin GPU regression leaves no GL errors");
     gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);
     gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);

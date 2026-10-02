@@ -14,6 +14,9 @@ FirstPersonRoomscaleNeckMetres=0.15 estimates the horizontal neck-to-HMD pivot.
    without a forward walk, and the view should remain centred in her body at
    intermediate angles rather than returning only at 360 degrees. Repeat
    physical side steps after each rotation.
+   With guns holstered, look down at the torso at 45, 90, 180 and 270 degrees
+   in both directions. Repeat after a fixed-camera handoff. A full-circle
+   endpoint alone cannot detect the intermediate-angle centering regression.
 4. Repeat with right-stick turns and combined physical/artificial rotation.
    Lean sideways while turning: the eye should not orbit the old neutral or
    drift off-centre from Lara before the rotation reaches 360 degrees.

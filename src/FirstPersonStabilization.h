@@ -64,11 +64,22 @@ struct RootMotion {
 };
 
 struct Point { float x = 0, y = 0, z = 0; };
+inline void OffsetBodyPalette(float* palette,int count,locomotion::Vec offset) {
+    for (int joint=0;joint<count;++joint) {
+        float* bone=palette+joint*12;
+        // Padding/hidden zero matrices must remain zero.
+        if (bone[0]==0 && bone[1]==0 && bone[2]==0 &&
+            bone[4]==0 && bone[5]==0 && bone[6]==0 &&
+            bone[8]==0 && bone[9]==0 && bone[10]==0) continue;
+        bone[3]+=offset.x; bone[11]+=offset.z;
+    }
+}
 // Keep a standing eye reference across grounded animation frames. Physical
 // body turns do not rotate this offset a second time; artificial turns do.
 struct GroundEye {
     bool valid = false;
     Point local{};
+    locomotion::Vec bodyLocal{};
     void Reset() { *this = {}; }
     void Resume(bool sameBody,float oldYaw,float newYaw,float scriptedBodyTurn) {
         if (!sameBody) { Reset(); return; }
@@ -80,7 +91,7 @@ struct GroundEye {
             oldYaw+scriptedBodyTurn-newYaw);
         local.x=flat.x; local.z=flat.z;
     }
-    Point Apply(Point root, float artificialYaw, Point animated) {
+    Point Apply(Point root, float artificialYaw, Point animated,float bodyYaw) {
         using namespace locomotion;
         const float height=animated.y-root.y;
         // The first grounded frame after a high vault can still contain the
@@ -91,6 +102,7 @@ struct GroundEye {
             const auto flat = Rotate({animated.x - root.x,
                                       animated.z - root.z}, -artificialYaw);
             local = {flat.x, height, flat.z};
+            bodyLocal=Rotate({animated.x-root.x,animated.z-root.z},-bodyYaw);
             valid = true;
         }
         // Until a standing pose exists, use the actual animated joint. A
@@ -98,6 +110,20 @@ struct GroundEye {
         if (!valid) return animated;
         const auto flat = Rotate({local.x, local.z}, artificialYaw);
         return {root.x + flat.x, root.y + local.y, root.z + flat.z};
+    }
+    Point Apply(Point root,float artificialYaw,Point animated) {
+        return Apply(root,artificialYaw,animated,artificialYaw);
+    }
+    locomotion::Vec BodyOffset(float artificialYaw,float bodyYaw,
+                              locomotion::Vec view,locomotion::Vec floor,float units) const {
+        if (!valid) return {};
+        using namespace locomotion;
+        // The stabilized eye stays in its tracking frame while Lara turns.
+        // Fit her rendered body beneath it, without changing camera/world or
+        // collision positions. Subtract floor motion so genuine leaning and
+        // roomscale steps are not mistaken for a rotation correction.
+        return Rotate({local.x,local.z},artificialYaw)-Rotate(bodyLocal,bodyYaw)
+             + Rotate(view-floor,artificialYaw)*units;
     }
 };
 } // namespace tr::stabilization

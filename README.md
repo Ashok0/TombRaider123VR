@@ -1076,6 +1076,14 @@ stable, so subtracting the estimated neck arc from the rendered eye would move
 the world subtly as the head turns. The legacy rendered-eye correction is kept
 when movement stabilization is off. Vertical ducking remains raw in both modes.
 
+The grounded HD body is fitted beneath that stable eye as Lara physically
+turns. Its render palette compensates for the difference between the saved
+eye anchor and the rotating body, including the neck arc already present in
+tracking. This prevents an offset that disappears only after a full revolution.
+It does not move the camera or collision root, cancel real leaning, or shift
+the independently tracked gun hands. The correction stops outside grounded
+first-person body rendering.
+
 Physical displacement beyond the 2 cm default lean allowance becomes a distance
 in game units. Before the normal above-water simulation, `DragBody` sweeps that
 distance in steps of at most 32 game units through `GetCollisionInfo`, using
