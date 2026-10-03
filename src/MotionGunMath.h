@@ -11,7 +11,7 @@ struct Vec { float x, y, z; };
 struct Basis { float r[3][3]; };
 struct Frame { Basis basis; Vec origin; };
 struct Calibration {
-    float rightMetres=0, raiseMetres=.0254f, gripForwardMetres=.1778f;
+    float rightMetres=0, raiseMetres=-.06985f, gripForwardMetres=.1778f;
     float pitchDegrees=-30, yawDegrees=0, rollDegrees=0;
 };
 

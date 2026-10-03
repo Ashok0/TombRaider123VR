@@ -187,7 +187,7 @@ struct Config {
     float firstPersonTurnDegreesPerSecond = 120.0f;
     float firstPersonTurnDeadzone = 0.25f;
     bool  firstPersonMovementStabilization = true;
-    bool  firstPersonDriftLog = false;
+    bool  firstPersonDriftLog = true;
 
     // Rotate the movement stick into the direction the player is looking, so
     // forward means forward. Applied only under the game's camera-relative
@@ -212,16 +212,14 @@ struct Config {
     // Keep armed arms in the headset's forward view by feeding its yaw/pitch
     // into the native weapon animation. Only active in first-person gameplay.
     bool  firstPersonHeadAim = true;
-    bool  firstPersonMotionGuns = false; // HD tracked-hand mode, opt in
+    bool  firstPersonMotionGuns = true; // User-approved HD tracked-hand default.
     float firstPersonAutoAimDegrees = 45.0f; // per-controller target assist, tracked shots only
     bool  firstPersonMotionGunHotkeys = true;
     motiongun::Calibration firstPersonMotionGunCalibration{};
 
-    // Rotation-only head tracking. The safest possible first test: the camera
-    // can pivot but can never be displaced into geometry, so a wrong world
-    // scale cannot put you inside a wall. Turn positional on once looking
-    // around behaves.
-    bool  positionalTracking = false;
+    // Full positional tracking is part of the user-approved default profile.
+    // Set false for rotation-only troubleshooting.
+    bool  positionalTracking = true;
 
     // Seated tracking origin rather than standing.
     //
@@ -701,7 +699,7 @@ struct Config {
     //       view-space shift d is exactly equivalent to P * translate(d):
     //           clip.x += m[0]*dx + m[4]*dy + m[8]*dz
     //       which yields the same delta/depth parallax as shifting the view.
-    int   eyeOffsetMode = 2;
+    int   eyeOffsetMode = 3;
 
     // Yaw the RIGHT eye's view by this many degrees. Diagnostic only.
     //

@@ -266,7 +266,7 @@ void LoadConfig(const wchar_t* ini) {
                                     : fallback;
     };
     gunCal.rightMetres=safe(gunCal.rightMetres,-.5f,.5f,0);
-    gunCal.raiseMetres=safe(gunCal.raiseMetres,-.5f,.5f,.0254f);
+    gunCal.raiseMetres=safe(gunCal.raiseMetres,-.5f,.5f,motiongun::Calibration{}.raiseMetres);
     gunCal.gripForwardMetres=safe(gunCal.gripForwardMetres,-.5f,.5f,.1778f);
     gunCal.pitchDegrees=safe(gunCal.pitchDegrees,-90,90,-30);
     gunCal.yawDegrees=safe(gunCal.yawDegrees,-90,90,0);

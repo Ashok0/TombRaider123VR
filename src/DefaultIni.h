@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 36291 bytes, 760 lines.
+// Source: TombRaiderVR.ini, 38066 bytes, 786 lines.
 #pragma once
 
 namespace tr {
@@ -28,6 +28,7 @@ inline const char* DefaultIniText() {
 ;   world tilts the wrong way when you lean  FlipViewY
 ;   depth inverted / eyes crossed .......... SwapEyes
 
+; Defaults synchronized with the Steam TombRaiderVR.ini.good profile.
 [VR]
 Enabled=1
 ; Built-in stock-texture effect enhancement. No EffectRetex DDS installation.
@@ -325,13 +326,13 @@ FirstPersonYawFromLara=0
 FirstPersonHeadTranslation=1
 FirstPersonRecenterKey=0x23
 
-; Body following is limited to ground locomotion so interactions retain their
+)INI"
+           R"INI(; Body following is limited to ground locomotion so interactions retain their
 ; authored facing. Zero deadzone keeps Lara aligned to the HMD. The legacy
 ; per-frame rate is interpreted at 60 Hz and scaled by elapsed time.
 FirstPersonBodyFollowsHead=1
 FirstPersonBodyDeadzoneDegrees=0
-)INI"
-           R"INI(FirstPersonBodyTurnDegreesPerFrame=4
+FirstPersonBodyTurnDegreesPerFrame=4
 
 ; Smooth right-stick turning, independent of rendering/input polling rate.
 FirstPersonTurnDegreesPerSecond=120
@@ -341,29 +342,18 @@ FirstPersonTurnDeadzone=0.25
 ; cancel residual walking motion immediately when the stick is released.
 FirstPersonMovementStabilization=1
 
-; Optional HD motion guns. Each controller places its equipped hand; shots
+; HD motion guns are enabled by default. Each controller places its hand; shots
 ; use that controller's barrel. LT tap fires the left dual gun on release,
 ; RT fires the right; both held fire both. Hold LT alone for 0.5 s to holster.
 ; LT draws immediately when holstered. Long guns keep RT.
 ; Requires first person, HD graphics and positional tracking.
-; When motion guns are unavailable, use headset yaw and pitch for native aiming.
-FirstPersonHeadAim=1
-FirstPersonMotionGuns=0
-; Controller bullets select enemies along each barrel, independently of head aim.
-; This angle permits assistance toward a visible enemy when the barrel misses.
-; 0 disables bending (direct hits still work); 45 is forgiving.
-FirstPersonAutoAimDegrees=45
+FirstPersonMotionGuns=1
 FirstPersonMotionGunGripForwardMetres=0.1778
-FirstPersonMotionGunRaiseMetres=0.0254
+FirstPersonMotionGunRaiseMetres=-0.06985
 FirstPersonMotionGunRightMetres=0
 FirstPersonMotionGunPitchDegrees=-30
 FirstPersonMotionGunYawDegrees=0
 FirstPersonMotionGunRollDegrees=0
-; Ctrl+F1/F2 left/right; F3/F4 down/up; F5/F6 back/forward (1/4 inch).
-; Ctrl+Shift+F1/F2 yaw; F3/F4 pitch; F5/F6 roll (1 degree).
-; Ctrl+F7 saves the fit to this INI after making a .motion-gun-calibration.bak.
-; Ctrl+Shift+F7 restores the last loaded/saved fit.
-FirstPersonMotionGunHotkeys=1
 
 ; Manual movement follows HMD world heading after physical and stick turns.
 ; Forward uses Lara's forward gait, back uses backpedal, and horizontal input
@@ -384,7 +374,7 @@ FirstPersonRoomscaleFullMetres=0.45
 FirstPersonRoomscaleNeckMetres=0.15
 
 ; Optional simulation heading, jump-state and requested/accepted drag log.
-FirstPersonDriftLog=0
+FirstPersonDriftLog=1
 FirstPersonHideHead=1
 
 ; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
@@ -629,7 +619,8 @@ GamepadLogButtons=0
 ;
 ; Applied to whatever right stick reaches the game, including a physical pad
 ; merged in alongside the Touch controllers. The binding line in the log says
-; "look=Rstick(yaw only; hold RT+RB for pitch)" when both are on.
+)INI"
+           R"INI(; "look=Rstick(yaw only; hold RT+RB for pitch)" when both are on.
 DecoupledPitch=1
 
 ; Hold RT + RB to get stick pitch BACK for as long as both are held. 1 = on,
@@ -637,8 +628,7 @@ DecoupledPitch=1
 ;
 ; This only ever hands pitch back -- it never takes it away. With
 ; DecoupledPitch=0 the stick already pitches and the chord does nothing at all;
-)INI"
-           R"INI(; with DecoupledPitch=1 you keep the comfortable head-only default and can still
+; with DecoupledPitch=1 you keep the comfortable head-only default and can still
 ; reach for the stick for the one shot that wants it, then let go.
 ;
 ; A momentary control has to mean ONE thing. An earlier version inverted the
@@ -793,6 +783,27 @@ DynamicBonesMaxDisplace=40.0
 DynamicBonesTeleport=900.0
 DynamicBonesReportFrames=900
 DynamicBonesLogJoints=0
+
+; Additional tuning from the user-approved TombRaiderVR.ini.good.
+FirstPersonRoomscaleDriftMetres=0.004
+
+; Legacy values retained from that profile for compatibility/history.
+; These keys are not read by the current TR1-3 VR implementation.
+FirstPersonBodyDeadzoneMovingDegrees=0
+FirstPersonBodyTurnMovingScale=3
+FirstPersonHeadSmoothing=0.06
+FirstPersonSteerWithController=1
+FirstPersonSteerHand=0
+FirstPersonStickTurnDegreesPerFrame=2.5
+FirstPersonRoomscaleStickDriftMetres=0.05
+MenuChordSeconds=1.0
+MenuChordPressSeconds=0.15
+FirstPersonMotionControls=1
+FirstPersonVRIK=1
+FirstPersonAimPitchDegrees=0
+FirstPersonHandOffsetX=0
+FirstPersonHandOffsetY=0
+FirstPersonHandOffsetZ=0
 )INI";
 }
 

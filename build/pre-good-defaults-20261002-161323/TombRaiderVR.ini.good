@@ -9,12 +9,8 @@
 ;   world tilts the wrong way when you lean  FlipViewY
 ;   depth inverted / eyes crossed .......... SwapEyes
 
-; Defaults synchronized with the Steam TombRaiderVR.ini.good profile.
 [VR]
 Enabled=1
-; Built-in stock-texture effect enhancement. No EffectRetex DDS installation.
-; Set to 0 to restore native appearance; restart the game after changing.
-EnhancedEffects=1
 
 ; Mode = mono | stereo
 ;
@@ -259,28 +255,25 @@ SkyAtInfinity=1
 ; How it works: the scene camera's pose is replaced with the world position of
 ; Lara's animated head joint just before the view matrix is built. Everything
 ; else follows from that -- stereo, the head-frustum culling, item visibility,
-; both renderers. The engine owns movement collision and triggers; fixed and
-; cinematic cameras keep their framing, because
+; both renderers. Gameplay is untouched: the engine's own camera still runs and
+; still collides, and fixed and cinematic cameras keep their framing, because
 ; those shots are placed deliberately by the level.
 ;
-; Turning uses a stable VR heading; looking and leaning come from the
+; Turning comes from Lara's BODY yaw; looking and leaning come from the
 ; headset. Her head's own animated pitch and roll are discarded on purpose, so
 ; an animation that tilts her head cannot tilt your horizon.
 ;
-; The game always starts in its original third-person view. Press Y + LT to
-; toggle this complete first-person camera, roomscale, rotation and directional
-; movement package during play. FirstPerson is retained only so old INI files
-; remain readable; its value no longer changes the startup view.
-; The head and hair are hidden while first person is active.
+; Known for now: her head is still drawn, so expect to see the inside of it.
+; Mesh hiding is the next piece of work.
 FirstPerson=0
 
 ; Which joint is the head, and where inside it the viewpoint sits.
 ;
 ; Joint 14 is the head in all three games. The offset is in world units in the
-; joint's own frame, relative to its neck pivot: -Y is up and +Z is forward.
-; The forward default brings Lara's visible torso underneath the player.
-; Raise -Y if the view feels too low; increase +Z to move the body farther back
-; relative to the viewpoint, or decrease it to move the body forward.
+; joint's own frame, relative to its neck pivot: -Y is up, +Z is forward, so
+; the default sits slightly above and ahead of the pivot -- about where her
+; eyes are. Raise -Y if you feel too low in the skull; increase +Z to move the
+; viewpoint forward towards the face.
 ;
 ; A joint index that is not the head is caught: if the resolved point lands
 ; more than four sectors from Lara the frame falls back to the game camera and
@@ -290,71 +283,127 @@ FirstPersonAnchorX=0
 FirstPersonAnchorY=-32
 FirstPersonAnchorZ=144
 
-; Hanging, climbing and push/pull animations hold Lara directly against a wall
-; or block.
-; During those interactions only, retract the forward avatar-fit offset to this
-; in-head position so the viewpoint stays outside the contacted geometry.
-; This cannot move a custom FirstPersonAnchorZ farther forward.
-FirstPersonInteractionAnchorZ=16
-
-; First person uses a stable tracking-to-world heading. Physical turns and the
-; right stick steer that heading; the chase camera cannot steer it back.
-; Legacy FirstPersonYawFromLara is ignored by this path.
+; Where the view's heading comes from.
+;
+; 0 (default) keeps the engine's own camera yaw -- the one the right stick
+; steers. Under the remaster's modern controls the right stick orbits the
+; camera and only turns Lara when she moves, so taking her body yaw instead
+; makes the stick look broken. It also means the view settles in behind her the
+; way the chase camera does, rather than snapping with her hips.
+;
+; 1 takes Lara's body yaw: rigidly her heading, which suits tank controls.
+;
+; Her head's animated pitch and roll are discarded either way. The headset owns
+; those, and an animation that tilts your horizon is how VR makes people ill.
 FirstPersonYawFromLara=0
 
-; Translation is relative to the head position captured on entry. END retakes
-; it without changing your world heading. Rotation is always tracked.
+; Let the headset's tracked POSITION move the viewpoint, on top of Lara's head.
+;
+; Off by default. The viewpoint is already hers, so this adds YOUR head's offset
+; from the tracking origin to it -- and if that origin is stale or sits at floor
+; level, you float above her head. Rotation is always tracked; this is only the
+; translation, i.e. leaning and ducking in your own room.
+;
+; Turn it on once PositionalTracking=1 behaves in third person and you have
+; recentred where you actually sit.
+
+
+; Hide Lara's head while first person is anchoring.
+;
+; The camera sits inside her skull, so what you would otherwise see is the
+; inside of her head: mostly back faces and near-clipped triangles, with her
+; hair and face crossing the view as she moves.
+;
+; This is not a mod trick -- it is the engine's own mechanism. Every mesh of
+; Lara has a bit in ITEM_INFO::mesh_bits, and DrawLaraHD itself uses those bits
+; to draw a single hand or holster. Clearing bit 14 makes the classic renderer
+; skip the head mesh outright, and makes the HD renderer collapse the head
+; bone's matrix so its triangles have nowhere to be.
+;
+; Her BODY is still drawn: look down and she is there. The bit is put back the
+; moment first person stands down -- a cutscene, the inventory, FirstPerson=0 --
+; so nothing outside this mode ever sees a headless Lara.
+; Let the headset's tracked POSITION move the viewpoint, on top of Lara's head:
+; leaning, ducking, shifting in your seat.
+;
+; On, because it is now measured as a displacement from a captured neutral
+; rather than from the runtime's own origin. That distinction is the whole
+; feature: a standing-universe origin sits on the FLOOR, so the head arrives
+; about 1.7 m up and, scaled into world units, lifts the camera several hundred
+; units above Lara's head. That is what "positional tracking is broken" looked
+; like, and why it used to be switched off in first person.
+;
+; The neutral is taken when first person engages -- not at the first pose the
+; runtime produces, which is usually while the headset is still on a desk.
 FirstPersonHeadTranslation=1
+
+; Re-take the neutral head position. Sit or stand the way you mean to play and
+; press this. Default END.
 FirstPersonRecenterKey=0x23
 
-; Body following is limited to ground locomotion so interactions retain their
-; authored facing. Zero deadzone keeps Lara aligned to the HMD. The legacy
-; per-frame rate is interpreted at 60 Hz and scaled by elapsed time.
+; Turn Lara's body to face where you are facing.
+;
+; Two things should turn her and now both do: the right stick, which swings the
+; game's camera, and turning round on the spot, which the game knows nothing
+; about. Her facing is written directly, because feeding turn input to the
+; camera instead only brings her round when she WALKS -- stand still and turn,
+; and her body stays put while the view slides off her shoulders.
+;
+; She trails you by the dead zone rather than being welded to your head, so you
+; can glance at something without dragging her round, and she turns at a limited
+; rate however fast you whip your head: a snap in a headset is a lurch.
+;
+; This writes gameplay state rather than just rendering, so it can fight
+; animations that turn her themselves -- climbing, levers. Set it to 0 if
+; something misbehaves there.
 FirstPersonBodyFollowsHead=1
 FirstPersonBodyDeadzoneDegrees=0
 FirstPersonBodyTurnDegreesPerFrame=4
+FirstPersonBodyDeadzoneMovingDegrees=0
+FirstPersonBodyTurnMovingScale=3
+FirstPersonHeadSmoothing=0.06
+FirstPersonSteerWithController=1
+FirstPersonSteerHand=0
+FirstPersonStickTurnDegreesPerFrame=2.5
 
-; Smooth right-stick turning, independent of rendering/input polling rate.
-FirstPersonTurnDegreesPerSecond=120
-FirstPersonTurnDeadzone=0.25
-
-; Smooth the native gait's horizontal root motion toward stick direction and
-; cancel residual walking motion immediately when the stick is released.
-FirstPersonMovementStabilization=1
-
-; HD motion guns are enabled by default. Each controller places its hand; shots
-; use that controller's barrel. LT tap fires the left dual gun on release,
-; RT fires the right; both held fire both. Hold LT alone for 0.5 s to holster.
-; LT draws immediately when holstered. Long guns keep RT.
-; Requires first person, HD graphics and positional tracking.
-FirstPersonMotionGuns=1
-FirstPersonMotionGunGripForwardMetres=0.1778
-FirstPersonMotionGunRaiseMetres=-0.06985
-FirstPersonMotionGunRightMetres=0
-FirstPersonMotionGunPitchDegrees=-30
-FirstPersonMotionGunYawDegrees=0
-FirstPersonMotionGunRollDegrees=0
-
-; Manual movement follows HMD world heading after physical and stick turns.
-; Forward uses Lara's forward gait, back uses backpedal, and horizontal input
-; uses her native sidestep animations. Diagonals use their dominant axis.
-FirstPersonMoveWithHead=1
-
-; Physical movement directly drags Lara through native collision queries.
-; It never generates analog-stick input or walking animations. Both control
-; schemes support sideways/diagonal drag and simultaneous manual movement.
-; Translation must be on; the deadzone allows a small amount of leaning.
+; Rotate the movement stick into the direction you are looking, so forward means
+; forward rather than "forward as the game's camera sees it".
+;
+; Applied ONLY under the game's camera-relative controls, and the mod reads
+; which scheme is in use rather than assuming -- it checks the same flag
+; DrawLara does. Under tank controls the movement stick's other axis is TURNING,
+; so rotating the vector would turn a turn into a walk and Lara would stop
+; turning; there, her body following your head already points her where you look.
+; Walking about the room walks Lara.
+;
+; Her position cannot simply be written -- where she stands is the engine's
+; business, and setting it would put her through walls and past triggers. So
+; your step is offered to the game as movement-stick input and the engine walks
+; her there with its own collision, exactly as if you had pushed the stick.
+;
+; The neutral then drifts after you at the speed she travels, which is what
+; makes a step a step rather than a treadmill: stand somewhere new and the
+; displacement is gradually used up and she stops. Lean and hold and she keeps
+; walking -- the same gesture, sustained.
+;
+; Under the game's TANK controls only forward and back come from stepping,
+; because there the stick's other axis is turning and a physical sidestep would
+; spin her on the spot. The mod reads which scheme is in use.
+;
+; Dead zone: how far you can shift before she moves at all -- keep it above the
+; sway of standing still. Full: the displacement that means a full-speed walk.
+; Drift: how fast a step is used up; raise it if she keeps walking after you
+; have stopped, lower it if a step moves her less than you expected.
 FirstPersonRoomscaleMove=1
 FirstPersonRoomscaleDeadzoneMetres=0.02
-; Legacy stick-ramp setting, ignored by direct body drag.
 FirstPersonRoomscaleFullMetres=0.45
-; Estimated horizontal neck-to-head distance. Prevents turning in place from
-; producing a roomscale step or duplicating Lara's animated head arc in the
-; first-person camera; 0 disables the correction.
-FirstPersonRoomscaleNeckMetres=0.15
-
-; Optional simulation heading, jump-state and requested/accepted drag log.
+FirstPersonRoomscaleDriftMetres=0.004
+FirstPersonRoomscaleStickDriftMetres=0.05
 FirstPersonDriftLog=1
+
+FirstPersonMoveWithHead=1
+
+
 FirstPersonHideHead=1
 
 ; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
@@ -558,22 +607,13 @@ VideoFlipV=0
 ;   Move    left stick              Jump    A  (right hand, LOWER)
 ;   Look    right stick             Roll    B  (right hand, UPPER)
 ;   Action  Y  (left hand, UPPER)   System  X  (left hand, LOWER)
-;           LB + RB (both grips)
 ;   Walk    left stick + RIGHT GRIP Duck    LEFT GRIP
 ;   Equip   left trigger (hold)     Shoot   right trigger
-;   Sprint  left stick click        Photo   L3 + R3
-;   View    Y + LT                  Graphics Y + RT
-;   D-pad   R3 + left stick
+;   Sprint  left stick click        Photo   both grips
 ;
 ; Walk is the right grip rather than a face button so it can be held while the
 ; left thumb keeps moving. The game binds Walk to XInput X, so the grip emits X
-; -- and RIGHT_SHOULDER as well, keeping the optional RT+RB pitch chord usable.
-; During gameplay, holding both grips sends Action (Y) instead of Walk and Duck,
-; which leaves the left thumb free to push or pull blocks. It does not activate
-; the Y+trigger view or graphics chords.
-; Photo Mode receives the game's native L3+R3 chord. During gameplay, Y+RT is
-; translated to the native Xbox Menu/Start graphics toggle and Y+LT switches
-; first/third person. Y/trigger input is left untouched in menus and cutscenes.
+; -- and RIGHT_SHOULDER as well, so the Photo Mode chord (LB+RB) still works.
 GamepadEnabled=1
 
 ; Log the raw OpenVR legacy button masks whenever they change. Touch's button
@@ -616,8 +656,8 @@ DecoupledPitch=1
 ;
 ; KNOW WHAT RB IS HERE. Touch has no physical shoulder buttons: the RIGHT GRIP
 ; synthesises XB_X and XB_RIGHT_SHOULDER together, because X is what the game
-; binds Walk to and RIGHT_SHOULDER is what makes this pitch chord reachable.
-; So this chord is right grip + right trigger, which in play reads as
+; binds Walk to and RIGHT_SHOULDER is what keeps the LB+RB Photo Mode chord
+; reachable. So this chord is right grip + right trigger, which in play reads as
 ; "walk and shoot" -- a combination people genuinely use, on a ledge especially,
 ; and it WILL engage the chord. Set this to 0 if you would rather walk-and-shoot
 ; leave pitch alone.
@@ -626,13 +666,12 @@ DecoupledPitch=1
 ; while it is held; nothing is taken away to pay for it.
 DecoupledPitchChord=1
 
-; Hold R3 (right stick click) to turn the LEFT stick into a D-pad. L3+R3 takes
-; priority and activates the game's native Photo Mode instead.
+; Hold R3 (right stick click) to turn the LEFT stick into a D-pad.
 ;
 ; R3 is the modifier rather than L3 because L3 is Sprint, and sprint here is
 ; held WHILE running forward -- "hold L3, push the stick forward" is already a
 ; gesture in play, so reusing it for D-pad up would mean choosing between them.
-; R3 was otherwise the only spare input on the pad.
+; R3 was the only spare input on the pad.
 ;
 ; A plain R3 click, with the stick centred, still emits RIGHT_THUMB exactly as
 ; before -- the D-pad only appears once the left stick is actually deflected,
@@ -642,6 +681,27 @@ DecoupledPitchChord=1
 ; Only the dominant axis fires, so a flick cannot emit up and left together and
 ; move a menu selection twice.
 DpadShift=1
+
+; Hold Y + LT for this many seconds to send the Xbox Menu button (XInput START).
+;
+; Touch has no Start or Back of its own, so both have to come from somewhere.
+; The System button on the left hand's lower face sends one of them (see
+; GamepadMenuUsesBack); this chord reaches the other without spending a button.
+;
+; The hold is what separates the chord from real play: Y is Action and LT is
+; Equip, so the pair does occur naturally. One second is comfortable but IS
+; within reach of normal play -- raise this if it ever fires unintentionally.
+;
+; It sends a PRESS, not a latch -- Menu toggles the pause screen itself, and a
+; held START would never look like a clean press to the game. It fires once per
+; hold; release and re-hold to send another. Y and LT are suppressed from the
+; moment it fires until you let go, so it does not keep grabbing afterwards.
+;
+; 0 disables the chord entirely.
+MenuChordSeconds=1.0
+
+; How long the synthesised Menu press is held, in seconds.
+MenuChordPressSeconds=0.15
 
 ; How far the left stick must travel before a shifted press registers, 0-1.
 ; Raise it if directions trigger too easily, lower it if they feel stiff.
@@ -723,63 +783,25 @@ DumpDraws=0
 
 ; Virtual-key code that arms the dump. 0x78 = F9.
 DumpKey=0x78
+FirstPersonTurnDegreesPerSecond=120
+FirstPersonTurnDeadzone=0.25
 
-; Chest physics (HD Lara, TR1/TR2/TR3; retail and Gold).
-; Same spring and chest-region defaults as the TR4/5 mod.
-; DynamicBones=0 disables all physics. ChestStrength scales the visible bounce.
-; DriveMode=1 responds to landings; 0 uses filtered torso acceleration.
-; Shader=1 moves the chest per vertex; 0 uses the whole-torso debug fallback.
-; Apply=0 keeps measurements only. RegionDebug=30 shows the selected area.
-DynamicBones=1
-DynamicBonesTorsoJoint=7
-DynamicBonesAnchorX=34.0
-DynamicBonesAnchorY=-170.0
-DynamicBonesAnchorZ=45.0
-DynamicBonesStiffness=630.0
-DynamicBonesDamping=9.5
-DynamicBonesGravity=5400.0
-DynamicBonesDriveScale=1.0
-DynamicBonesDriveDeadzone=4000.0
-DynamicBonesDriveMode=1
-DynamicBonesAirGravity=1.0
-DynamicBonesLandImpulse=0.2
-DynamicBonesDriveSmoothing=0.25
-DynamicBonesDriveMax=20000.0
-DynamicBonesAxis=1
-DynamicBonesShader=1
-DynamicBonesForwardSign=0
-DynamicBonesChestStrength=2.5
-DynamicBonesChestTop=0.18
-DynamicBonesChestBottom=0.52
-DynamicBonesChestDepth=0.6
-DynamicBonesChestWidth=0.34
-DynamicBonesChestBand=0.65
-DynamicBonesRegionDebug=0.0
-DynamicBonesApply=1
-DynamicBonesDebugScale=1.0
-DynamicBonesSeparation=12.0
-DynamicBonesMaxDisplace=40.0
-DynamicBonesTeleport=900.0
-DynamicBonesReportFrames=900
-DynamicBonesLogJoints=0
-
-; Additional tuning from the user-approved TombRaiderVR.ini.good.
-FirstPersonRoomscaleDriftMetres=0.004
-
-; Legacy values retained from that profile for compatibility/history.
-; These keys are not read by the current TR1-3 VR implementation.
-FirstPersonBodyDeadzoneMovingDegrees=0
-FirstPersonBodyTurnMovingScale=3
-FirstPersonHeadSmoothing=0.06
-FirstPersonSteerWithController=1
-FirstPersonSteerHand=0
-FirstPersonStickTurnDegreesPerFrame=2.5
-FirstPersonRoomscaleStickDriftMetres=0.05
-MenuChordSeconds=1.0
-MenuChordPressSeconds=0.15
+; Motion-controller weapon aim and two-bone arm IK.
 FirstPersonMotionControls=1
 FirstPersonVRIK=1
+; Positive pitches the controller pointing ray upward.
 FirstPersonAimPitchDegrees=0
+; Controller-local wrist offset in metres: right, up, forward.
 FirstPersonHandOffsetX=0
 FirstPersonHandOffsetY=0
 FirstPersonHandOffsetZ=0
+
+; First-person movement and optional HD motion-gun calibration (2026-09-29)
+FirstPersonMovementStabilization=1
+FirstPersonMotionGuns=1
+FirstPersonMotionGunGripForwardMetres=0.1778
+FirstPersonMotionGunRaiseMetres=-0.06985
+FirstPersonMotionGunRightMetres=0
+FirstPersonMotionGunPitchDegrees=-30
+FirstPersonMotionGunYawDegrees=0
+FirstPersonMotionGunRollDegrees=0

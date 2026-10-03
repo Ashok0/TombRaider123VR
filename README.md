@@ -59,6 +59,19 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### Default profile (2026-10-02)
+
+The repository INI and embedded first-run INI now match all 113 values in the
+user-approved Steam `TombRaiderVR.ini.good`. Runtime defaults also match the
+supported settings, including positional tracking, `EyeOffsetMode=3`, motion
+guns enabled, hand height `-0.06985` and drift logging enabled. Settings for
+newer features absent from that reference, including enhanced effects and chest
+physics, are retained. Fifteen obsolete keys are preserved in a labeled legacy
+block for reference; the current implementation does not read them.
+
+Edit `TombRaiderVR.ini`, then run `python tools/gen_default_ini.py` to regenerate
+`src/DefaultIni.h`; the embedded template should not be edited directly.
+
 ### Built-in enhanced effects (2026-10-02)
 
 `EnhancedEffects=1` (default) adds a code-only interpretation of the visual
@@ -126,8 +139,8 @@ Controller-aimed pistols also keep firing when a moving enemy remains selected
 but Lara loses native arm lock. The pistol animation temporarily uses free aim;
 each shot still uses the controller's target, native cadence, ammo and effects.
 Long guns keep RT firing. Motion guns require first
-person, positional tracking and HD graphics. They default to off pending
-in-headset weapon checks; ordinary head-aimed arms remain the default.
+person, positional tracking and HD graphics. They are enabled by default,
+matching the user-approved `TombRaiderVR.ini.good` profile.
 The gun pitch now defaults to the same -30 degrees as the installed TR4/5
 profile, and native muzzle flashes follow the tracked gun pose in first person.
 The flash uses the same world axes as the HD hand palette, so stick rotation
@@ -1038,9 +1051,9 @@ Ctrl+F7 saves the fit to the INI after making a backup, and Ctrl+Shift+F7
 restores the last loaded or saved fit. These keys are captured only in the
 focused gameplay window while tracked guns are ready.
 `FirstPersonMotionGunRaiseMetres` adjusts hand height; 0.25 inches is 0.00635 m.
-The current local Steam profile uses `-0.06985` after the requested hand-height
-tuning; this is a personal calibration, not a changed default. The code default
-remains `0.0254`. Restart after editing the INI manually; the calibration keys
+The default is `-0.06985`, matching the requested hand-height tuning in the
+Steam `TombRaiderVR.ini.good` profile. The template, embedded first-run INI and
+code fallback agree. Restart after editing the INI manually; the calibration keys
 apply changes live and Ctrl+F7 persists them.
 The runtime log reports why tracked hands are unavailable while first person
 is active, including classic graphics, missing controller poses and gun state.
@@ -1323,7 +1336,7 @@ forward jump, `head` and `cam` should agree even after turning.
 | `FirstPersonHeadTranslation` | `1` | track displacement from the captured neutral |
 | `FirstPersonHeadAim` | `1` | pose equipped gun arms toward the headset in first person when no auto-target is selected |
 | `FirstPersonMovementStabilization` | `1` | smooth ground gait and use raw head displacement for a world-stable rendered eye; the stick-release stop also works when this is off |
-| `FirstPersonMotionGuns` | `0` | opt-in tracked HD hands and controller-directed shots |
+| `FirstPersonMotionGuns` | `1` | tracked HD hands and controller-directed shots |
 | `FirstPersonAutoAimDegrees` | `45` | controller-shot assist toward the game's selected enemy; 0 disables it, maximum 60 |
 | `FirstPersonMotionGunHotkeys` | `1` | live Ctrl+function-key gun fit while tracked guns are ready |
 | `FirstPersonRecenterKey` | `0x23` | END resets position without changing world heading |
@@ -1337,7 +1350,7 @@ forward jump, `head` and `cam` should agree even after turning.
 | `FirstPersonRoomscaleDeadzoneMetres` | `0.02` | small lean allowance before body dragging |
 | `FirstPersonRoomscaleNeckMetres` | `0.15` | estimated horizontal neck-to-HMD distance |
 | `FirstPersonRoomscaleFullMetres` | `0.45` | legacy stick-ramp setting; ignored |
-| `FirstPersonDriftLog` | `0` | simulation state, heading, manual input and body-drag diagnostics |
+| `FirstPersonDriftLog` | `1` | simulation state, heading, manual input and body-drag diagnostics |
 
 `FirstPersonYawFromLara` and `FirstPersonRoomscaleDriftMetres` remain readable for
 old INI files but are ignored by the new path. Old experimental moving-dead-zone,
@@ -1378,8 +1391,15 @@ engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-10-02 shotgun roomscale-effects Release/x64 DLL is installed, with
-SHA-256 matching the build output:
+The 2026-10-02 known-good-defaults Release/x64 DLL and corrected Steam INI are
+installed. The DLL SHA-256 matches the build output:
+`845DA6D43F482A7AB3640CE4BEA90311488AAFEC7CD78593C2271703BD91578B`.
+The prior DLL, INI, log and reference profile are backed up under
+`build/pre-good-defaults-20261002-161323/`; the original `.ini.good` is unchanged.
+All 113 reference values match the template, embedded INI and installed INI,
+with newer settings retained. Release build and CPU tests passed.
+
+The preceding 2026-10-02 shotgun roomscale-effects Release/x64 DLL had SHA-256:
 `85DA380D52A7AC5209FAF356CE5004D90DB9FC7928A344388C977719F9B65D82`.
 The previous DLL, INI and log are backed up under
 `build/pre-shotgun-roomscale-20261002-104525/`. Settings and hand calibration
@@ -1436,8 +1456,8 @@ DLL is backed up as
 `TombRaiderVR.ini.pre-flash-tilt-20260930`. The installed INI retains the
 player's settings, with `FirstPersonMovementStabilization=1`,
 `FirstPersonMotionGuns=1` and
-`FirstPersonMotionGunPitchDegrees=-30`; the repository default for motion guns
-remains off. The user confirmed LT draws guns and they stay armed after LT is
+`FirstPersonMotionGunPitchDegrees=-30`; the later defaults update also enables
+motion guns in the repository template. The user confirmed LT draws guns and they stay armed after LT is
 released. TR1-3 `GetJoints` takes only an item pointer and fills a global
 palette; the corrected hook reads that palette directly. `EquipInput` maintains
 the modern-controls native draw bit through ready and LT release until a later
