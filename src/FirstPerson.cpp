@@ -303,6 +303,12 @@ bool CanWalk(const uint8_t* item) {
         *reinterpret_cast<const int16_t*>(item + off::item_anim_state));
 }
 
+bool UseHardLandingCamera(const uint8_t* item) {
+    return item && CanWalk(item) && locomotion::IsHardLanding(
+        *reinterpret_cast<const int16_t*>(item+off::item_anim_state),
+        *reinterpret_cast<const int16_t*>(item+off::item_anim_number));
+}
+
 template <typename T>
 T* Ptr(uint32_t rva) { return reinterpret_cast<T*>(g_boundBase + rva); }
 
@@ -1747,7 +1753,8 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         const auto eye = g_groundEye.Apply(
             {body.x, bodyY, body.z}, g_heading.base,
             {float(pose.x_pos), float(pose.y_pos), float(pose.z_pos)},
-            Radians(prev.y_rot)+Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f));
+            Radians(prev.y_rot)+Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f),
+            UseHardLandingCamera(item));
         pose.x_pos = static_cast<int32_t>(std::lround(eye.x));
         pose.y_pos = static_cast<int32_t>(std::lround(eye.y));
         pose.z_pos = static_cast<int32_t>(std::lround(eye.z));
@@ -1816,8 +1823,8 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     pose.z_pos = renderedHead[2] - offsetZ;
 }
 
-void ClampRollCameraToFloor(const uint8_t* item,PHD_3DPOS& pose) {
-    if (!UseGroundRollCamera(item)) return;
+void ClampLowAnimationCameraToFloor(const uint8_t* item,PHD_3DPOS& pose) {
+    if (!UseGroundRollCamera(item) && !UseHardLandingCamera(item)) return;
     const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
     const auto& prev=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos_prev);
     const int frac=std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac),0,256);
@@ -1847,7 +1854,7 @@ void ClampRollCameraToFloor(const uint8_t* item,PHD_3DPOS& pose) {
     static uint64_t nextLog=0;
     if (pose.y_pos!=animatedY && Cfg().firstPersonDriftLog && GetTickCount64()>=nextLog) {
         nextLog=GetTickCount64()+1000;
-        LogF("firstperson: roll floor clearance animatedY=%d viewY=%d floorDelta=%d trackedRise=%.1f",
+        LogF("firstperson: roll/landing floor clearance animatedY=%d viewY=%d floorDelta=%d trackedRise=%.1f",
              animatedY,pose.y_pos,coll.floorSamples[0],rise);
     }
 }
@@ -1932,7 +1939,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             const PHD_3DPOS animatedHead=*pose;
             UpdateLocomotion(*pose);
             ClampRenderedHeadToCollision(item, *pose);
-            ClampRollCameraToFloor(item, *pose);
+            ClampLowAnimationCameraToFloor(item, *pose);
             FitBodyToRenderedEye(item, *pose, animatedHead);
             g_scenePose=*pose;
             g_scenePoseValid=true;

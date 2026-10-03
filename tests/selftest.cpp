@@ -1128,6 +1128,45 @@ static void TestLocomotion() {
           "distant Action prompt is not pulled into view");
 }
 
+static void TestHardLandingCamera() {
+    using namespace tr::locomotion;
+    using tr::stabilization::GroundEye;
+    printf("\nhard-landing neck height\n");
+    Check(IsHardLanding(2,24),"native hard landing follows the neck despite its stop state");
+    for (int anim : {0,11,27,42,50,51,103})
+        Check(!IsHardLanding(2,anim),"idle, vault and ordinary landing animations keep stabilization");
+    for (int state : {1,3,8,9,19,23,28,45,54})
+        Check(!IsHardLanding(state,24),"landing exception excludes falls, death, mounts and rolls");
+    for (float yaw : {0.f,.7f,Pi,-Pi/2}) {
+        GroundEye eye;
+        const auto forward=Rotate({17,144},yaw);
+        eye.Apply({100,0,200},yaw,{100+forward.x,-700,200+forward.z},yaw);
+        const auto saved=eye.local;
+        for (float height : {-700.f,-600.f,-400.f,-200.f,-350.f,-550.f,-650.f,-700.f}) {
+            const auto view=eye.Apply({300,-768,500},yaw,
+                {350+forward.x,-768+height,590+forward.z},yaw,IsHardLanding(2,24));
+            CheckNear(view.y,-768+height,"impact crouch and recovery follow native interpolated neck height");
+            Check(std::fabs(view.x-300-forward.x)<.001f && std::fabs(view.z-500-forward.z)<.001f,
+                  "hard landing retains horizontal centering at every heading");
+            Check(eye.local.x==saved.x && eye.local.y==saved.y && eye.local.z==saved.z,
+                  "kneeling never overwrites standing calibration");
+            for (double rise : {-240.,0.,120.}) {
+                const double guarded=tr::firstperson::RollEyeAboveFloor(view.y,rise,-768,0);
+                Check(guarded-rise<=-832 && (view.y-rise>-832 || guarded==view.y),
+                      "landing floor guard includes physical ducking and otherwise keeps native height");
+            }
+        }
+        const auto standing=eye.Apply({300,-768,500},yaw,{330,-1440,550},yaw,false);
+        CheckNear(standing.y,-1468,"standing recovery restores original height and suppresses idle bob");
+        GroundEye uncalibrated;
+        const auto kneeling=uncalibrated.Apply({0,0,0},yaw,{25,-600,80},yaw,true);
+        Check(!uncalibrated.valid && kneeling.y==-600,
+              "entering first person mid-landing cannot capture crouched height as standing");
+        const auto recovered=uncalibrated.Apply({0,0,0},yaw,{forward.x,-700,forward.z},yaw);
+        Check(uncalibrated.valid && recovered.y==-700,"first settled standing frame captures normal calibration");
+    }
+}
+
 static void TestMountBodyTransition() {
     using namespace tr::locomotion;
     using namespace tr::stabilization;
@@ -1473,6 +1512,7 @@ int main() {
     TestEngineConstBits();
     TestPortalGeometry();
     TestLocomotion();
+    TestHardLandingCamera();
     TestMountBodyTransition();
     TestPhysicalBodyCentering();
     TestGroundRollHeading();

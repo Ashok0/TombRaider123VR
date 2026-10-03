@@ -193,6 +193,13 @@ working feature; TR3 crouch keeps native collision and movement.
   and movement heading by 180 degrees. Lara keeps her native roll animation;
   the standing eye offset rotates to her new forward side. The change follows
   the actual animation turn, so cancelled rolls do not flip the view.
+- **Hard-landing camera dip:** after a large survivable fall, first person follows
+  the animated neck height through the impact kneel and recovery. TR1-3 report
+  this as standing state 2 with animation 24; it now bypasses vertical standing
+  stabilization while retaining horizontal centering and the saved standing fit.
+  The roll floor guard also covers this landing, including physical ducking.
+  Ordinary idle/movement, crate mounts and fatal-fall camera behavior retain
+  their existing paths.
 - **Ground-roll floor clipping:** the camera retains its animated drop during
   a B roll, but the final tracked eye stops 64 game units above the local floor.
   Wall clearance, the 180-degree turnaround and the new forward direction remain
@@ -1402,8 +1409,18 @@ engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-10-03 TR4/5-style mount-body Release/x64 DLL is installed and its
-SHA-256 matches the build output:
+The 2026-10-03 hard-landing camera Release/x64 DLL is installed with verified
+SHA-256 `EFE42EBABB01009496BD7FCF3217627848074E524478CB096DAA27487707453D`.
+Backup: `build/pre-hard-landing-20261003-010641/` (DLL, INI and log).
+The INI and hand calibration are unchanged. Release build and all 2,917 CPU
+checks passed, including landing kneel/recovery height, multiple headings,
+standing calibration, entering first person during a kneel, floor clearance
+with physical ducking, and the existing mount/roomscale/weapon regressions.
+The state/animation pair was verified in `lara_col_fastfall` in all three PDB
+images. No shader or hook-address changes were required. Headset confirmation
+of the landing motion remains pending.
+
+The preceding 2026-10-03 TR4/5-style mount-body Release/x64 DLL had SHA-256:
 `53E934AC0B5ED21F24E8A0AA6413968DF608FCC723733E89D78075FE96210E8E`.
 The previous DLL, INI and log are backed up under
 `build/pre-mount-body-20261003-005652/`. The installed INI is byte-for-byte

@@ -111,13 +111,15 @@ struct GroundEye {
             oldYaw+scriptedBodyTurn-newYaw);
         local.x=flat.x; local.z=flat.z;
     }
-    Point Apply(Point root, float artificialYaw, Point animated,float bodyYaw) {
+    Point Apply(Point root, float artificialYaw, Point animated,float bodyYaw,
+                bool followAnimatedHeight=false) {
         using namespace locomotion;
         const float height=animated.y-root.y;
         // The first grounded frame after a high vault can still contain the
         // pull-up skeleton while Lara's root is already on top of the crate.
         // Never latch that near-feet/high-above-root pose as standing height.
-        const bool standing=std::isfinite(height) && height<=-500 && height>=-950;
+        const bool standing=!followAnimatedHeight && std::isfinite(height) &&
+            height<=-500 && height>=-950;
         if (standing && (!valid || local.y>-500 || local.y<-950)) {
             const auto flat = Rotate({animated.x - root.x,
                                       animated.z - root.z}, -artificialYaw);
@@ -129,7 +131,10 @@ struct GroundEye {
         // guessed height can put the camera above Lara after a crate mount.
         if (!valid) return animated;
         const auto flat = Rotate({local.x, local.z}, artificialYaw);
-        return {root.x + flat.x, root.y + local.y, root.z + flat.z};
+        // Hard-landing kneels retain stable X/Z but follow the animated neck
+        // vertically. Never save the impact/recovery pose as standing height.
+        return {root.x + flat.x, followAnimatedHeight ? animated.y : root.y + local.y,
+                root.z + flat.z};
     }
     Point Apply(Point root,float artificialYaw,Point animated) {
         return Apply(root,artificialYaw,animated,artificialYaw);

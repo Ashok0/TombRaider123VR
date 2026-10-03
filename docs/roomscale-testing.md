@@ -62,6 +62,14 @@ The neck-pivot correction is an estimate from the headset. If turning in place
 still translates the body, adjust FirstPersonRoomscaleNeckMetres and recenter.
 Zero disables that correction. The tests cannot substitute for headset play.
 
+For hard landings, take a survivable large fall in each game and check that the
+view drops with Lara's neck as she kneels, then rises as she stands. Repeat at
+different physical/stick headings and while physically ducking: the view should
+stay horizontally centered and above the floor. Check ordinary short landings,
+idle/walking bob, mounts, B rolls and fatal falls. Toggle into first person
+mid-kneel and verify normal standing height afterward. Automated checks pass;
+headset confirmation remains pending.
+
 For the TR4/5-style mount-body transition, repeat low/high crate vaults, normal
 ledge pull-ups and walk-held gymnast pull-ups at several physical and stick
 headings. The torso should stay hidden during the mount while both arms remain
