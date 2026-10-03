@@ -74,6 +74,26 @@ inline void OffsetBodyPalette(float* palette,int count,locomotion::Vec offset) {
         bone[3]+=offset.x; bone[11]+=offset.z;
     }
 }
+// A grounded state can precede the last interpolated climbing skeleton.
+// Correct that temporary body translation without changing the camera's saved
+// standing fit. Once the skeleton is standing-height, release the correction
+// over 120 ms; ordinary running sway must not keep this mode alive indefinitely.
+struct MountBodyTransition {
+    bool active=false,settling=false;
+    double start=0;
+    void Reset() { *this={}; }
+    void Begin() { active=true;settling=false; }
+    locomotion::Vec Correction(locomotion::Vec residual,float height,double now) {
+        if (!active) return {};
+        if (!std::isfinite(height) || !std::isfinite(now) ||
+            !std::isfinite(residual.x) || !std::isfinite(residual.z)) { Reset();return {}; }
+        if (height < -950 || height > -500) { settling=false;return residual; }
+        if (!settling || now<start) { start=now;settling=true; }
+        const float weight=1.f-float(std::clamp((now-start)/.12,0.0,1.0));
+        if (weight==0) Reset();
+        return residual*weight;
+    }
+};
 // Keep a standing eye reference across grounded animation frames. Physical
 // body turns do not rotate this offset a second time; artificial turns do.
 struct GroundEye {

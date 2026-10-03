@@ -235,8 +235,9 @@ unsigned g_skipped     = 0;
 locomotion::Heading g_heading;
 stabilization::RenderTurn g_renderTurn;
 stabilization::GroundEye g_groundEye;
-stabilization::MountBodyTransition g_mountBodyTransition;
 locomotion::Vec g_bodyVisualOffset;
+locomotion::Vec g_mountEyeSweepStart; // Refreshed by Anchor for the current mount scene.
+double g_mountEyeSweepStartY = 0;
 int g_lastClimbCameraState = -1;
 bool g_haveHeading = false;
 uint8_t* g_headingItem = nullptr;
@@ -390,26 +391,34 @@ bool CanHardStop(const uint8_t* item) {
 }
 
 // Lara's body collision can stop at a wall while the avatar-fit eye sits beyond
-// it. Trace from her collision origin toward the rendered head in short steps,
+// it. Trace from the supplied start toward the rendered head in short steps,
 // using the same room collision query as roomscale movement. Leave enough
 // space for both eyes and the near plane at the last clear point.
+// Mounts supply the animated in-head point and sweep height too; other states
+// retain the root-to-eye horizontal sweep. body[1] remains the collision root Y.
 void ClampHeadToCollision(const uint8_t* item, const int32_t body[3],
-                          int32_t head[3], double eyeY) {
+                          int32_t head[3], double eyeY,
+                          double startEyeY=std::numeric_limits<double>::quiet_NaN()) {
+    const bool sweepHeight=std::isfinite(startEyeY);
     const int32_t dx = head[0] - body[0], dz = head[2] - body[2];
-    const float distance = std::hypot(float(dx), float(dz));
+    const double dy=sweepHeight ? eyeY-startEyeY : 0;
+    const double distance = std::hypot(double(dx),double(dz),dy);
     if (distance < 1.0f) return;
     if (distance > 512.0f) {
         head[0] = body[0];
         head[2] = body[2];
+        if (sweepHeight) head[1]+=int32_t(std::lround(startEyeY-eyeY));
         return;
     }
 
     const int steps = std::clamp(static_cast<int>(std::ceil(distance / 16.0f)), 1, 32);
     int32_t clearX = body[0], clearZ = body[2];
+    double clearEyeY=sweepHeight ? startEyeY : eyeY;
     const int16_t room = *reinterpret_cast<const int16_t*>(item + off::item_room_number);
     for (int i = 1; i <= steps; ++i) {
         const int32_t x = body[0] + static_cast<int32_t>(int64_t(dx) * i / steps);
         const int32_t z = body[2] + static_cast<int32_t>(int64_t(dz) * i / steps);
+        const double sampleEyeY=sweepHeight ? startEyeY+dy*i/steps : eyeY;
         RoomCollision coll{};
         coll.radius = 64;
         // Eye clearance must not treat the empty space over a ledge as a wall.
@@ -422,15 +431,17 @@ void ClampHeadToCollision(const uint8_t* item, const int32_t body[3],
         coll.facing = locomotion::Angle(std::atan2(float(x - clearX), float(z - clearZ)));
         reinterpret_cast<Fn_GetCollisionInfo>(g_boundBase + g_boundDll->getCollisionInfo)(
             &coll, x, body[1], z, room, 762);
-        if (firstperson::EyeBlocked(coll.floorSamples, body[1], eyeY, coll.hitStatic) ||
+        if (firstperson::EyeBlocked(coll.floorSamples, body[1], sampleEyeY, coll.hitStatic) ||
             coll.type == 8 || coll.type == 16 || coll.type == 32 ||
             coll.shift[0] || coll.shift[2]) {
             head[0] = clearX;
             head[2] = clearZ;
+            if (sweepHeight) head[1]+=int32_t(std::lround(clearEyeY-eyeY));
             return;
         }
         clearX = x;
         clearZ = z;
+        clearEyeY=sampleEyeY;
     }
 }
 
@@ -497,6 +508,15 @@ bool Anchor(PHD_3DPOS& pose) {
     pose.x_pos = head[0];
     pose.y_pos = head[1];
     pose.z_pos = head[2];
+    if (locomotion::IsMountingCameraState(state)) {
+        g_mountEyeSweepStart=locomotion::MountEyeSweepStart(
+            {float(head[0]),float(head[2])},
+            {Lerp(jPrev[2],jCur[2],frac)/16384.f,
+             Lerp(jPrev[10],jCur[10],frac)/16384.f},
+            Cfg().firstPersonAnchorZ,Cfg().firstPersonInteractionAnchorZ);
+        g_mountEyeSweepStartY=head[1]-Lerp(jPrev[6],jCur[6],frac)/16384.0*
+            (Cfg().firstPersonAnchorZ-std::min(Cfg().firstPersonAnchorZ,Cfg().firstPersonInteractionAnchorZ));
+    }
 
     // The scene hook supplies the stable tracking-to-world yaw below. The
     // headset supplies pitch/roll exactly once through the stereo layer.
@@ -1710,7 +1730,6 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     }
     if (!g_haveHeading || !sameBody || relocated) {
         g_rootMotion.Reset();
-        g_mountBodyTransition.Reset();
         const float oldBase=g_heading.base;
         const float bodyTurn=sameBody ? Wrap(Radians(pos.y_rot)-g_lastBodyYaw) : 0;
         const float facing = sameBody && !relocated
@@ -1740,7 +1759,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         // joint is already at the new height. Interpolating the old root puts
         // the stabilized eye inside Lara for that transition frame.
         const float nativeHeight=float(nativeEyeY-pos.y_pos);
-        const bool mountFinished=IsLedgeMountState(g_lastClimbCameraState) &&
+        const bool mountFinished=g_lastClimbCameraState==19 &&
             nativeHeight>=-950.0f && nativeHeight<=-500.0f;
         const float bodyY = mountFinished ? float(pos.y_pos) :
             static_cast<float>(Lerp(prev.y_pos, pos.y_pos, frac));
@@ -1753,12 +1772,13 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         pose.z_pos = static_cast<int32_t>(std::lround(eye.z));
     }
     if (state != g_lastClimbCameraState &&
-        (IsLedgeMountState(state) || IsLedgeMountState(g_lastClimbCameraState))) {
+        (state == 19 || g_lastClimbCameraState == 19)) {
         LogF("firstperson: pull-up state=%d anim=%d rootY=%d nativeEyeY=%d "
-             "viewY=%d standingEye=%d storedHeight=%.0f",
+             "viewY=%d standingEye=%d storedHeight=%.0f anchorZ=%d eyeXZ=(%d,%d)",
              state, *reinterpret_cast<const int16_t*>(item + off::item_anim_number),
              pos.y_pos, nativeEyeY, pose.y_pos, g_groundEye.valid ? 1 : 0,
-             g_groundEye.local.y);
+             g_groundEye.local.y,locomotion::FirstPersonAnchorZ(state,
+                 Cfg().firstPersonAnchorZ,Cfg().firstPersonInteractionAnchorZ),pose.x_pos,pose.z_pos);
     }
     g_lastClimbCameraState = state;
     if (!CanWalk(item) && !Cfg().firstPersonMovementStabilization) {
@@ -1784,16 +1804,18 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
         (state == 3 || state == 9 || state == 12 || state == 15 ||
          (state >= 25 && state <= 29));
     // Wall climbing can briefly place the head joint beyond the contact wall.
-    // Pull-up and hanging retain their native animated eye and retracted anchor.
+    // Pull-up retains the configured animated eye. Its short sweep starts at
+    // the in-head point, so a clear mount does not retract the avatar fit.
     const bool climb=locomotion::IsClimbingCameraState(state);
-    if (!ground && !jump && !climb && !UseGroundRollCamera(item)) return;
+    const bool mount=locomotion::IsMountingCameraState(state);
+    if (!ground && !jump && !climb && !mount && !UseGroundRollCamera(item)) return;
 
     const auto& pos = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos);
     const auto& prev = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos_prev);
     const int frac = std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac), 0, 256);
-    const int32_t body[3] = {Lerp(prev.x_pos, pos.x_pos, frac),
+    const int32_t body[3] = {mount ? int32_t(std::lround(g_mountEyeSweepStart.x)) : Lerp(prev.x_pos, pos.x_pos, frac),
                              Lerp(prev.y_pos, pos.y_pos, frac),
-                             Lerp(prev.z_pos, pos.z_pos, frac)};
+                             mount ? int32_t(std::lround(g_mountEyeSweepStart.z)) : Lerp(prev.z_pos, pos.z_pos, frac)};
 
     locomotion::Vec tracked{};
     if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation) {
@@ -1808,11 +1830,13 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation)
         eyeY -= VR().HeadVerticalOffset() * LiveWorldUnitsPerMetre();
     if (!std::isfinite(eyeY) || std::fabs(eyeY - pose.y_pos) > 4096) return;
-    ClampHeadToCollision(item, body, renderedHead, eyeY);
+    ClampHeadToCollision(item, body, renderedHead, eyeY,
+        mount ? g_mountEyeSweepStartY : std::numeric_limits<double>::quiet_NaN());
     // The stereo layer adds tracking after this scene pose. Move the anchor by
     // the same amount in reverse so the actual eye centre stays on the clear
     // side of the wall, even when the player physically leans toward it.
     pose.x_pos = renderedHead[0] - offsetX;
+    pose.y_pos = renderedHead[1];
     pose.z_pos = renderedHead[2] - offsetZ;
 }
 
@@ -1852,16 +1876,10 @@ void ClampRollCameraToFloor(const uint8_t* item,PHD_3DPOS& pose) {
     }
 }
 
-void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose,
-                          const PHD_3DPOS& animatedHead) {
+void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose) {
     using namespace locomotion;
     g_bodyVisualOffset={};
-    if (!CanWalk(item)) {
-        const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
-        if (IsLedgeMountState(state)) g_mountBodyTransition.Begin();
-        else g_mountBodyTransition.Reset();
-        return;
-    }
+    if (!CanWalk(item)) return;
     const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
     const auto& prev=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos_prev);
     const int frac=std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac),0,256);
@@ -1875,17 +1893,6 @@ void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose,
                           float(pose.z_pos-Lerp(prev.z_pos,pos.z_pos,frac))};
     g_bodyVisualOffset=g_groundEye.BodyOffsetAtEye(g_heading.base,bodyYaw,
         view,floor,LiveWorldUnitsPerMetre(),eyeFromRoot);
-    if (Cfg().firstPersonMovementStabilization && g_groundEye.valid) {
-        // The state/root can become grounded before the interpolated skeleton.
-        // Fit that residual pose without changing the persistent standing eye.
-        const Vec animatedFromRoot{
-            float(animatedHead.x_pos-Lerp(prev.x_pos,pos.x_pos,frac)),
-            float(animatedHead.z_pos-Lerp(prev.z_pos,pos.z_pos,frac))};
-        const Vec expected=Rotate(g_groundEye.bodyLocal,bodyYaw);
-        const float height=float(animatedHead.y_pos-Lerp(prev.y_pos,pos.y_pos,frac));
-        g_bodyVisualOffset=g_bodyVisualOffset-g_mountBodyTransition.Correction(
-            animatedFromRoot-expected,height,GetTickCount64()/1000.0);
-    } else g_mountBodyTransition.Reset();
     static uint64_t nextFitLog=0;
     if (Cfg().firstPersonDriftLog && GetTickCount64()>=nextFitLog) {
         nextFitLog=GetTickCount64()+5000;
@@ -1929,18 +1936,16 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
 
         // Once per frame, before anything is drawn.
         if (g_active) {
-            const PHD_3DPOS animatedHead=*pose;
             UpdateLocomotion(*pose);
             ClampRenderedHeadToCollision(item, *pose);
             ClampRollCameraToFloor(item, *pose);
-            FitBodyToRenderedEye(item, *pose, animatedHead);
+            FitBodyToRenderedEye(item, *pose);
             g_scenePose=*pose;
             g_scenePoseValid=true;
         }
         else {
             g_scenePoseValid=false;
             g_bodyVisualOffset={};
-            g_mountBodyTransition.Reset();
             g_haveHeading = false;
             g_haveManualInput = false;
             g_rootMotion.Reset();
@@ -1963,7 +1968,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         SetMeshVisibility(g_active && Cfg().firstPersonHideHead,
                           g_active && IsRollState(item),
                           g_active && IsCrouchState(item),
-                          g_active && locomotion::IsLedgeArmsOnlyState(state));
+                          g_active && locomotion::IsLedgeHangState(state));
         // One line per jump distinguishes missed VR frames from a camera that
         // advances in coarse vertical steps. It also runs in third person.
         struct JumpViewTrace {
@@ -2241,7 +2246,6 @@ void Remove() {
     g_headingItem = nullptr;
     g_headingLevel = -1;
     g_groundEye.Reset();
-    g_mountBodyTransition.Reset();
     g_bodyVisualOffset={};
     g_haveManualInput = false;
     g_directionalRootScale = 1;
@@ -2341,7 +2345,6 @@ void FirstPersonToggle() {
     g_dragPrevious = g_dragCurrent = g_dragShown = {};
     g_renderTurn.Reset();
     g_groundEye.Reset();
-    g_mountBodyTransition.Reset();
     g_bodyVisualOffset={};
     g_bodyTime = {};
     g_neutralTaken = false;

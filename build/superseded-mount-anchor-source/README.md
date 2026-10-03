@@ -108,15 +108,16 @@ applies only in first person, including forward jumps and walking into crates.
 Ceiling clearance remains active in both views except during jumps and falls,
 with a brief settling pause after landing. The head anchor retracts for climbing, hanging and block
 interactions. Wall-climbing animations also sweep the eye against walls;
-pull-ups and hanging keep their native animated camera with a retracted anchor.
+pull-ups keep their native animated camera and configured forward anchor,
+with a short clearance sweep from the head. Hanging retains its retracted anchor.
 Switching views recenters the tracking neutral. Swimming, death and
 cutscenes temporarily use the game's camera; first person resumes when a live
 Lara returns to an eligible gameplay state.
 Native Action prompts appear at their nearby world positions in VR. In TR3
-crouch/crawl states Lara's obstructing body is hidden. As in the updated TR4/5
-implementation, hanging and normal/gymnast pull-ups use the arms-only mesh mask.
-Jumps and falls use normal first-person head hiding and native body animation.
-With movement stabilization enabled, the rendered eye uses raw headset displacement while
+crouch/crawl states Lara's obstructing body is hidden. As in TR4/5, only ledge
+hanging uses the arms-only mesh mask; crate pull-ups, vaults, jumps and falls
+use the normal first-person head hiding and native body animation. With movement
+stabilization enabled, the rendered eye uses raw headset displacement while
 Lara's body drag retains neck compensation,
 preventing subtle world motion during physical head turns.
 
@@ -853,20 +854,15 @@ looking over a deep drop no longer pulls the view back toward Lara's root.
 Walls, ceilings, static obstacles and invalid room samples still block the eye.
 The grounded HD body fit runs after this check so it follows the final camera.
 
-Hanging, ledge pull-up, ladder climbing and push/pull animations instead use
+Hanging, ladder climbing and push/pull animations instead use
 `FirstPersonInteractionAnchorZ=16`. This retracts the usual 144-unit forward
-offset while Lara is held against geometry; normal/vault and gymnast pull-ups
-(states 19/54) are included. The 2026-10-03 mount-body fix ports the TR4/5 handling:
-keep the torso hidden during those mounts, then compensate for the remaining
-climbing skeleton when the game has already returned to a grounded state.
-The correction affects rendered HD body translation, preserving the saved
-standing eye and configured `FirstPersonAnchorZ`. Once the head reaches standing
-height, it releases over 120 ms. It clears on camera suspension, body/level
-changes, relocation, view toggles or unrelated non-ground animations. Body
-correction uses `FirstPersonMovementStabilization`; mount visibility applies
-independently. Native collision, tracked hands and ordinary running keep their
-existing paths. This replaces the unsuccessful anchor-only change, which the
-user reported made no visible difference.
+offset while Lara is held against geometry. Crate mounts and ledge pull-ups
+(state 19) keep `FirstPersonAnchorZ`, including custom values, through their
+transition back to standing. Previously they switched to 16 for the animation
+and back to 144 afterward, making the torso appear to jump forward and back.
+A short clearance sweep from the animated in-head point limits the extension
+only when geometry blocks it. It includes vertical clearance for a tilted
+head, without sweeping from Lara's collision root behind/below the ledge.
 Hanging keeps its existing camera behavior. These camera corrections run only
 when the first-person gameplay view is active. Switching to third person clears
 that state immediately and leaves the native chase camera alone.
@@ -923,8 +919,8 @@ is clearing bit 14, and one mechanism covers both renderers.
 The only catch is that `DrawCreatureHD` honours `mesh_bits` only when its second
 argument is non-zero, and the body draw passes zero. The hook passes one and
 sets a draw-local mask: the native body pass starts with all joints, then first
-person removes the head or keeps just both complete arms while hanging or mounting.
-Native masked hand/weapon passes retain their own bits. The item mask is restored after
+person removes the head or keeps just both complete arms while hanging. Native
+masked hand/weapon passes retain their own bits. The item mask is restored after
 each draw. This matches the TR4/5 HD path and keeps native hand positions even
 when the saved item mask is empty or stale.
 
@@ -1402,20 +1398,15 @@ engine addresses.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The 2026-10-03 TR4/5-style mount-body Release/x64 DLL is installed and its
-SHA-256 matches the build output:
-`53E934AC0B5ED21F24E8A0AA6413968DF608FCC723733E89D78075FE96210E8E`.
-The previous DLL, INI and log are backed up under
-`build/pre-mount-body-20261003-005652/`. The installed INI is byte-for-byte
-unchanged, including hand calibration. Release build, 2,696 CPU checks and
-2,264 GPU/physics checks passed. Mount regressions cover normal/gymnast masks,
-stale climbing skeletons, custom anchors, physical/artificial headings,
-interpolation, collision-resolved body fit, saved standing calibration and
-120 ms release at 30/60/90/144 Hz. GPU checks cover body masking, native shader
-pairs and opaque black wrist caps against both PDB and installed retail sources.
-State 54 was verified against all three native control tables. No engine
-addresses or hook windows changed. Headset confirmation remains pending in
-[docs/roomscale-testing.md](docs/roomscale-testing.md).
+The 2026-10-03 mount-anchor Release/x64 DLL is installed. Its SHA-256 matches
+the build output:
+`2DD7C731AC297823FD86CBBDCA5ABAD48571DC708F1739ED6BCF42B916B3A588`.
+The prior DLL, INI and log are backed up under
+`build/pre-mount-anchor-20261003-003050/`. The INI remains unchanged.
+Release build and CPU tests passed, including mount/stand anchor transitions,
+custom offsets, rotated head-local clearance starts and crate-height clearance.
+No engine addresses or hook windows changed. Headset verification of mount
+appearance remains pending in [docs/roomscale-testing.md](docs/roomscale-testing.md).
 
 The preceding 2026-10-02 known-good-defaults Release/x64 DLL had SHA-256:
 `845DA6D43F482A7AB3640CE4BEA90311488AAFEC7CD78593C2271703BD91578B`.
@@ -1492,10 +1483,9 @@ state in that case. The live failure log showed `foreground=0`, a native draw
 bit while LT was held, then `4 -> 3` holstering after LT release. A regression
 test now covers the focus-loss case. Runtime logs showed a pull-up transitioning
 through state 28/animation 27 and a short vault ending in standing animation 51.
-That build used the normal head-hidden mesh during those transitions, matching
-the TR4/5 implementation at that time. The 2026-10-03 mount-body fix above ports
-the newer TR4/5 pull-up mask and grounded body correction. The first grounded
-frame after a mount uses Lara's current root height if her native head is already at standing height, avoiding a one-frame
+Those transitions now use the normal head-hidden mesh, matching TR4/5's
+hanging-only arm mask. The first grounded frame after a mount uses Lara's current root
+height if her native head is already at standing height, avoiding a one-frame
 camera lag from interpolating the previous climb root. Until a valid standing
 pose exists, the camera uses the native joint rather than a guessed height.
 Pull-up transition logging records animation and camera heights. A hit or

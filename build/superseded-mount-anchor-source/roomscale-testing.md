@@ -62,16 +62,14 @@ The neck-pivot correction is an estimate from the headset. If turning in place
 still translates the body, adjust FirstPersonRoomscaleNeckMetres and recenter.
 Zero disables that correction. The tests cannot substitute for headset play.
 
-For the TR4/5-style mount-body transition, repeat low/high crate vaults, normal
-ledge pull-ups and walk-held gymnast pull-ups at several physical and stick
-headings. The torso should stay hidden during the mount while both arms remain
-visible, then return without a forward/backward lurch. Check the first standing
-frames, standing height and continued running. Repeat after hanging/shimmying,
-near walls/low ceilings and with a custom `FirstPersonAnchorZ`. Verify roomscale
-centering after physical turns, native jump/fall visibility, tracked guns and
-wrist caps, and third-person/view-toggle behavior. The shorter interaction
-anchor remains intentional for wall clearance. The previous anchor-only build
-failed the user's visual check; this port still needs headset confirmation.
+For mount anchor continuity, climb low/high crates and pull up from a ledge at
+several physical and stick headings. Check the start and end of the animation:
+the torso should not lurch forward and back as `FirstPersonAnchorZ` changes.
+Repeat with a custom forward anchor, after hanging/shimmying, and near walls or
+a low ceiling. A clear mount should retain the configured forward offset;
+actual geometry may limit it. Check the animated drop/rise, standing height,
+roomscale centering, and unchanged hanging/push-pull/ladder clearance. Automated
+anchor-transition and clearance tests pass; this headset check is pending.
 
 For tracked shotgun effects, fire at physical turns of 0, 45, 90, 180, 270 and
 360 degrees in each direction, with the turning stick centered. Sparks and

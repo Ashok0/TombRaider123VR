@@ -85,16 +85,9 @@ inline bool IsLedgeHangState(int state) {
     default: return false;
     }
 }
-inline bool IsLedgeMountState(int state) {
-    // Verified against lara_control_routines in all three PDB images.
-    return state==19 || state==54; // pull-up/vault and gymnast pull-up
-}
-inline bool IsLedgeArmsOnlyState(int state) {
-    return IsLedgeHangState(state) || IsLedgeMountState(state);
-}
 inline bool IsClimbingCameraState(int state) {
     // TR1-3 wall-climb stance, steps and transitions. Pull-up has a native
-    // animated eye and a retracted anchor; sweeping it from Lara's body can
+    // animated eye; sweeping it from Lara's body can
     // place the camera behind her arms and torso.
     return state >= 56 && state <= 61;
 }
@@ -106,7 +99,6 @@ inline bool IsClimbingCameraState(int state) {
 inline bool IsConstrainedInteractionState(int state) {
     if (IsLedgeHangState(state)) return true;
     switch (state) {
-    case 19: case 54:               // ledge pull-up/vault and gymnast pull-up
     case 36: case 37: case 38:       // push, pull, push/pull ready
     case 56: case 57: case 58:       // climb stance, left/right
     case 59: case 60: case 61:       // climb transition/down and the other side
@@ -119,6 +111,13 @@ inline int FirstPersonAnchorZ(int state, int normal, int constrained) {
     // A safety value must never move the camera farther into the obstacle than
     // the user's normal anchor, including custom anchors behind the head.
     return IsConstrainedInteractionState(state) ? std::min(normal, constrained) : normal;
+}
+inline bool IsMountingCameraState(int state) { return state==19; }
+inline Vec MountEyeSweepStart(Vec eye,Vec headForward,int normal,int constrained) {
+    // Pull-ups/vaults keep the configured eye offset. Check only its extension
+    // from the in-head point, not the distance from Lara's root below/behind
+    // the ledge. That root sweep can pull the camera back through her torso.
+    return eye-headForward*float(normal-std::min(normal,constrained));
 }
 inline Vec SimulationStick(Vec world, float frameYaw, float decodedMagnitude) {
     const float n = Length(world);

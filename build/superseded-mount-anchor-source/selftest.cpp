@@ -650,7 +650,7 @@ static void TestLocomotion() {
     Check(!IsJumpSteeringState(10), "jump steering excludes hanging interactions");
     CheckNear(DragRequest({.32f,0}, .02f).x, .30f, "body drag requests metres, not an analog strength");
 
-    for (int state : {10, 19, 30, 31, 36, 37, 38, 54, 56, 57, 58, 59, 60, 61,
+    for (int state : {10, 30, 31, 36, 37, 38, 56, 57, 58, 59, 60, 61,
                       75, 82, 83}) {
         Check(IsConstrainedInteractionState(state),
               "hang and push/pull states use the collision-safe camera anchor");
@@ -661,6 +661,26 @@ static void TestLocomotion() {
           "ordinary locomotion keeps the configured first-person anchor");
     Check(FirstPersonAnchorZ(36, -12, 16) == -12,
           "interaction safety never pushes a custom anchor farther forward");
+    for (int normal : {144,240,16,-12}) {
+        bool stable=true;
+        // Low/high vaults and pull-ups can finish directly in stop or pass
+        // through the native fall transition before returning to standing.
+        for (int state : {2,19,19,28,2,19,2})
+            stable &= FirstPersonAnchorZ(state,normal,16)==normal;
+        Check(stable,"crate mount and pull-up retain the configured anchor throughout");
+        for (float yaw : {0.f,Pi/2,Pi,-Pi/2,.73f}) {
+            const tr::locomotion::Vec skull{500,800};
+            const auto forward=Rotate({0,1},yaw);
+            const auto eye=skull+forward*float(normal);
+            const auto start=MountEyeSweepStart(eye,forward,normal,16);
+            const auto expected=skull+forward*float(std::min(normal,16));
+            Check(Length(start-expected)<.001f,
+                  "mount clearance starts at the animated head at every heading");
+        }
+    }
+    Check(IsMountingCameraState(19) && !IsMountingCameraState(10) &&
+          !IsMountingCameraState(36) && !IsMountingCameraState(56),
+          "head-local mount sweep excludes hanging, blocks and ladders");
     Check(!IsClimbingCameraState(19) && IsClimbingCameraState(56) &&
           IsClimbingCameraState(61) && !IsClimbingCameraState(10) &&
           !IsClimbingCameraState(36),
@@ -1056,6 +1076,8 @@ static void TestLocomotion() {
     samples[3] = -480;
     Check(tr::firstperson::EyeBlocked(samples, 0, -500, false),
           "raised crate floor blocks airborne eye at its height");
+    Check(!tr::firstperson::EyeBlocked(samples, 0, -1000, false),
+          "mount eye above the crate keeps its full anchor despite the raised floor");
     samples[3] = 900;
     Check(!tr::firstperson::EyeBlocked(samples, 0, -1000, false),
           "airborne eye above crate clears its top");
@@ -1126,84 +1148,6 @@ static void TestLocomotion() {
     tr::actionicon::Point distantPrompt{10, 0, 1500};
     Check(!tr::actionicon::Place(distantPrompt, viewMatrix, 320, 640, 360, 32, 30000),
           "distant Action prompt is not pulled into view");
-}
-
-static void TestMountBodyTransition() {
-    using namespace tr::locomotion;
-    using namespace tr::stabilization;
-    printf("\nTR4/5-style pull-up visibility and body handoff\n");
-    for (int state : {10,19,30,31,54,75,82,83}) {
-        Check(IsLedgeArmsOnlyState(state),"hanging and both mount animations keep torso hidden");
-        Check(tr::firstperson::HdDrawMeshBits(0,false,IsLedgeArmsOnlyState(state))==
-              tr::firstperson::ArmMeshBits,"unmasked HD mount retains both arms without torso");
-        Check(tr::firstperson::HdDrawMeshBits(0x600,true,IsLedgeArmsOnlyState(state))==0x600,
-              "mount mask preserves native hand and weapon pass");
-    }
-    for (int state : {0,1,2,3,19,23,28,36,54,56})
-        Check(IsLedgeMountState(state)==(state==19 || state==54),"only actual mounts arm the body transition");
-    Check(!IsLedgeArmsOnlyState(2) && !IsLedgeArmsOnlyState(28),
-          "standing and falling restore ordinary body visibility");
-
-    // Replay the first grounded frames with a root already on the crate and
-    // a stale climbing skeleton. Verify the rendered palette against the final
-    // eye, including collision retraction and roomscale rotation/translation.
-    for (float anchor : {80.f,100.f,144.f,240.f,-12.f})
-    for (float base : {0.f,.8f,-1.9f})
-    for (float turn : {0.f,.7f,Pi,-Pi/2}) {
-        GroundEye fit;
-        const Vec initial=Rotate({17,anchor},base);
-        fit.Apply({0,0,0},base,{initial.x,-700,initial.z},base);
-        const auto saved=fit.local;
-        MountBodyTransition transition; transition.Begin();
-        const float yaw=base+turn;
-        for (int fraction : {0,32,64,128,192,256}) {
-            const float t=fraction/256.f;
-            const Point root{96*t,-768*t,128*t};
-            const Vec expected=Rotate(fit.bodyLocal,yaw);
-            const Vec residual=Rotate({240,300},yaw);
-            const Point animated{root.x+expected.x+residual.x,root.y-1200,
-                                 root.z+expected.z+residual.z};
-            auto eye=fit.Apply(root,base,animated,yaw);
-            eye.x-=23; eye.z-=12; // final collision-resolved camera
-            const Vec view{.06f,.03f},floor{.02f,-.01f};
-            const Vec physical=Rotate(view-floor,base)*423;
-            const Vec regular=fit.BodyOffsetAtEye(base,yaw,view,floor,423,
-                                                  {eye.x-root.x,eye.z-root.z});
-            const Vec correction=transition.Correction(residual,animated.y-root.y,t);
-            float palette[24]={1,0,0,animated.x,0,1,0,animated.y,0,0,1,animated.z};
-            OffsetBodyPalette(palette,2,regular-correction);
-            Check(std::fabs(palette[3]-eye.x-physical.x)<.002f &&
-                  std::fabs(palette[11]-eye.z-physical.z)<.002f,
-                  "stale climbing skeleton stays fitted beneath collision-resolved eye");
-            Check(Length(residual)>300,"fixture exposes the old visible torso displacement");
-            Check(palette[7]==animated.y && palette[15]==0 && palette[23]==0,
-                  "mount correction leaves vertical animation and unused bones alone");
-            Check(fit.local.x==saved.x && fit.local.y==saved.y && fit.local.z==saved.z,
-                  "mount body correction never changes standing camera calibration");
-        }
-    }
-    for (int hz : {30,60,90,144}) {
-        MountBodyTransition transition; transition.Begin();
-        const Vec residual{200,-120};
-        for (int frame=0;frame<hz;++frame)
-            Check(Length(transition.Correction(residual,-1600,frame/double(hz))-residual)<.001f,
-                  "unfinished climb keeps full correction regardless of render rate");
-        for (int frame=0;frame<=hz;++frame) {
-            const double elapsed=frame/double(hz);
-            const Vec correction=transition.Correction(residual,-700,1+elapsed);
-            Check(Length(correction-residual*float(std::max(0.0,1-elapsed/.12)))<.002f,
-                  "standing handoff releases over 120 ms at every render rate");
-        }
-        Check(!transition.active,"ordinary running cannot retain a mount correction");
-        transition.Begin(); transition.Reset();
-        Check(Length(transition.Correction(residual,-1600,3))==0,
-              "camera/session reset clears mount correction");
-        transition.Begin(); transition.Correction(residual,-700,4);
-        Check(Length(transition.Correction(residual,-1600,4.1)-residual)<.001f,
-              "stale skeleton returning during interpolation restores full correction");
-        Check(Length(transition.Correction(residual,NAN,5))==0 && !transition.active,
-              "invalid animated skeleton cannot leave a correction latched");
-    }
 }
 
 static void TestPhysicalBodyCentering() {
@@ -1473,7 +1417,6 @@ int main() {
     TestEngineConstBits();
     TestPortalGeometry();
     TestLocomotion();
-    TestMountBodyTransition();
     TestPhysicalBodyCentering();
     TestGroundRollHeading();
     TestGunCalibrationPersistence();
