@@ -905,6 +905,19 @@ static void TestLocomotion() {
     AdjustCalibration(fit,10);
     CheckNear(fit.pitchDegrees,-29.0f,
               "live gun-fit angle key changes pitch by one degree");
+    for (int hand=0;hand<2;++hand) {
+        TriggerInput fire;
+        fire.Update(true,true,hand==0,hand==1,1);
+        Check(fire.Consume(hand) && !fire.Consume(hand),
+              "trigger press immediately queues exactly one shot");
+        fire.Update(true,true,hand==0,hand==1,2); // Poll during native recoil.
+        fire.Update(true,true,false,false,3);    // Release before next fire frame.
+        Check(!fire.Consume(hand),"release cancels held repeat: no second shot after a tap");
+        fire.Update(true,true,hand==0,hand==1,4);
+        fire.Update(true,true,false,false,5); // Very short press, before animation.
+        Check(fire.Consume(hand) && !fire.Consume(hand),
+              "a brief tap survives until its first native shot but cannot duplicate");
+    }
     TriggerInput trigger;
     trigger.Update(true,true,false,false,0);
     trigger.Update(true,true,true,false,100);
@@ -913,8 +926,8 @@ static void TestLocomotion() {
           "left trigger tap queues only the left gun");
     trigger.Update(true,true,true,false,1000);
     trigger.Update(true,true,true,false,1600);
-    Check(trigger.Equip(1600) && !trigger.WantsShot(),
-          "long left hold requests equip without firing");
+    Check(trigger.Consume(0),
+          "long left hold continues firing instead of holstering");
     TriggerInput sustainedRight;
     sustainedRight.Update(true,true,false,false,0);
     sustainedRight.Update(true,true,false,true,20);
@@ -928,18 +941,18 @@ static void TestLocomotion() {
     both.Update(true,true,false,false,0);
     for (uint64_t t=10;t<3000;t+=100) {
         both.Update(true,true,true,true,t);
-        Check(both.Consume(0) && both.Consume(1) && !both.Equip(t),
+        Check(both.Consume(0) && both.Consume(1),
               "both triggers keep firing beyond holster threshold while guns stay armed");
     }
     both.Update(true,true,true,false,3200);
-    Check(both.Consume(0) && !both.Equip(3200),
+    Check(both.Consume(0),
           "releasing RT first cannot turn a dual fire hold into holstering");
     both.Update(true,true,false,false,3300);
     both.Update(true,true,true,false,3400);
     both.Update(true,true,true,false,4000);
-    Check(both.Equip(4000),"fresh solo LT hold still holsters after dual firing");
+    Check(both.Consume(0),"fresh solo LT hold fires after dual firing");
     both.Update(true,true,true,true,4300);
-    Check(both.Consume(0) && both.Consume(1) && !both.Equip(4300),
+    Check(both.Consume(0) && both.Consume(1),
           "RT clears an already latched LT hold when guns are still ready");
     int bat=1;
     void* nativeTarget=&bat;
@@ -962,7 +975,7 @@ static void TestLocomotion() {
                 shots+=attackingBat.Consume(1);
             }
         }
-        if (nativeTarget!=&bat || attackingBat.Equip(t)) break;
+        if (nativeTarget!=&bat) break;
     }
     Check(shots==1200 && nativeTarget==&bat,
           "two-minute dual-trigger hold keeps native cadence after arm-lock loss and restores targeting");
@@ -978,7 +991,7 @@ static void TestLocomotion() {
     hitRecovery.Update(true,true,false,false,50);
     hitRecovery.Update(true,true,true,false,60);
     hitRecovery.Update(true,true,false,false,80);
-    Check(hitRecovery.Consume(0) && !hitRecovery.waitRelease,
+    Check(hitRecovery.Consume(0) && !hitRecovery.held[0],
           "LT release and new tap recover after interrupted armed state");
     TriggerInput leftRecovery;
     leftRecovery.Update(false,false,false,true,100);
@@ -987,7 +1000,7 @@ static void TestLocomotion() {
     leftRecovery.Update(true,true,true,true,120);
     leftRecovery.Update(true,true,false,true,180);
     Check(leftRecovery.Consume(0) && leftRecovery.Consume(1) &&
-          !leftRecovery.leftWaitRelease,
+          !leftRecovery.held[0],
           "LT works alongside resumed RT after damage");
     float verticalYaw=0,verticalPitch=0;
     Check(DirectionAngles({0,-1,0},verticalYaw,verticalPitch) &&
@@ -1033,10 +1046,11 @@ static void TestLocomotion() {
           nativeEquip.Update(true,4,false) &&
           nativeEquip.Update(true,4,false),
           "modern native draw stays held through ready after LT release");
-    Check(!nativeEquip.Update(true,4,true) &&
+    Check(nativeEquip.Update(true,4,true),"LT never holsters ready weapons");
+    Check(!nativeEquip.Update(true,4,false,true) &&
           !nativeEquip.Update(true,3,false) &&
           !nativeEquip.Update(true,0,false),
-          "next equip gesture releases native hold to holster");
+          "Y releases native hold to holster");
     EquipInput unfocusedEquip;
     const bool vrPoll=VrGunInputEnabled(false,true,false);
     Check(vrPoll && unfocusedEquip.Update(true,0,true) &&
@@ -1051,15 +1065,15 @@ static void TestLocomotion() {
     for (int i = 0; i < 18; i += 3) {
         samples[i] = 900; samples[i + 1] = -900; samples[i + 2] = 0;
     }
-    Check(!tr::firstperson::EyeBlocked(samples, 0, -500, false),
+    Check(!tr::firstperson::EyeBlocked(samples, 6, 0, -500, false),
           "airborne eye may see over a floor drop");
     samples[3] = -480;
-    Check(tr::firstperson::EyeBlocked(samples, 0, -500, false),
+    Check(tr::firstperson::EyeBlocked(samples, 6, 0, -500, false),
           "raised crate floor blocks airborne eye at its height");
     samples[3] = 900;
-    Check(!tr::firstperson::EyeBlocked(samples, 0, -1000, false),
+    Check(!tr::firstperson::EyeBlocked(samples, 6, 0, -1000, false),
           "airborne eye above crate clears its top");
-    Check(tr::firstperson::EyeBlocked(samples, 0, -500, true),
+    Check(tr::firstperson::EyeBlocked(samples, 6, 0, -500, true),
           "static obstacle blocks airborne eye");
 
     tr::stabilization::GroundEye standing;
@@ -1315,14 +1329,14 @@ static void TestPhysicalBodyCentering() {
     // walkable floor there. Walls, ceilings and invalid rooms still block it.
     int32_t samples[18]{};
     for (int i=0;i<18;i+=3) { samples[i]=8192; samples[i+1]=-1000; }
-    Check(!tr::firstperson::EyeBlocked(samples,0,-710,false),
+    Check(!tr::firstperson::EyeBlocked(samples,6,0,-710,false),
           "grounded eye looks over deep ledge without camera retraction");
     samples[3]=-700;
-    Check(tr::firstperson::EyeBlocked(samples,0,-710,false),"eye-height crate wall still blocks camera");
+    Check(tr::firstperson::EyeBlocked(samples,6,0,-710,false),"eye-height crate wall still blocks camera");
     samples[3]=8192; samples[4]=0;
-    Check(tr::firstperson::EyeBlocked(samples,0,-710,false),"near ceiling still blocks camera at an edge");
+    Check(tr::firstperson::EyeBlocked(samples,6,0,-710,false),"near ceiling still blocks camera at an edge");
     samples[4]=-32512;
-    Check(tr::firstperson::EyeBlocked(samples,0,-710,false),"missing room is not treated as an open ledge");
+    Check(tr::firstperson::EyeBlocked(samples,6,0,-710,false),"missing room is not treated as an open ledge");
 
     Check(AcceptCollisionDragStep({20,20},{0,20}) &&
           AcceptCollisionDragStep({0,32},{0,5}) &&

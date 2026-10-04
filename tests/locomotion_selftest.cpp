@@ -19,10 +19,13 @@ namespace tr {
 Config testConfig;
 VRSystem testVR;
 int testWater=0;
+int testConfigFlags=0;
+bool testPoseAvailable=true;
+float testViewRight=0, testViewForward=0, testViewRise=0;
 const Config& Cfg() { return testConfig; }
 VRSystem& VR() { return testVR; }
 int LaraWaterStatus() { return testWater; }
-int32_t AppFlag(uint32_t) { return 0; }
+int32_t AppFlag(uint32_t offset) { return offset==drva::app_off::cfg_flags ? testConfigFlags : 0; }
 float LiveWorldUnitsPerMetre() { return 1000; }
 float VRSystem::HeadYawRadians() const { return 0; }
 void VRSystem::PivotHeadFloorOffset(float) {}
@@ -30,14 +33,18 @@ void VRSystem::HeadFloorOffset(float& x,float& z) const { x=z=0; }
 // Unrelated first-person entry points must never be reached by these tests.
 float VRSystem::HeadPitchRadians() const { std::abort(); }
 void VRSystem::RecenterHead() { std::abort(); }
-void VRSystem::FirstPersonViewOffset(float&,float&) const { std::abort(); }
-float VRSystem::HeadVerticalOffset() const { std::abort(); }
+void VRSystem::FirstPersonViewOffset(float& x,float& z) const { x=testViewRight; z=testViewForward; }
+float VRSystem::HeadVerticalOffset() const { return testViewRise; }
 void VRSystem::ConsumeHeadFloorOffset(float,float) { std::abort(); }
-bool VRSystem::ControllerPose(int,vr::HmdMatrix34_t&) const { std::abort(); }
-bool VRSystem::FirstPersonControllerOffset(int,float&,float&,float&) const { std::abort(); }
-const GameDllLayout* GameDllBound() { std::abort(); }
-uint64_t GameDllBase() { std::abort(); }
-const motiongun::Calibration& LiveMotionGunCalibration() { std::abort(); }
+bool VRSystem::ControllerPose(int,vr::HmdMatrix34_t& pose) const {
+    pose={}; pose.m[0][0]=pose.m[1][1]=pose.m[2][2]=1; return testPoseAvailable;
+}
+bool VRSystem::FirstPersonControllerOffset(int,float& x,float& y,float& z) const {
+    x=y=z=0; return testPoseAvailable;
+}
+const GameDllLayout* GameDllBound() { return g_boundDll; }
+uint64_t GameDllBase() { return g_boundBase; }
+const motiongun::Calibration& LiveMotionGunCalibration() { static motiongun::Calibration fit{}; return fit; }
 void AdjustMotionGunCalibration(int) { std::abort(); }
 void RestoreMotionGunCalibration() { std::abort(); }
 bool SaveMotionGunCalibration() { std::abort(); }
@@ -138,7 +145,7 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     testConfig.firstPersonDriftLog=false;
     testVR.m_system=reinterpret_cast<vr::IVRSystem*>(1);
     testVR.m_poseValid=true;
-    testWater=0;
+    testWater=0; testConfigFlags=0; testPoseAvailable=true;
     g_runtimeEnabled=g_active=g_haveHeading=g_haveManualInput=true;
     g_headingItem=item; g_heading.base=heading;
     g_manualLocal=stick; g_manualWorld=MovementWorld(stick,heading);
@@ -285,6 +292,9 @@ void TestResponsiveEntry() {
     }
 }
 
+#include "gun_input_selftest.h"
+#include "camera_clearance_selftest.h"
+
 int main() {
     const struct { Vec stick; int gait; } directions[]={
         {{0,1},1}, {{0,-1},16}, {{1,0},21}, {{-1,0},22}};
@@ -366,6 +376,8 @@ int main() {
         }
     }
     TestResponsiveEntry();
-    std::printf("PASS: %d locomotion hook checks\n",checks);
+    TestGunControls();
+    TestCameraClearance();
+    std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }

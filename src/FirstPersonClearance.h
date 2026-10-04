@@ -12,13 +12,15 @@ inline double RollEyeAboveFloor(double anchorY,double trackedRise,int32_t bodyY,
     const double floor=double(bodyY)+(relativeFloor==-32512 ? 0 : relativeFloor);
     return std::min(anchorY-trackedRise,floor-clearance)+trackedRise;
 }
-// GetCollisionInfo reports six floor/ceiling samples relative to Lara's
-// collision capsule. An eye may look over a drop even while Lara's feet are
+// GetCollisionInfo fills four floor/ceiling samples in TR1/2 and six in TR3.
+// The shared struct reserves all six in every game; unused zeroed entries are
+// not geometry (zero ceiling would invent a plane at bodyY - 762).
+// An eye may look over a drop even while Lara's feet are
 // grounded, but cannot enter a raised floor or ceiling at its own height.
-inline bool EyeBlocked(const int32_t samples[18], int32_t bodyY,
+inline bool EyeBlocked(const int32_t samples[18], int sampleCount, int32_t bodyY,
                                double eyeY, bool hitStatic) {
     if (hitStatic) return true;
-    for (int i = 0; i < 18; i += 3) {
+    for (int i = 0; i < sampleCount * 3; i += 3) {
         const int32_t floor = samples[i], ceiling = samples[i + 1];
         if (floor == -32512 || ceiling == -32512 ||
             double(bodyY) + floor <= eyeY + 64 ||

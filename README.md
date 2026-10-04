@@ -102,6 +102,29 @@ builds. `tools/verify_ground_gait_entry.py` verified first-tick side/back entry
 and four-tick backward startup in **39 TR1 + 47 TR2 + 54 TR3** installed animation
 tables. Headset feel still needs confirmation.
 
+### First-person equip and trigger controls (2026-10-04)
+
+Ported TR4?5's updated controls and its follow-up trigger fix. A brief LT press
+while unarmed requests drawing immediately and stays armed after release.
+LT never toggles holstering; Y holsters drawing/ready weapons and is consumed
+so it cannot also perform Action. Unarmed Y, two-grip Action, third-person
+controls and the existing view/graphics chords retain their bindings.
+Equip/holster handling also works with motion guns disabled or classic graphics.
+
+With tracked dual guns, LT fires left and RT fires right on press. Each press
+owns one initial shot; held repeats are cleared on release, preventing the
+extra RT shot previously queued during recoil. Either trigger can be held for
+continuous fire at the native rate. Weapon-specific ammunition, damage and
+cadence remain native. The draw press is blocked from firing until released.
+TR1?3's draw-bit injection at LaraGun is retained for both native control styles.
+
+Validation: Release/x64, existing self-tests and **34,258** movement/gun-control
+hook checks passed. Gun regressions cover both native control styles, all three
+games, drawing/holstering, brief taps,
+independent sustained fire, duplicate-shot prevention, tracking loss and the
+TR3 Desert Eagle's native left-arm call for its right-hand gun. Headset input
+feel still needs gameplay confirmation.
+
 ### Default profile (2026-10-02)
 
 The repository INI and embedded first-run INI now match all 113 values in the
@@ -174,10 +197,11 @@ This covers TR1's pistols, magnums,
 Uzis and shotgun; TR2's pistols, automatic pistols, Uzis, shotgun, M16,
 grenade launcher and harpoon gun; and TR3's pistols, Desert Eagle, Uzis,
 shotgun, MP5, rocket launcher, grenade launcher and harpoon gun. With dual
-guns, press LT to draw immediately when holstered, tap/release LT to fire left
-when ready, press RT to fire right, or hold both triggers to fire both guns.
-Hold LT alone for 0.5 seconds to holster. A dual-fire hold cannot turn into a
-holster gesture until LT is released; held RT resumes after tracking interruptions.
+guns, press LT once to draw when holstered; LT never disarms. Press Y to
+holster. Once ready, LT fires left and RT fires right on press. Hold either
+trigger, or both, for continuous native-rate fire. Release cancels unused
+held-fire repeats, preventing a second shot after a tap. The LT press used
+to equip must be released before a fresh press can fire.
 Controller-aimed pistols also keep firing when a moving enemy remains selected
 but Lara loses native arm lock. The pistol animation temporarily uses free aim;
 each shot still uses the controller's target, native cadence, ammo and effects.
@@ -1095,8 +1119,8 @@ retain their native behavior. HD particle offsets, spread, lifetime and firing
 cadence remain native. Regression tests cover a full physical turn, stick turns,
 combined turns, calibrated pitch/roll and rejection of unrelated callers.
 
-For dual guns, holding LT+RT fires both and cannot become a holster gesture until
-LT is released. LT alone held for 0.5 seconds holsters; held RT resumes after a
+For dual guns, LT/RT fire left/right on press and either trigger can be held
+for continuous fire. Y holsters; LT never does. Held triggers resume after a
 temporary tracking interruption. `AnimatePistols` temporarily clears the native
 target only while advancing a requested controller shot, then restores it. This
 avoids the selected-target/no-arm-lock stall seen during bat attacks while
@@ -1847,6 +1871,7 @@ python tools\verify_addresses.py build\current-retail-verify build\current-gold-
 python tools\verify_locomotion.py build\current-retail-verify build\current-gold-verify
 .\tests\build_selftest.cmd
 .\tests\build_locomotion_selftest.cmd
+.\tests\build_tracking_selftest.cmd
 .\tests\build_physics_selftest.cmd
 ```
 
@@ -1857,6 +1882,17 @@ rows against `port_build.json` and against the images themselves. The checked
 retail and Gold images in this repository are in
 `build\current-retail-verify` and `build\current-gold-verify`. Run the checks
 after any game patch: failures name what moved.
+
+The locomotion harness also exercises the production camera-clearance hook.
+TR1/2 fill only the first four collision samples; TR3 fills all six. Reading
+the unused TR1/2 entries invented a ceiling at `rootY - 762`, making a standing
+eye at `rootY - 701` snap back to Lara's root as small HMD movements crossed
+the clearance threshold. The camera now reads only the samples each game
+produces. The regression leaves unused entries zero, sweeps tracked head
+movement around the logged standing eye, and checks that actual walls,
+ceilings, missing rooms and static obstacles still block the camera.
+The separate tracking harness checks the real `VRSystem` eye transforms and
+asymmetric projections; neither harness replaces in-headset validation.
 
 The physics self-test defaults to `PDB\tomb123.exe`. To validate other builds'
 embedded skin shaders too, pass their executable paths as arguments to

@@ -221,7 +221,6 @@ bool     g_loggedMotion = false;
 bool     g_nativeEquipRequested = false;
 int      g_nativeEquipStatus = -1;
 bool     g_nativeEquipHoldMode = false;
-bool     g_drawAwaitingLTRelease = false;
 uint8_t  g_lastRawLT = 0;
 int      g_lastGunTraceStatus = -1;
 unsigned g_motionHandPasses[2] = {};
@@ -436,7 +435,8 @@ void ClampHeadToCollision(const uint8_t* item, const int32_t body[3],
         coll.facing = locomotion::Angle(std::atan2(float(x - clearX), float(z - clearZ)));
         reinterpret_cast<Fn_GetCollisionInfo>(g_boundBase + g_boundDll->getCollisionInfo)(
             &coll, x, body[1], z, room, 762);
-        if (firstperson::EyeBlocked(coll.floorSamples, body[1], eyeY, coll.hitStatic) ||
+        const int sampleCount = g_boundDll->module[4] == L'3' ? 6 : 4;
+        if (firstperson::EyeBlocked(coll.floorSamples, sampleCount, body[1], eyeY, coll.hitStatic) ||
             coll.type == 8 || coll.type == 16 || coll.type == 32 ||
             coll.shift[0] || coll.shift[2]) {
             head[0] = clearX;
@@ -1192,6 +1192,14 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
     }
 }
 
+bool WeaponControlMode() {
+    if (!g_boundDll || !g_boundBase || GameDllBound()!=g_boundDll ||
+        GameDllBase()!=g_boundBase || !g_active || !Gate()) return false;
+    int gun=*Ptr<int16_t>(g_boundDll->lara+4);
+    if (!gun) gun=*Ptr<int16_t>(g_boundDll->lara+8);
+    return MotionWeaponSupported(gun);
+}
+
 bool MotionTriggerMode() {
     if (!(Cfg().firstPersonMotionGuns && g_active && g_boundDll && g_boundBase &&
         GameDllBound()==g_boundDll && GameDllBase()==g_boundBase &&
@@ -1293,12 +1301,11 @@ uint8_t* SelectGunTarget(const GunPose& gun, motiongun::Vec& ray) {
     return assisted;
 }
 
-int32_t __cdecl Detour_FireWeapon(int32_t weapon,void* target,void* extra,
-                                  const int16_t* aim) {
+int32_t FireWeaponForCaller(uint64_t caller,int32_t weapon,void* target,void* extra,
+                            const int16_t* aim) {
     const auto original=g_hFireWeapon.Original<Fn_FireWeapon>();
     if (!MotionTriggerMode() || !aim || weapon!=*Ptr<int16_t>(g_boundDll->lara+4))
         return original(weapon,target,extra,aim);
-    const uint64_t caller=reinterpret_cast<uint64_t>(_ReturnAddress())-g_boundBase;
     const int hand=weapon>=4 ? 1 :
         caller==g_boundDll->rightFireReturn && DualMotionWeapon(weapon) ? 1 :
         caller==g_boundDll->leftFireReturn ?
@@ -1347,6 +1354,12 @@ int32_t __cdecl Detour_FireWeapon(int32_t weapon,void* target,void* extra,
                                motiongun::Sub(ray,gun.direction))>1e-8f),result,hpBefore,hpAfter);
     }
     return result;
+}
+
+int32_t __cdecl Detour_FireWeapon(int32_t weapon,void* target,void* extra,
+                                  const int16_t* aim) {
+    return FireWeaponForCaller(reinterpret_cast<uint64_t>(_ReturnAddress())-g_boundBase,
+                               weapon,target,extra,aim);
 }
 
 void __cdecl Detour_AnimatePistols(int32_t weapon) {
@@ -1631,14 +1644,11 @@ void __cdecl Detour_LaraGun() {
     g_hLaraGun.Original<Fn_LaraGun>()();
     if (observed && g_boundDll) {
         const int afterStatus=*Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status);
-        if (injected && beforeStatus==0 && afterStatus==2)
-            g_drawAwaitingLTRelease=true;
         if ((injected && beforeStatus==0) || beforeStatus!=afterStatus ||
             beforeStatus!=g_lastGunTraceStatus)
-            LogF("firstperson: LaraGun status %d -> %d input=%08X applied=%08X LT=%u draw-release=%d hp=%d state=%d",
+            LogF("firstperson: LaraGun status %d -> %d input=%08X applied=%08X LT=%u hp=%d state=%d",
                  beforeStatus,afterStatus,beforeInput,
                  beforeInput|(injected ? 0x20u : 0u),unsigned(g_lastRawLT),
-                 int(g_drawAwaitingLTRelease),
                  int(*reinterpret_cast<const int16_t*>(g_headingItem+off::item_hit_points)),
                  int(*reinterpret_cast<const int16_t*>(g_headingItem+off::item_anim_state)));
         g_lastGunTraceStatus=afterStatus;
@@ -2330,7 +2340,6 @@ void Remove() {
     g_nativeEquipRequested=false;
     g_nativeEquipStatus=-1;
     g_nativeEquipHoldMode=false;
-    g_drawAwaitingLTRelease=false;
     g_lastRawLT=0;
     g_lastGunTraceStatus=-1;
     g_haveHeading = false;
@@ -2498,19 +2507,17 @@ bool FirstPersonSceneEye(int32_t out[3]) {
     return true;
 }
 
-void FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed) {
+bool FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed,bool y) {
     g_lastRawLT=left;
     g_nativeEquipRequested=false;
     g_nativeEquipStatus=-1;
     g_nativeEquipHoldMode=false;
     DWORD process=0;
     GetWindowThreadProcessId(GetForegroundWindow(),&process);
-    // A SteamVR game can keep receiving controller input while its desktop
-    // mirror is not the foreground Win32 window. Native LaraGun still consumes
-    // LT then; gating this adapter on GetForegroundWindow would drop the
-    // persistent modern-controls draw bit and holster on LT release.
+    // SteamVR continues polling even when its desktop mirror loses focus.
+    // Preserve the synthetic native hold until an explicit holster request.
     const bool enabled=motiongun::VrGunInputEnabled(
-        chordConsumed,MotionTriggerMode(),process==GetCurrentProcessId());
+        chordConsumed,WeaponControlMode(),process==GetCurrentProcessId());
     const uint64_t now=GetTickCount64();
     static uint64_t nextMotionLog=0;
     if (Cfg().firstPersonMotionGuns && g_active && g_boundDll &&
@@ -2531,70 +2538,49 @@ void FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed) {
              g_motionJointCalls[0],g_motionJointCalls[1],
              g_motionCorrections[0],g_motionCorrections[1],
              g_motionPoseFailure[0],g_motionPoseFailure[1]);
-        LogF("firstperson: trigger state pending=%d/%d dual=%d long=%d wait=%d/%d",
+        LogF("firstperson: trigger state pending=%d/%d press=%d/%d held=%d/%d",
              int(g_gunTriggers.pending[0]),int(g_gunTriggers.pending[1]),
-             int(g_gunTriggers.dualFireGesture),int(g_gunTriggers.longFired),
-             int(g_gunTriggers.leftWaitRelease),int(g_gunTriggers.rightWaitRelease));
+             int(g_gunTriggers.pressPending[0]),int(g_gunTriggers.pressPending[1]),
+             int(g_gunTriggers.held[0]),int(g_gunTriggers.held[1]));
         g_motionHandPasses[0]=g_motionHandPasses[1]=0;
         g_motionJointCalls[0]=g_motionJointCalls[1]=0;
         g_motionCorrections[0]=g_motionCorrections[1]=0;
     }
     if (!enabled) {
-        g_gunTriggers.Update(false,false,false,false,now);
+        g_gunTriggers.Reset();
         g_gunEquip.Reset();
-        g_drawAwaitingLTRelease=false;
         g_triggerWeapon=0;
-        return;
+        return false;
     }
     int weapon=*Ptr<int16_t>(g_boundDll->lara+4);
     if (!weapon) weapon=*Ptr<int16_t>(g_boundDll->lara+8);
     if (weapon!=g_triggerWeapon) {
-        if (MotionWeaponSupported(g_triggerWeapon) &&
-            MotionWeaponSupported(weapon)) {
-            // A native weapon change during drawing must retain LT's armed
-            // intent, while queued shots stay with their original weapon.
-            g_gunTriggers.pending[0]=g_gunTriggers.pending[1]=false;
-            g_gunTriggers.leftCanTap=false;
-        } else {
-            g_gunTriggers.Reset();
-            g_gunEquip.Reset();
-        }
+        // Drawing/inventory can change the selected weapon. Keep equip intent,
+        // but never carry a queued shot into that new weapon.
+        if (MotionWeaponSupported(g_triggerWeapon) && MotionWeaponSupported(weapon)) {
+            g_gunTriggers.Clear(0); g_gunTriggers.Clear(1);
+        } else g_gunTriggers.Reset();
         g_triggerWeapon=weapon;
     }
     const int status=*Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status);
-    const uint8_t nativeLeft=left;
-    if (g_drawAwaitingLTRelease && nativeLeft<=30) {
-        g_drawAwaitingLTRelease=false;
-        g_gunTriggers.Reset();
-    }
-    g_gunTriggers.Update(true,MotionReady(),left>30,right>30,now);
-    if (!DualMotionWeapon(weapon)) g_gunTriggers.pending[0]=false;
-    const bool holdMode=NewControls() &&
-        AppFlag(drva::app_off::level_type)!=3;
-    bool equipRequest=false;
-    if (status==0) {
-        // First hold from holstered draws immediately. In modern controls the
-        // native draw bit must then remain asserted even after LT is released.
-        equipRequest=nativeLeft>30 &&
-            !g_gunTriggers.leftWaitRelease && !g_drawAwaitingLTRelease;
-    } else if (status==2) {
-        // Require an LT release before the next gesture can holster or fire.
-        g_gunTriggers.Reset();
-        g_gunTriggers.Update(true,false,nativeLeft>30,right>30,now);
-    } else if (status==4) {
-        equipRequest=!g_drawAwaitingLTRelease && g_gunTriggers.Equip(now);
-    }
-    if (equipRequest && !g_gunEquip.requestHeld)
-        LogF("firstperson: LT equip gesture native=%s status=%d gun=%d",
-             holdMode ? "hold" : "toggle",status,weapon);
-    g_nativeEquipRequested=g_gunEquip.Update(holdMode,status,equipRequest);
+    const bool holdMode=NewControls() && AppFlag(drva::app_off::level_type)!=3;
+    const bool rawLeft=left>30;
+    g_nativeEquipRequested=g_gunEquip.Update(holdMode,status,rawLeft,y);
     g_nativeEquipStatus=status;
     g_nativeEquipHoldMode=holdMode;
+    const bool motion=MotionTriggerMode();
+    g_gunTriggers.Update(motion,motion && MotionReady() &&
+        g_gunEquip.desiredArmed && !g_gunEquip.consumeY,
+        rawLeft && !g_gunEquip.blockLeft,right>30,now);
+    if (!DualMotionWeapon(weapon)) g_gunTriggers.Clear(0);
+    // TR1-3 requires the draw bit at LaraGun, after animation/collision have
+    // processed input. Do not also send a native LT toggle from XInput.
     left=0;
-    // Ready dual guns use independent LT-release and held-RT requests. Native
-    // LaraGun still sets the rate; long guns keep their sustained RT path.
-    if (status==4 && weapon<=3)
+    if (status==4 && motion && weapon<=3)
         right=g_gunTriggers.WantsShot() ? 255 : 0;
+    // Unarmed/busy RT is also native grab/Action; preserve it in those states.
+    if (status==4 && (!g_gunEquip.desiredArmed || g_gunEquip.consumeY)) right=0;
+    return g_gunEquip.consumeY;
 }
 
 void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,

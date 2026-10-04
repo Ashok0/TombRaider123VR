@@ -41,7 +41,8 @@ bool FirstPersonWristCentre(float out[3]);
 // The last rendered scene eye, before stereo head translation. False when the
 // first-person gameplay camera is unavailable.
 bool FirstPersonSceneEye(int32_t out[3]);
-void FirstPersonGunTriggers(uint8_t& left, uint8_t& right, bool chordConsumed);
+// Returns true when physical Y was consumed to holster first-person guns.
+bool FirstPersonGunTriggers(uint8_t& left, uint8_t& right, bool chordConsumed, bool y=false);
 
 // Called after merging physical and VR pads. Records manual intent for the
 // simulation hook and applies HMD-relative steering through jump preparation

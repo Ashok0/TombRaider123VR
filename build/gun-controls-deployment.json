@@ -1,0 +1,8 @@
+{
+    "source":  "C:\\dev\\TombRaider123VR\\build\\x64\\Release\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\before-gun-controls-20261004-132206",
+    "sourceSha256":  "164001F717B36B08D412D8DC1A6C90685E57D09F83FE7E1CDD5BE10EEEF168A7",
+    "oldSha256":  "EEB7B12A0C5095286DEDFD500A78E45DD4C01F065E0FDA69503A48135689ACF0",
+    "iniSha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842"
+}

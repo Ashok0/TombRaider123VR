@@ -247,19 +247,20 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     g_viewToggleHeld = viewToggle;
     if (viewToggle) {
         mine.Gamepad.wButtons &= static_cast<uint16_t>(~XB_Y);
-        mine.Gamepad.bLeftTrigger = 0;
+        mine.Gamepad.bLeftTrigger = mine.Gamepad.bRightTrigger = 0;
     } else if (graphicsToggle) {
         mine.Gamepad.wButtons &= static_cast<uint16_t>(~XB_Y);
         mine.Gamepad.wButtons |= XB_START;
         mine.Gamepad.bRightTrigger = 0;
     }
-    // Add the grip Action after Y+trigger handling. Holding both grips while
-    // equipping or shooting must not switch the view or graphics mode.
+    if (FirstPersonGunTriggers(mine.Gamepad.bLeftTrigger,
+                               mine.Gamepad.bRightTrigger,
+                               viewToggle || graphicsToggle,yHeld))
+        mine.Gamepad.wButtons &= static_cast<uint16_t>(~XB_Y);
+    // Synthetic grip Action is added after physical Y is handled, so pushing
+    // a block cannot be mistaken for a request to holster.
     if (gripAction && !viewToggle && !graphicsToggle)
         mine.Gamepad.wButtons |= XB_Y;
-    FirstPersonGunTriggers(mine.Gamepad.bLeftTrigger,
-                           mine.Gamepad.bRightTrigger,
-                           viewToggle || graphicsToggle);
 
     // Transform the MERGED state so a physical Xbox pad has the same heading
     // and cannot reintroduce the engine's right-stick camera orbit.

@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 38066 bytes, 786 lines.
+// Source: TombRaiderVR.ini, 38174 bytes, 788 lines.
 #pragma once
 
 namespace tr {
@@ -343,9 +343,10 @@ FirstPersonTurnDeadzone=0.25
 FirstPersonMovementStabilization=1
 
 ; HD motion guns are enabled by default. Each controller places its hand; shots
-; use that controller's barrel. LT tap fires the left dual gun on release,
-; RT fires the right; both held fire both. Hold LT alone for 0.5 s to holster.
-; LT draws immediately when holstered. Long guns keep RT.
+; use that controller's barrel. In first person, press LT to equip when
+; unarmed; LT never holsters. Press Y to holster. With dual guns ready,
+; LT/RT fire left/right on press; hold either or both for continuous fire.
+; Releasing a trigger cancels held repeats. Long guns keep RT.
 ; Requires first person, HD graphics and positional tracking.
 FirstPersonMotionGuns=1
 FirstPersonMotionGunGripForwardMetres=0.1778
@@ -580,7 +581,8 @@ VideoFlipV=0
 ;   Action  Y  (left hand, UPPER)   System  X  (left hand, LOWER)
 ;           LB + RB (both grips)
 ;   Walk    left stick + RIGHT GRIP Duck    LEFT GRIP
-;   Equip   left trigger (hold)     Shoot   right trigger
+;   Equip   left trigger (FP: tap)  Shoot   right trigger
+;   Holster Y (first person, armed)
 ;   Sprint  left stick click        Photo   L3 + R3
 ;   View    Y + LT                  Graphics Y + RT
 ;   D-pad   R3 + left stick
@@ -617,10 +619,10 @@ GamepadLogButtons=0
 ; RT+RB -- nothing is out of reach, and comfort is the right default in a
 ; headset. Set this to 0 for the stock two-axis stick.
 ;
-; Applied to whatever right stick reaches the game, including a physical pad
-; merged in alongside the Touch controllers. The binding line in the log says
 )INI"
-           R"INI(; "look=Rstick(yaw only; hold RT+RB for pitch)" when both are on.
+           R"INI(; Applied to whatever right stick reaches the game, including a physical pad
+; merged in alongside the Touch controllers. The binding line in the log says
+; "look=Rstick(yaw only; hold RT+RB for pitch)" when both are on.
 DecoupledPitch=1
 
 ; Hold RT + RB to get stick pitch BACK for as long as both are held. 1 = on,

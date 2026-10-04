@@ -1,0 +1,131 @@
+[
+  {
+    "image": "PDB\\tomb1.dll",
+    "collision_rva": "0x6690",
+    "extra_sample_bytes_written": [],
+    "eye_sample_count": 4
+  },
+  {
+    "image": "PDB\\tomb2.dll",
+    "collision_rva": "0xa3c0",
+    "extra_sample_bytes_written": [],
+    "eye_sample_count": 4
+  },
+  {
+    "image": "PDB\\tomb3.dll",
+    "collision_rva": "0x16d30",
+    "extra_sample_bytes_written": [
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71
+    ],
+    "eye_sample_count": 6
+  },
+  {
+    "image": "build\\current-retail-verify\\tomb1.dll",
+    "collision_rva": "0x6690",
+    "extra_sample_bytes_written": [],
+    "eye_sample_count": 4
+  },
+  {
+    "image": "build\\current-retail-verify\\tomb2.dll",
+    "collision_rva": "0xa3c0",
+    "extra_sample_bytes_written": [],
+    "eye_sample_count": 4
+  },
+  {
+    "image": "build\\current-retail-verify\\tomb3.dll",
+    "collision_rva": "0x16f20",
+    "extra_sample_bytes_written": [
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71
+    ],
+    "eye_sample_count": 6
+  },
+  {
+    "image": "build\\current-gold-verify\\tomb1.dll",
+    "collision_rva": "0x6690",
+    "extra_sample_bytes_written": [],
+    "eye_sample_count": 4
+  },
+  {
+    "image": "build\\current-gold-verify\\tomb2.dll",
+    "collision_rva": "0xa3c0",
+    "extra_sample_bytes_written": [],
+    "eye_sample_count": 4
+  },
+  {
+    "image": "build\\current-gold-verify\\tomb3.dll",
+    "collision_rva": "0x16f20",
+    "extra_sample_bytes_written": [
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71
+    ],
+    "eye_sample_count": 6
+  }
+]
