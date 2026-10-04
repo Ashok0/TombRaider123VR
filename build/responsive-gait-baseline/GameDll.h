@@ -1,0 +1,191 @@
+// GameDll.h -- the game state that lives in tomb1/2/3.dll rather than in
+// tomb123.exe, and the address table that reaches it.
+//
+// This file owns the BINDING (which of the three DLLs is live, where it is
+// loaded, and every RVA inside it). Two small readers live here as well --
+// Lara's water status and the camera's headroom -- because they are two field
+// reads and nothing more. The room culling that uses the rest of the table is
+// in PortalCull.cpp.
+//
+// WHY THIS IS EASY HERE AND WAS HARD IN TR4-6
+//
+// The TR4-6 game DLLs shipped without symbols, so the equivalent addresses were
+// found by tracing call sites into the engine and reading a decompiler -- and
+// the culling work there ended up against `FUN_18002ea30` and `DAT_18063dc60`.
+// TR1-3's DLLs ship full private PDBs, so every address and every struct offset
+// below came out of dbghelp, by name:
+//
+//   python tools\pdbdump.py  PDB\tomb1.dll  GetVisibleRooms draw_rooms
+//   python tools\typedump.py PDB\tomb1.dll  lara_info camera_info ROOM_INFO
+//   python tools\verify_addresses.py        re-derives and diffs all of them
+//
+// All three DLLs were checked and their STRUCT LAYOUTS ARE IDENTICAL -- 432-byte
+// lara_info with water_status at +12, 128-byte camera_info, 168-byte ROOM_INFO
+// with y/minfloor/maxceiling at +44/+52/+56 and door/left/right/top/bottom at
+// +8/+80/+82/+84/+86. Only the addresses of the globals differ between the
+// three, which is why there is one struct description and a three-row address
+// table.
+#pragma once
+
+#include <cstdint>
+
+namespace tr {
+
+// One row per game DLL per build, selected by the DLL's PE timestamp. Every
+// RVA came out of that DLL's own PDB by name (or, for a build shipped without
+// PDBs, was carried across by tools\port_build.py); a
+// zero means "this build does not have that symbol", which is a real case --
+// TR1 has no `outside` machinery at all, TR2 and TR3 do.
+struct GameDllLayout {
+    const wchar_t* module;      // file name as the loader knows it
+    const char*    name;
+    uint32_t       timestamp;   // PE TimeDateStamp
+
+    // --- state read by LaraWaterStatus / CameraHeadroom ---------------------
+    uint32_t lara;              // lara_info
+    uint32_t camera;            // camera_info
+    uint32_t room;              // ROOM_INFO*  (null until a level is loaded)
+    uint32_t numberRooms;       // int16
+
+    // --- the visible-set state the culling works on ------------------------
+    uint32_t drawRooms;         // int16[200]  -- the draw list
+    uint32_t numberDrawRooms;   // int32       -- how many of it are in use
+    uint32_t w2vMatrix;         // int32[12]   -- world -> view, see PortalCull
+    uint32_t phdMxptr;          // int32**     -- top of the matrix stack
+    uint32_t phdWinXmax;        // int32       -- screen width  - 1
+    uint32_t phdWinYmax;        // int32       -- screen height - 1
+
+    // --- the sky/horizon clip rect. TR2 and TR3 only; all zero on TR1. ------
+    uint32_t outside;           // int32, non-zero when an outdoor room is visible
+    uint32_t outsideLeft;
+    uint32_t outsideRight;
+    uint32_t outsideTop;
+    uint32_t outsideBottom;
+
+    // --- hook targets ------------------------------------------------------
+    uint32_t printRoomsList;    // void PrintRoomsList(void)
+    uint32_t sGetObjectBounds;  // int  S_GetObjectBounds(int16* bounds)
+    uint32_t drawSkyHD;         // void DrawSkyHD(void) -- HD sky/horizon
+
+    // --- first person ------------------------------------------------------
+    // phd_GenerateW2V(PHD_3DPOS*) turns a camera pose into w2v_matrix. It has
+    // seven callers -- inventory, pickup spin, shadows, photo mode, the muzzle
+    // flash -- and only ONE of them is the scene camera, so the hook rewrites
+    // the pose only when it returns to w2vSceneReturn: the instruction after
+    // the call inside S_InitialisePolyList. A wrong value there means first
+    // person never engages, which is the safe direction.
+    uint32_t phdGenerateW2V;
+    uint32_t w2vSceneReturn;
+    uint32_t frameFrac;            // int32, 0..256: how far this frame is between
+                                   // the previous simulation tick and the current
+                                   // one. What DrawLara itself interpolates with.
+    uint32_t laraItem;             // ITEM_INFO** -- null until a level is loaded
+
+    // void DrawCreatureHD(ITEM_INFO*, int useMeshBits). The HD renderer's
+    // per-part draw: DrawLaraHD calls it once for the body, once per hand,
+    // holster, the face and the sunglasses. With useMeshBits non-zero it zeroes
+    // the joint matrix of every mesh whose ITEM_INFO::mesh_bits bit is clear --
+    // the engine's own way of hiding a body part, which is what first person
+    // borrows to hide the head.
+    uint32_t drawCreatureHD;
+    uint32_t getJoints;         // void GetJoints(ITEM_INFO*)
+    uint32_t joints;            // float[32][12], GetJoints' global output palette
+    uint32_t laraGun;           // void LaraGun(void), consumes native Draw Guns input
+    uint32_t fireWeapon;        // native hitscan and ammo/hit accounting
+    uint32_t fireW2VReturn;     // its one weapon view-matrix call
+    uint32_t rightFireReturn;   // first AnimatePistols FireWeapon call
+    uint32_t leftFireReturn;    // second AnimatePistols FireWeapon call
+    uint32_t getTargetOnLOS;
+    uint32_t hitLosReturn;      // FireWeapon's sphere-hit LOS call
+    uint32_t missLosReturn;     // FireWeapon's full-range LOS call
+    uint32_t drawLaraHD;        // void(ITEM_INFO*): scope for Lara-only physics
+
+    // The rest of Lara's head, which is NOT part of her body mesh and so is not
+    // covered by mesh_bits: the animated face and the sunglasses are separate
+    // GEOM_INFOs drawn by their own DrawCreatureHD calls (gLaraHead[0] and [1],
+    // gActorHead in cutscenes), and the braid is drawn by DrawHair.
+    uint32_t drawHair;          // void DrawHair(int32)
+    uint32_t gLaraHead;         // GEOM_INFO[2]: face, sunglasses
+    uint32_t gActorHead;        // GEOM_INFO[3]: the cutscene actor's head
+    uint32_t objects;           // object_info[]; .geom is the geometry in use
+    uint32_t analogInput;       // ANALOG_INPUT_INFO; camTurn at +4
+    uint32_t input;             // decoded action bits, after Modern conversion
+    uint32_t laraAboveWater;    // simulation entry, after LaraControl decodes input
+    uint32_t animateLara;       // advances Lara's animation and root motion
+    uint32_t getCollisionInfo;
+    uint32_t updateLaraRoom;
+    uint32_t getFloor;          // resolves the first-person eye's room for culling
+    uint32_t calculateLaraMatrices; // consumes those angles for the visible joints
+    uint32_t drawActionIndicators; // draw-local world positions for native prompts
+    uint32_t nActionIndicator;
+    uint32_t actionIndicator;     // PHD_VECTOR[20]
+    uint32_t phdPersp;
+    uint32_t phdCenterX;
+    uint32_t phdCenterY;
+    uint32_t phdZNear;
+    uint32_t phdZFar;
+    // Native projectile spawners (TR2/3 only). Zero when the game lacks one.
+    uint32_t nextItemFree;
+    uint32_t items;
+    uint32_t fireHarpoon;
+    uint32_t fireRocket;
+    uint32_t fireGrenade;
+    uint32_t itemNewRoom;
+    uint32_t animateShotgun; // TR2 inlines its grenade launcher in this routine
+    uint32_t drawGunFlash; // void DrawGunFlash(int gun, int unused, int joint)
+    uint32_t nextItemActive; // int16, native target candidate list
+    uint32_t getSpheres; // int GetSpheres(ITEM_INFO*, SPHERE*, int worldSpace)
+    uint32_t findTargetPoint; // void find_target_point(ITEM_INFO*, GAME_VECTOR*)
+    uint32_t los; // int LOS(GAME_VECTOR*, GAME_VECTOR*), no damage/effects
+    uint32_t animatePistols; // native cadence/flash animation; controller free-aim scope
+    uint32_t getJointAbsPosition; // void(ITEM_INFO*, PHD_VECTOR*, joint)
+    // Exactly the four wrist-point queries in FireShotgun. Other callers,
+    // including enemy effects and hit testing, retain the native joint pose.
+    uint32_t shotgunSmokeOriginReturn;
+    uint32_t shotgunSmokeDirectionReturn;
+    uint32_t shotgunSparkOriginReturn;
+    uint32_t shotgunSparkDirectionReturn;
+};
+
+// Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once
+// per frame. Returns true once a supported DLL has been bound.
+bool GameDllUpdate();
+
+// The row for the DLL currently bound, or null when nothing is bound. The
+// pointer is stable for the life of the process; the BINDING is not, so callers
+// that cache anything derived from it must re-check this every frame.
+const GameDllLayout* GameDllBound();
+
+// Load address of that DLL, or 0.
+uint64_t GameDllBase();
+
+// Lara's own water state, or -1 when no game DLL is bound.
+//
+//   0 ABOVE_WATER   1 UNDERWATER   2 SURFACE   3 FLYCHEAT   4 WADE
+//
+// Read straight from the DLL's `lara` global, so it is Lara's state rather than
+// the camera's -- which is the whole point. The camera trails behind and above
+// her and sits in the air room during a surface swim, so anything derived from
+// the camera's room reports dry exactly when it matters most.
+int LaraWaterStatus();
+
+// World units from the active camera (rendered eye in first person, native
+// camera in third person) up to its room's ceiling. Paused during jumps,
+// falls, and the brief landing transition.
+//
+// Returns false when it cannot be known -- no DLL bound, no level loaded, an
+// out-of-range room index, or a result that fails its own sanity check. Callers
+// MUST treat false as "unknown" and never as "no headroom": clamping the head to
+// the floor because a menu was open would be worse than not clamping at all.
+//
+// Derived from the room's bounding box (ROOM_INFO::maxceiling) rather than from
+// the floor data under the view, so it is exact in a uniformly low room --
+// tunnels, crawlspaces, the places the clamp exists for -- and over-generous in
+// a room with one tall section. Over-generous is the safe direction: it clamps
+// less than it could, never more.
+bool CameraHeadroom(float& units);
+
+// Drop the binding. Called from RemoveHooks.
+void GameDllShutdown();
+
+} // namespace tr

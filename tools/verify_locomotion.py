@@ -54,6 +54,13 @@ for directory in [ROOT / "PDB"] + [pathlib.Path(p) for p in sys.argv[1:]]:
                 '40 57 41 54 41 55' if data[animate] == 0x40 else '57 41 54 41 55')
         assert data[animate:animate+len(animation_prologue)] == animation_prologue, \
             (name, 'AnimateLara hook prologue')
+        # Native AnimateLara loads ANIM_STRUCT* into r14 before indexing its
+        # 40-byte records. Verify independently of the port manifest.
+        loads = list(re.finditer(rb'\x4c\x8b\x35....', data[animate:animate+48], re.S))
+        assert len(loads) == 1, (name, 'ambiguous animation table load')
+        load = animate + loads[0].start()
+        anims = load + 7 + int.from_bytes(data[load+3:load+7], 'little', signed=True)
+        assert fields['anims'] == anims, (name, 'animation table pointer')
         # Validate native helper targets by CALL instructions in their callers,
         # independently of table adjacency or a guessed build-wide delta.
         md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -83,4 +90,4 @@ for directory in [ROOT / "PDB"] + [pathlib.Path(p) for p in sys.argv[1:]]:
                 collision_calls.append(rva)
         assert collision_calls, (name, 'no standing-height collision caller')
         print(f"  input=0x{decoded_input:08X} simulation=0x{above:08X} "
-              f"animation=0x{animate:08X} collision/room calls verified")
+              f"animation=0x{animate:08X} anims=0x{anims:08X} collision/room calls verified")

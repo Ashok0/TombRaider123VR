@@ -530,6 +530,11 @@
     "old": 160021,
     "new": 160393,
     "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "anims": {
+    "old": 4317344,
+    "new": 4321248,
+    "how": "AnimateLara initial MOV r14,[rip+disp32] animation table load"
    }
   }
  },
@@ -899,6 +904,11 @@
     "old": 289685,
     "new": 289641,
     "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "anims": {
+    "old": 4575784,
+    "new": 4575592,
+    "how": "AnimateLara initial MOV r14,[rip+disp32] animation table load"
    }
   }
  },
@@ -1270,6 +1280,11 @@
     "old": 403925,
     "new": 404478,
     "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "anims": {
+    "old": 4964432,
+    "new": 4976528,
+    "how": "AnimateLara initial MOV r14,[rip+disp32] animation table load"
    }
   }
  }

@@ -59,6 +59,49 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### Side/back movement launch fix (2026-10-04)
+
+Ported the TR4–6 ground-motion safety and gait-handoff fix to TR1–3. Changing
+LS direction now advances the outgoing/stopping animation in place until the
+native gait matches the requested direction. The new gait supplies its own
+speed on its first active tick. Horizontal scaling and smoothing no longer
+write boosted speed into Lara's stored velocity, which native falls inherit.
+Gravity, jump/interaction transitions and large relocations bypass correction;
+vertical motion and subsequent native collision retain their existing handling.
+The responsiveness update below shortens ordinary side/back animation entry.
+
+Validation: Release/x64 built successfully; all existing self-tests and 13,710
+production movement-hook checks passed. The handoff regression reproduces the
+failure with the previous animation hook. Coverage includes left/right/back
+movement, direction reversals, sustained motion, ledge falls, wall collision,
+stick release and jump/interaction exclusions, with smoothing on and off.
+Locomotion address checks passed for all three games in the PDB, retail and
+Gold builds. Headset gameplay confirmation is pending.
+
+### Faster sidestep and backpedal entry (2026-10-04)
+
+Ported the TR4?6 responsiveness changes: ordinary LS side/back direction changes
+now enter the native standing dispatcher before the simulation tick, including
+release/re-press during a pending stop. Native floor/ceiling checks still choose
+whether to enter the requested gait. Its own speed and collision routine take
+over immediately, with the launch-prevention guard retained. Landings,
+step-up/down poses, jumps and pending interactions retain native timing.
+
+The slow, command-free backward-start animation now advances four frames per
+tick, reaching the ordinary backpedal loop after four startup ticks instead of
+sixteen. Loop cadence, maximum speed, smoothing and one native collision pass
+per tick are unchanged. Runtime animation offsets are adapted to TR1?3's
+40-byte records, including TR1/2's one-frame standing entry.
+
+Validation: Release/x64 and existing self-tests passed; **30,190** movement-hook
+checks cover immediate entry, held gait progression, faster startup, release,
+wall/ledge rejection and invalid-data fallbacks. Each new regression fails with
+its corresponding fix disabled. All **2,052** address/layout checks and the
+native locomotion checks passed across the supported PDB, retail and Gold
+builds. `tools/verify_ground_gait_entry.py` verified first-tick side/back entry
+and four-tick backward startup in **39 TR1 + 47 TR2 + 54 TR3** installed animation
+tables. Headset feel still needs confirmation.
+
 ### Default profile (2026-10-02)
 
 The repository INI and embedded first-run INI now match all 113 values in the
@@ -1803,6 +1846,7 @@ python tools\port_build.py path\to\new-build  # only for a new PDB-less build
 python tools\verify_addresses.py build\current-retail-verify build\current-gold-verify
 python tools\verify_locomotion.py build\current-retail-verify build\current-gold-verify
 .\tests\build_selftest.cmd
+.\tests\build_locomotion_selftest.cmd
 .\tests\build_physics_selftest.cmd
 ```
 

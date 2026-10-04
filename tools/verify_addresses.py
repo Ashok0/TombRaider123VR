@@ -168,7 +168,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
           'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
           'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
-          'shotgun_spark_origin_return', 'shotgun_spark_direction_return']
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -280,12 +280,20 @@ for dll, stamp, vals in rows:
     check('%s ITEM_INFO::hit_points' % dll, 38, f.get('hit_points'))
     check('%s ITEM_INFO::mesh_bits' % dll, 12, f.get('mesh_bits'))
     check('%s ITEM_INFO::anim_number' % dll, 24, f.get('anim_number'))
+    check('%s ITEM_INFO::required_anim_state' % dll, 22, f.get('required_anim_state'))
+    check('%s ITEM_INFO::frame_number' % dll, 26, f.get('frame_number'))
     check('%s ITEM_INFO::room_number' % dll, 28, f.get('room_number'))
     check('%s ITEM_INFO::object_number' % dll, 16, f.get('object_number'))
     check('%s ITEM_INFO::fallspeed' % dll, 36, f.get('fallspeed'))
     check('%s ITEM_INFO::gravity_status' % dll, 484, f.get('gravity_status'))
     check('%s ITEM_INFO::pos' % dll, 88, f.get('pos'))
     check('%s ITEM_INFO::pos_prev' % dll, 108, f.get('pos_prev'))
+
+    size, f = udt(dll, 'ANIM_STRUCT')
+    check('%s sizeof(ANIM_STRUCT)' % dll, 40, size)
+    for field, offset in [('current_anim_state',10), ('frame_base',20),
+                          ('frame_end',22), ('number_commands',32)]:
+        check('%s ANIM_STRUCT::%s' % (dll,field), offset, f.get(field))
 
     size, f = udt(dll, 'object_info')
     check('%s sizeof(object_info)' % dll, 2304, size)

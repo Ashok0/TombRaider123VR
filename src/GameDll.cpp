@@ -112,7 +112,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* shotgun_smoke_origin_return      */ 0x00027005,
           /* shotgun_smoke_direction_return   */ 0x0002703A,
           /* shotgun_spark_origin_return      */ 0x000270E4,
-          /* shotgun_spark_direction_return   */ 0x00027115 },
+          /* shotgun_spark_direction_return   */ 0x00027115,
+          /* anims           */ 0x0041E0A0 },
 
         { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
           /* lara            */ 0x0037AD40,
@@ -184,7 +185,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* shotgun_smoke_origin_return      */ 0x00046A85,
           /* shotgun_smoke_direction_return   */ 0x00046ABA,
           /* shotgun_spark_origin_return      */ 0x00046B64,
-          /* shotgun_spark_direction_return   */ 0x00046B95 },
+          /* shotgun_spark_direction_return   */ 0x00046B95,
+          /* anims           */ 0x0045D228 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
           /* lara            */ 0x003D1C40,
@@ -256,7 +258,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* shotgun_smoke_origin_return      */ 0x000628CE,
           /* shotgun_smoke_direction_return   */ 0x00062903,
           /* shotgun_spark_origin_return      */ 0x000629A4,
-          /* shotgun_spark_direction_return   */ 0x000629D5 },
+          /* shotgun_spark_direction_return   */ 0x000629D5,
+          /* anims           */ 0x004BC050 },
     },
 
     // Aspyr retail build, shipped without PDBs (exe row: kBuildAspyrRetail in
@@ -336,7 +339,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* shotgun_smoke_origin_return      */ 0x0002717A,
           /* shotgun_smoke_direction_return   */ 0x000271B1,
           /* shotgun_spark_origin_return      */ 0x00027256,
-          /* shotgun_spark_direction_return   */ 0x00027289 },
+          /* shotgun_spark_direction_return   */ 0x00027289,
+          /* anims           */ 0x0041EFE0 },
 
         { L"tomb2.dll", "Tomb Raider II", 0x6A4B7C3F,
           /* lara            */ 0x0037AC80,
@@ -408,7 +412,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* shotgun_smoke_origin_return      */ 0x00046A5A,
           /* shotgun_smoke_direction_return   */ 0x00046A91,
           /* shotgun_spark_origin_return      */ 0x00046B36,
-          /* shotgun_spark_direction_return   */ 0x00046B69 },
+          /* shotgun_spark_direction_return   */ 0x00046B69,
+          /* anims           */ 0x0045D168 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B7C37,
           /* lara            */ 0x003D4B80,
@@ -480,7 +485,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* shotgun_smoke_origin_return      */ 0x00062AF2,
           /* shotgun_smoke_direction_return   */ 0x00062B29,
           /* shotgun_spark_origin_return      */ 0x00062BCB,
-          /* shotgun_spark_direction_return   */ 0x00062BFE },
+          /* shotgun_spark_direction_return   */ 0x00062BFE,
+          /* anims           */ 0x004BEF90 },
     },
 };
 
