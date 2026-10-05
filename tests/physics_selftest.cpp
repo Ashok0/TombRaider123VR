@@ -3,6 +3,7 @@
 #include "../src/BoneSkin.cpp"
 #include "../src/EnhancedEffects.cpp"
 #include "../src/FirstPersonStabilization.h"
+#include "../src/FirstPersonVisibility.h"
 #include <fstream>
 #include <iterator>
 #include <set>
@@ -220,9 +221,11 @@ int main(int argc, char** argv) {
         std::printf("%s: %zu skin sources, %d native hand shader pairs compiled\n",
                     argv[arg], sources.size(),nativePairs);
     }
+    std::string combinedFragment="#version 150\nout vec4 color; void main(){ color=vec4(1.0); }";
+    Require(handskin::Patch(onePatched,combinedFragment),"combine real chest deformation and body visibility for GPU regression");
     GLuint vertex = gl::CreateShader(GL_VERTEX_SHADER), fragment = gl::CreateShader(GL_FRAGMENT_SHADER);
     const char* vertexText = onePatched.c_str();
-    const char* fragmentText = "#version 150\nout vec4 color; void main(){ color=vec4(1.0); }";
+    const char* fragmentText = combinedFragment.c_str();
     gl::ShaderSource(vertex, 1, &vertexText, nullptr); gl::CompileShader(vertex);
     gl::ShaderSource(fragment, 1, &fragmentText, nullptr); gl::CompileShader(fragment);
     GLuint program = gl::CreateProgram();
@@ -247,6 +250,32 @@ int main(int argc, char** argv) {
     BoneSkinAfterValidate(false);
     gl::GetUniformfv(program, loc, uniform);
     Require(uniform[3] == 1, "following body draw enables shader deformation");
+    // Both uniforms coexist on the actual native chest shader while arm
+    // visibility changes. The solver must neither reset nor lose its draw.
+    float visibilityPalette[384]{};
+    for (int joint=0;joint<32;++joint)
+        visibilityPalette[joint*12]=visibilityPalette[joint*12+5]=visibilityPalette[joint*12+10]=1;
+    const GLint visibilityLoc=gl::GetUniformLocation(program,"uVisibleBody");
+    Require(visibilityLoc>=0,"native shader exposes the body visibility mask");
+    firstperson::UnarmedArmVisibility armVisibility;
+    float beforeOffset[3]{};
+    Require(DynamicBonesWorldOffset(beforeOffset),"jiggle solver is live before changing visibility");
+    for (float pitch:{0.f,-16.f,-12.f,-9.f,-20.f,0.f}) {
+        const bool hide=armVisibility.Hide(true,pitch*(locomotion::Pi/180.f));
+        testVisibleJoints=firstperson::HdDrawMeshBits(0,false,false,hide);
+        testBodyPalette=visibilityPalette;
+        BoneSkinAfterValidate(false);
+        gl::GetUniformfv(program,loc,uniform);
+        Require(BoneSkinActive() && uniform[3]==1,"chest deformation stays enabled with arms shown or hidden");
+        float mask[4]{}; gl::GetUniformfv(program,visibilityLoc,mask);
+        Require(mask[3]==1 && uint32_t(mask[0])==(testVisibleJoints&0xffffu) &&
+                (uint32_t(mask[0])&(1u<<7))!=0,"GPU receives the arm mask while keeping torso visible");
+        float afterOffset[3]{};
+        Require(DynamicBonesWorldOffset(afterOffset) &&
+                std::memcmp(beforeOffset,afterOffset,sizeof(beforeOffset))==0,
+                "arm visibility changes preserve live jiggle solver displacement");
+    }
+    testBodyPalette=nullptr;
     g_drawRenderBody = false;
     BoneSkinAfterValidate(false);
     gl::GetUniformfv(program, loc, uniform);
@@ -362,6 +391,20 @@ void main() {
         Require(pixelWhite(),"ledge transition preserves fresh native mesh positions");
         gl::Uniform4fv(weightsLoc,1,forearmWeights);
         Require(pixelWhite()==(testBodyPalette==nullptr),"visibility clears on each ledge/NPC transition");
+    }
+    firstperson::UnarmedArmVisibility pixelArms;
+    for (float pitch:{0.f,-16.f,-12.f,-9.f,-12.f,-20.f}) {
+        const bool hide=pixelArms.Hide(true,pitch*(locomotion::Pi/180.f));
+        testBodyPalette=fullPalette;
+        testVisibleJoints=firstperson::HdDrawMeshBits(0,false,false,hide);
+        gl::Uniform4fv(weightsLoc,1,forearmWeights);
+        BoneSkinAfterValidate(false);
+        Require(pixelWhite()!=hide,"unarmed arm pixels follow the look-down hysteresis mask");
+        testHandPalette=fullPalette; testHandJoint=10;
+        gl::Uniform4fv(weightsLoc,1,mixedWeights);
+        BoneSkinAfterValidate(false);
+        Require(pixelWhite(),"tracked weapon hand pixels ignore a preceding hidden-arm body mask");
+        testHandPalette=nullptr; testHandJoint=-1;
     }
     testBodyPalette=nullptr;
     BoneSkinAfterValidate(false);

@@ -208,6 +208,8 @@ bool     g_headHidden  = false;   // mesh_bits bit 14 is currently cleared
 bool     g_rollHidden  = false;   // all Lara geometry suppressed during a roll
 bool     g_crouchHidden = false;
 bool     g_ledgeArmsOnly = false;
+bool g_unarmedArmsHidden=false;
+firstperson::UnarmedArmVisibility g_unarmedArmVisibility;
 bool     g_meshOverride = false;
 uint8_t* g_meshItem = nullptr;
 uint32_t g_meshBaseBits = 0;
@@ -543,20 +545,20 @@ bool Anchor(PHD_3DPOS& pose) {
 // roll clears the full mask. The original mask is restored when both overrides
 // end so switching views during a roll cannot leave Lara partly hidden.
 uint32_t VisibleMeshBits(uint32_t base, bool head, bool roll,
-                         bool crouch, bool ledge) {
+                         bool crouch, bool ledge, bool hideArms=false) {
     if (roll || crouch) return 0;
     if (ledge) return base & kArmMeshBits;
-    return head ? base & ~kHeadMeshBit : base;
+    return base & ~(head ? kHeadMeshBit : 0u) & ~(hideArms ? kArmMeshBits : 0u);
 }
 
 void SetMeshVisibility(bool hideHead, bool hideRoll,
-                       bool hideCrouch = false, bool ledgeArms = false) {
+                       bool hideCrouch = false, bool ledgeArms = false, bool hideArms = false) {
     if (!g_boundDll || !g_boundBase) return;
     auto* item = *Ptr<uint8_t*>(g_boundDll->laraItem);
     if (!item) {
         g_meshOverride = false;
         g_meshItem = nullptr;
-        g_headHidden = g_rollHidden = g_crouchHidden = g_ledgeArmsOnly = false;
+        g_headHidden = g_rollHidden = g_crouchHidden = g_ledgeArmsOnly = g_unarmedArmsHidden = false;
         return;
     }
     if (g_meshOverride && item != g_meshItem) {
@@ -567,11 +569,11 @@ void SetMeshVisibility(bool hideHead, bool hideRoll,
     }
 
     auto& bits = *reinterpret_cast<uint32_t*>(item + off::item_mesh_bits);
-    if (!hideHead && !hideRoll && !hideCrouch && !ledgeArms) {
+    if (!hideHead && !hideRoll && !hideCrouch && !ledgeArms && !hideArms) {
         if (g_meshOverride && item == g_meshItem) bits = g_meshBaseBits;
         g_meshOverride = false;
         g_meshItem = nullptr;
-        g_headHidden = g_rollHidden = g_crouchHidden = g_ledgeArmsOnly = false;
+        g_headHidden = g_rollHidden = g_crouchHidden = g_ledgeArmsOnly = g_unarmedArmsHidden = false;
         return;
     }
     if (!g_meshOverride) {
@@ -584,17 +586,19 @@ void SetMeshVisibility(bool hideHead, bool hideRoll,
         // mask captured when first person was first entered. During a roll our
         // zero mask owns every bit, so keep the last pre-roll snapshot.
         const uint32_t expected = VisibleMeshBits(g_meshBaseBits, g_headHidden,
-            g_rollHidden, g_crouchHidden, g_ledgeArmsOnly);
-        if (bits != expected)
-            g_meshBaseBits = (bits & ~kHeadMeshBit)
-                           | (g_meshBaseBits & kHeadMeshBit);
+            g_rollHidden, g_crouchHidden, g_ledgeArmsOnly, g_unarmedArmsHidden);
+        if (bits != expected) {
+            const uint32_t owned=kHeadMeshBit | (g_unarmedArmsHidden ? kArmMeshBits : 0u);
+            g_meshBaseBits = (bits & ~owned) | (g_meshBaseBits & owned);
+        }
     }
     g_headHidden = hideHead;
     g_rollHidden = hideRoll;
     g_crouchHidden = hideCrouch;
     g_ledgeArmsOnly = ledgeArms;
+    g_unarmedArmsHidden = hideArms;
     bits = VisibleMeshBits(g_meshBaseBits, hideHead, hideRoll,
-                           hideCrouch, ledgeArms);
+                           hideCrouch, ledgeArms, hideArms);
 }
 
 bool IsRollState(const uint8_t* item) {
@@ -745,9 +749,10 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
     }
     if (g_active && (g_rollHidden || g_crouchHidden) && g_boundDll && g_boundBase &&
         item == *Ptr<void*>(g_boundDll->laraItem)) return;
-    if ((g_headHidden || g_ledgeArmsOnly) && g_boundDll && g_boundBase &&
+    if ((g_headHidden || g_ledgeArmsOnly || g_unarmedArmsHidden) && g_boundDll && g_boundBase &&
         item == *Ptr<void*>(g_boundDll->laraItem)) {
-        if (DrawingHeadGeometry(static_cast<const uint8_t*>(item))) {
+        if ((g_headHidden || g_ledgeArmsOnly) &&
+            DrawingHeadGeometry(static_cast<const uint8_t*>(item))) {
             ++g_headSkips;
             return;              // the face, the sunglasses: not drawn at all
         }
@@ -757,7 +762,8 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
         auto& bits=*reinterpret_cast<uint32_t*>(
             static_cast<uint8_t*>(item)+off::item_mesh_bits);
         const uint32_t saved=bits;
-        bits=firstperson::HdDrawMeshBits(saved,useMeshBits!=0,g_ledgeArmsOnly);
+        bits=firstperson::HdDrawMeshBits(saved,useMeshBits!=0,g_ledgeArmsOnly,
+            g_unarmedArmsHidden,g_headHidden);
         if (useMeshBits==0) ++g_headDraws;
         g_bodySkinScope=true;
         g_bodySkinReady=false;
@@ -852,6 +858,15 @@ bool MotionWeaponSupported(int gun) {
     const int last = g_boundDll->module[4] == L'1' ? 4 :
                      g_boundDll->module[4] == L'2' ? 7 : 8;
     return gun >= 1 && gun <= last;
+}
+
+// Match TR4/5: only ordinary unarmed ground movement uses the pitch gate.
+// Busy hands, weapon transitions and flares retain their native visibility.
+bool HideUnarmedArms(const uint8_t* item) {
+    const bool eligible=g_active && g_boundDll && g_boundBase && item && CanWalk(item) &&
+        *Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status)==0 &&
+        (*Ptr<int16_t>(g_boundDll->lara+4)==0 || MotionWeaponSupported(*Ptr<int16_t>(g_boundDll->lara+4)));
+    return g_unarmedArmVisibility.Hide(eligible,eligible ? VR().HeadPitchRadians() : 0.f);
 }
 
 bool DualMotionWeapon(int gun) {
@@ -1820,6 +1835,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     if (!g_haveHeading || !sameBody || relocated) {
         g_rootMotion.Reset();
         g_mountBodyTransition.Reset();
+        if (!sameBody) g_unarmedArmVisibility={};
         const float oldBase=g_heading.base;
         const float bodyTurn=sameBody ? Wrap(Radians(pos.y_rot)-g_lastBodyYaw) : 0;
         const float facing = sameBody && !relocated
@@ -2073,7 +2089,8 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         SetMeshVisibility(g_active && Cfg().firstPersonHideHead,
                           g_active && IsRollState(item),
                           g_active && IsCrouchState(item),
-                          g_active && locomotion::IsLedgeArmsOnlyState(state));
+                          g_active && locomotion::IsLedgeArmsOnlyState(state),
+                          HideUnarmedArms(item));
         // One line per jump distinguishes missed VR frames from a camera that
         // advances in coarse vertical steps. It also runs in third person.
         struct JumpViewTrace {
@@ -2340,6 +2357,7 @@ void Remove() {
     g_renderArm=g_firingHand=-1;
     g_gunTriggers.Reset();
     g_gunEquip.Reset();
+    g_unarmedArmVisibility={};
     g_triggerWeapon=0;
     g_nativeEquipRequested=false;
     g_nativeEquipStatus=-1;
@@ -2436,6 +2454,7 @@ void FirstPersonToggle() {
     g_renderArm=g_firingHand=-1;
     g_gunTriggers.Reset();
     g_gunEquip.Reset();
+    g_unarmedArmVisibility={};
     g_triggerWeapon=0;
     g_nativeEquipRequested=false;
     g_nativeEquipStatus=-1;

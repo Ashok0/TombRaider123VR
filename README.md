@@ -256,6 +256,12 @@ working feature; TR3 crouch keeps native collision and movement.
   Collision pushback cannot be consumed as roomscale travel, and body fitting
   uses the final collision-resolved camera position each frame. Temporary
   camera corrections are not saved into the standing calibration.
+- **Unarmed arm visibility:** during ordinary first-person ground movement,
+  looking down 15 degrees reveals the arms; raising the view to within 10 degrees
+  of level hides them again. The gap prevents flicker. Weapon hands, busy-hand
+  interactions, flares and climbing/grabbing retain their existing visibility.
+  Both classic and HD rendering use this rule. HD keeps the full bone palette
+  and masks arm fragments, preserving torso visibility and jiggle deformation.
 - **B-roll turnaround:** a native ground roll now turns the first-person view
   and movement heading by 180 degrees. Lara keeps her native roll animation;
   the standing eye offset rotates to her new forward side. The change follows

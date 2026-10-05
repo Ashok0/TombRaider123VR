@@ -21,7 +21,7 @@ VRSystem testVR;
 int testWater=0;
 int testConfigFlags=0;
 bool testPoseAvailable=true;
-float testViewRight=0, testViewForward=0, testViewRise=0;
+float testViewRight=0, testViewForward=0, testViewRise=0, testHeadPitch=0;
 int testPivotCount=0;
 float testPivotTurn=0;
 const Config& Cfg() { return testConfig; }
@@ -33,7 +33,7 @@ float VRSystem::HeadYawRadians() const { return 0; }
 void VRSystem::PivotHeadFloorOffset(float turn) { ++testPivotCount; testPivotTurn=turn; }
 void VRSystem::HeadFloorOffset(float& x,float& z) const { x=z=0; }
 // Unrelated first-person entry points must never be reached by these tests.
-float VRSystem::HeadPitchRadians() const { std::abort(); }
+float VRSystem::HeadPitchRadians() const { return testHeadPitch; }
 void VRSystem::RecenterHead() { std::abort(); }
 void VRSystem::FirstPersonViewOffset(float& x,float& z) const { x=testViewRight; z=testViewForward; }
 float VRSystem::HeadVerticalOffset() const { return testViewRise; }
@@ -55,7 +55,7 @@ bool SaveMotionGunCalibration() { std::abort(); }
 namespace {
 using namespace tr;
 using namespace tr::locomotion;
-alignas(16) uint8_t module[1024]{}, item[3664]{};
+alignas(16) uint8_t module[8192]{}, item[3664]{};
 GameDllLayout dll{};
 int checks=0, ticks=0, collisions=0;
 int nextState=-1, nextGoal=-1, nextAnimation=-1;
@@ -301,6 +301,7 @@ void TestResponsiveEntry() {
 #include "gun_input_selftest.h"
 #include "camera_clearance_selftest.h"
 #include "jump_roll_selftest.h"
+#include "arm_visibility_selftest.h"
 
 int main() {
     const struct { Vec stick; int gait; } directions[]={
@@ -386,6 +387,7 @@ int main() {
     TestGunControls();
     TestCameraClearance();
     TestJumpRoll();
+    TestArmVisibility();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }
