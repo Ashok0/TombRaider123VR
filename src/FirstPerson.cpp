@@ -1512,12 +1512,16 @@ void AdvanceLaraAnimation(uint8_t* item) {
     using namespace locomotion;
     const bool observe=item && item==g_headingItem && g_active && g_haveHeading && Gate();
     const int beforeState=observe ? *reinterpret_cast<const int16_t*>(item+off::item_anim_state) : -1;
+    const int beforeAnimation=observe ? *reinterpret_cast<const int16_t*>(item+off::item_anim_number) : -1;
+    const int jumpRollGame=observe && LaraWaterStatus()==0 ? int(g_boundDll->module[4]-L'0') : 0;
     const int16_t beforeYaw=observe ? reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos)->y_rot : 0;
     g_hAnimateLara.Original<Fn_AnimateLara>()(item);
     if (!observe || !Gate()) return;
     const int afterState=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    const int afterAnimation=*reinterpret_cast<const int16_t*>(item+off::item_anim_number);
     const int16_t afterYaw=reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos)->y_rot;
-    const float turn=GroundRollTurn(beforeState,afterState,beforeYaw,afterYaw);
+    const float turn=NativeRollTurn(beforeState,afterState,beforeAnimation,afterAnimation,
+        beforeYaw,afterYaw,LaraWaterStatus()==0 ? jumpRollGame : 0);
     if (turn==0) return;
     // Lara has already turned. Rotate only the separate VR frame, using the
     // same tracking pivot as artificial stick turns; do not recenter the HMD.
@@ -1530,8 +1534,8 @@ void AdvanceLaraAnimation(uint8_t* item) {
     analog[2]=analog[3]=Angle(g_lastHeadWorld);
     g_rootMotion.Reset();
     g_renderTurn.Reset();
-    LogF("firstperson: native roll turn 180 degrees state=%d->%d head=%.1f body=%.1f",
-         beforeState,afterState,g_lastHeadWorld*180/Pi,g_lastBodyYaw*180/Pi);
+    LogF("firstperson: native roll turn 180 degrees state=%d->%d anim=%d->%d head=%.1f body=%.1f",
+         beforeState,afterState,beforeAnimation,afterAnimation,g_lastHeadWorld*180/Pi,g_lastBodyYaw*180/Pi);
 }
 
 void AccelerateBackpedalStart(uint8_t* item,uint32_t action) {

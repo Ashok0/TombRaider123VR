@@ -22,13 +22,15 @@ int testWater=0;
 int testConfigFlags=0;
 bool testPoseAvailable=true;
 float testViewRight=0, testViewForward=0, testViewRise=0;
+int testPivotCount=0;
+float testPivotTurn=0;
 const Config& Cfg() { return testConfig; }
 VRSystem& VR() { return testVR; }
 int LaraWaterStatus() { return testWater; }
 int32_t AppFlag(uint32_t offset) { return offset==drva::app_off::cfg_flags ? testConfigFlags : 0; }
 float LiveWorldUnitsPerMetre() { return 1000; }
 float VRSystem::HeadYawRadians() const { return 0; }
-void VRSystem::PivotHeadFloorOffset(float) {}
+void VRSystem::PivotHeadFloorOffset(float turn) { ++testPivotCount; testPivotTurn=turn; }
 void VRSystem::HeadFloorOffset(float& x,float& z) const { x=z=0; }
 // Unrelated first-person entry points must never be reached by these tests.
 float VRSystem::HeadPitchRadians() const { std::abort(); }
@@ -56,7 +58,8 @@ using namespace tr::locomotion;
 alignas(16) uint8_t module[1024]{}, item[3664]{};
 GameDllLayout dll{};
 int checks=0, ticks=0, collisions=0;
-int nextState=-1, nextGoal=-1;
+int nextState=-1, nextGoal=-1, nextAnimation=-1;
+bool nativeHalfTurn=false;
 bool startGravity=false, inheritSpeed=false, wall=false, fall=false;
 int nativeSpeed=10;
 bool useAnimationTable=false, floorAllowsEntry=true;
@@ -98,12 +101,14 @@ void __cdecl NativeAnimate(uint8_t* target) {
         Field<int16_t>(18)=anim.state;
         nativeSpeed=(anim.velocity+anim.acceleration*(frame-anim.first))>>16;
     }
+    if (nextAnimation>=0) Field<int16_t>(off::item_anim_number)=int16_t(nextAnimation);
     if (nextState>=0) Field<int16_t>(off::item_anim_state)=int16_t(nextState);
     if (nextGoal>=0) Field<int16_t>(off::item_goal_state)=int16_t(nextGoal);
     if (startGravity) Field<uint16_t>(off::item_flags)|=8;
     auto& speed=Field<int16_t>(off::item_speed);
     if (!inheritSpeed) speed=int16_t(nativeSpeed);
     auto& pos=Field<PHD_3DPOS>(off::item_pos);
+    if (nativeHalfTurn) { pos.y_rot=int16_t(uint16_t(pos.y_rot)+0x8000u); nativeHalfTurn=false; }
     const float yaw=Radians(*Ptr<int16_t>(dll.lara+254));
     pos.x_pos+=int32_t(std::round(std::sin(yaw)*speed));
     pos.z_pos+=int32_t(std::round(std::cos(yaw)*speed));
@@ -130,7 +135,7 @@ void __cdecl NativeAboveWater(uint8_t* target,void*) {
 void Reset(int state,Vec stick,bool smooth,float heading=0) {
     std::memset(item,0,sizeof(item));
     std::memset(module,0,sizeof(module));
-    dll={}; dll.laraItem=8; dll.camera=32; dll.analogInput=160;
+    dll={}; dll.module=L"tomb1.dll"; dll.laraItem=8; dll.camera=32; dll.analogInput=160;
     dll.input=176; dll.lara=256;
     g_boundBase=reinterpret_cast<uint64_t>(module); g_boundDll=&dll;
     *Ptr<uint8_t*>(dll.laraItem)=item;
@@ -154,7 +159,8 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     g_rootMotion.Reset();
     g_hAnimateLara.m_trampoline=reinterpret_cast<void*>(&NativeAnimate);
     g_hLaraAboveWater.m_trampoline=reinterpret_cast<void*>(&NativeAboveWater);
-    ticks=collisions=0; nextState=nextGoal=-1;
+    ticks=collisions=0; nextState=nextGoal=nextAnimation=-1;
+    nativeHalfTurn=false; testPivotCount=0; testPivotTurn=0;
     startGravity=inheritSpeed=wall=fall=false; nativeSpeed=10;
     useAnimationTable=false; floorAllowsEntry=true; extraInput=0;
 }
@@ -294,6 +300,7 @@ void TestResponsiveEntry() {
 
 #include "gun_input_selftest.h"
 #include "camera_clearance_selftest.h"
+#include "jump_roll_selftest.h"
 
 int main() {
     const struct { Vec stick; int gait; } directions[]={
@@ -378,6 +385,7 @@ int main() {
     TestResponsiveEntry();
     TestGunControls();
     TestCameraClearance();
+    TestJumpRoll();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }

@@ -1,0 +1,8 @@
+{
+    "source":  "C:\\dev\\TombRaider123VR\\build\\x64\\Release\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\before-jump-roll-fix-20261004-185932",
+    "sourceSha256":  "8579C7D1318B4B34F141E8F47973708405DA72493BB91DAD9D0CDEEC2852C745",
+    "oldSha256":  "DA54D2352E83734F0F355C2ABDA5C808B6783B28D3CE36B8026CE07BA7447B71",
+    "iniSha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842"
+}

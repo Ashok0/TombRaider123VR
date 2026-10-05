@@ -34,6 +34,25 @@ inline float GroundRollTurn(int beforeState,int afterState,int16_t beforeYaw,int
     const bool roll=IsGroundRollState(beforeState) || IsGroundRollState(afterState);
     return roll && uint16_t(int(afterYaw)-int(beforeYaw))==0x8000u ? Pi : 0.f;
 }
+inline bool IsJumpRollAnimation(int game,int state,int animation) {
+    // Remastered Lara tables: TR1 forward flips 113/43 and backflip 48;
+    // TR2/3 forward flips 207/210 and backflip 212 carry turn180_effect.
+    // They keep jump states 3/25 during the turn, not the requested twist
+    // state (57 in TR1, 68 in TR2/3).
+    if (game==1)
+        return (state==3 && (animation==113 || animation==43)) ||
+               (state==25 && animation==48);
+    if (game!=2 && game!=3) return false;
+    return (state==3 && (animation==207 || animation==210)) ||
+           (state==25 && animation==212);
+}
+inline float NativeRollTurn(int beforeState,int afterState,int beforeAnimation,int afterAnimation,
+                            int16_t beforeYaw,int16_t afterYaw,int jumpRollGame) {
+    if (GroundRollTurn(beforeState,afterState,beforeYaw,afterYaw)!=0) return Pi;
+    return (IsJumpRollAnimation(jumpRollGame,beforeState,beforeAnimation) ||
+            IsJumpRollAnimation(jumpRollGame,afterState,afterAnimation)) &&
+        uint16_t(int(afterYaw)-int(beforeYaw))==0x8000u ? Pi : 0.f;
+}
 inline int16_t Angle(float a) { return static_cast<int16_t>(static_cast<int>(Wrap(a) * (65536 / (2 * Pi)))); }
 inline Vec Rotate(Vec v, float yaw) {
     const float c = std::cos(yaw), s = std::sin(yaw);

@@ -260,6 +260,10 @@ working feature; TR3 crouch keeps native collision and movement.
   and movement heading by 180 degrees. Lara keeps her native roll animation;
   the standing eye offset rotates to her new forward side. The change follows
   the actual animation turn, so cancelled rolls do not flip the view.
+- **TR1/2/3 midair turnaround:** pressing B during a native jump roll now turns
+  the first-person view and movement heading by 180 degrees as well. Forward
+  and backward jump flips follow the animation's actual turn command once;
+  holding B does not add camera flips or change Lara's native trajectory.
 - **Hard-landing camera dip:** after a large survivable fall, first person follows
   the animated neck height through the impact kneel and recovery. TR1-3 report
   this as standing state 2 with animation 24; it now bypasses vertical standing
@@ -1869,6 +1873,7 @@ installed.
 python tools\port_build.py path\to\new-build  # only for a new PDB-less build
 python tools\verify_addresses.py build\current-retail-verify build\current-gold-verify
 python tools\verify_locomotion.py build\current-retail-verify build\current-gold-verify
+python tools\verify_jump_roll.py "path\to\Tomb Raider I-III Remastered"
 .\tests\build_selftest.cmd
 .\tests\build_locomotion_selftest.cmd
 .\tests\build_tracking_selftest.cmd
