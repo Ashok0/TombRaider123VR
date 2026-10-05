@@ -1,0 +1,65 @@
+[
+  {
+    "root": "PDB",
+    "name": "tomb1.dll",
+    "old": 200080,
+    "new": 200080,
+    "prologue": "405657415541564881ecd8000000"
+  },
+  {
+    "root": "build/current-retail-verify",
+    "name": "tomb1.dll",
+    "old": 200080,
+    "new": 200576,
+    "prologue": "405657415541564881ecd8000000"
+  },
+  {
+    "root": "build/current-gold-verify",
+    "name": "tomb1.dll",
+    "old": 200080,
+    "new": 200576,
+    "prologue": "405657415541564881ecd8000000"
+  },
+  {
+    "root": "PDB",
+    "name": "tomb2.dll",
+    "old": 388512,
+    "new": 388512,
+    "prologue": "4055565741554881ecc80000004c"
+  },
+  {
+    "root": "build/current-retail-verify",
+    "name": "tomb2.dll",
+    "old": 388512,
+    "new": 386720,
+    "prologue": "4055565741554881ecc80000004c"
+  },
+  {
+    "root": "build/current-gold-verify",
+    "name": "tomb2.dll",
+    "old": 388512,
+    "new": 386720,
+    "prologue": "4055565741554881ecc80000004c"
+  },
+  {
+    "root": "PDB",
+    "name": "tomb3.dll",
+    "old": 589568,
+    "new": 589568,
+    "prologue": "405357415641574883ec384c0fbf"
+  },
+  {
+    "root": "build/current-retail-verify",
+    "name": "tomb3.dll",
+    "old": 589568,
+    "new": 595536,
+    "prologue": "405357415641574883ec384c0fbf"
+  },
+  {
+    "root": "build/current-gold-verify",
+    "name": "tomb3.dll",
+    "old": 589568,
+    "new": 595536,
+    "prologue": "405357415641574883ec384c0fbf"
+  }
+]

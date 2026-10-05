@@ -168,7 +168,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
           'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
           'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
-          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims']
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -442,6 +442,7 @@ try:
                          ('DrawGunFlashTR1' if dll == 'tomb1.dll' else
                           'DrawGunFlashTR23'): 'DrawGunFlash',
                          'LaraGunTR%d' % int(dll[4]): 'LaraGun',
+                             'BlockCollisionTR%d' % int(dll[4]): 'MovableBlockCollision',
                          **({'FireHarpoonStock': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
                          'AnimatePistols': 'AnimatePistols',
                          'ShotgunEffectJoint': 'GetJointAbsPosition',
@@ -630,6 +631,7 @@ try:
                              ('DrawGunFlashTR1' if dll == 'tomb1.dll' else
                               'DrawGunFlashTR23'): 'DrawGunFlash',
                              'LaraGunTR%d' % int(dll[4]): 'LaraGun',
+                             'BlockCollisionTR%d' % int(dll[4]): 'MovableBlockCollision',
                              **({'FireHarpoonRetail': 'FireHarpoon'} if dll != 'tomb1.dll' else {}),
                              'AnimatePistols': 'AnimatePistols',
                              'ShotgunEffectJoint': 'GetJointAbsPosition',

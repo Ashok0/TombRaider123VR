@@ -146,6 +146,7 @@ struct GameDllLayout {
     uint32_t shotgunSparkOriginReturn;
     uint32_t shotgunSparkDirectionReturn;
     uint32_t anims; // ANIM_STRUCT*; 40-byte TR1/2/3 runtime animation records
+    uint32_t movableBlockCollision; // void(int16 itemNumber, ITEM_INFO* Lara, coll_info*)
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

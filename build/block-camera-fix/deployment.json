@@ -1,0 +1,16 @@
+{
+    "source":  "C:\\dev\\TombRaider123VR\\build\\x64\\Release\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\before-block-camera-fix-20261005-000509",
+    "sourceSha256":  "578795E4952B5E44950ED8605FA1DC51AC4FE426E66ADE2AB0B21E3EED9CCCC9",
+    "oldSha256":  "22EA7964421526D97846E3EB918D6E0E9F38FFE9F1ABC5FE805C5B4B34B11C5B",
+    "iniSha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "checks":  {
+                   "general":  "all passed",
+                   "nativeAddresses":  2106,
+                   "physicsAndShaders":  1687,
+                   "locomotionAndCamera":  172738,
+                   "tracking":  66150
+               },
+    "headsetValidation":  "pending"
+}

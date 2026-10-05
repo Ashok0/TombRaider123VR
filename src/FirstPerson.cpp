@@ -127,6 +127,7 @@ hook::InlineHook g_hDrawHair;
 hook::InlineHook g_hLaraAboveWater;
 hook::InlineHook g_hLaraGun;
 hook::InlineHook g_hAnimateLara;
+hook::InlineHook g_hBlockCollision;
 hook::InlineHook g_hCalculateLaraMatrices;
 hook::InlineHook g_hDrawActionIndicators;
 hook::InlineHook g_hGetJoints;
@@ -180,6 +181,10 @@ const uint8_t kFireGrenadePrologue[] =
     {0x4C,0x8B,0xDC,0x48,0x81,0xEC,0x88,0x00,0x00,0x00};
 const uint8_t kAnimateShotgunPrologue[] = {0x89,0x4C,0x24,0x08,0x55};
 const uint8_t kShotgunEffectJointPrologue[] = {0x48,0x89,0x5C,0x24,0x08};
+// Whole, position-independent push instructions in all supported builds.
+const uint8_t kBlockCollisionTR1Prologue[] = {0x40,0x56,0x57,0x41,0x55};
+const uint8_t kBlockCollisionTR2Prologue[] = {0x40,0x55,0x56,0x57,0x41,0x55};
+const uint8_t kBlockCollisionTR3Prologue[] = {0x40,0x53,0x57,0x41,0x56};
 const uint8_t kAnimatePistolsPrologue[] = {0x48,0x89,0x5C,0x24,0x10};
 const uint8_t kDrawGunFlashTR1Prologue[] = {0x48,0x83,0xEC,0x28,0xF6,0x05};
 const int kDrawGunFlashTR1RipFixups[] = {6};
@@ -245,6 +250,19 @@ locomotion::Heading g_heading;
 stabilization::RenderTurn g_renderTurn;
 stabilization::GroundEye g_groundEye;
 stabilization::MountBodyTransition g_mountBodyTransition;
+struct BlockCamera {
+    const uint8_t* owner=nullptr;
+    const uint8_t* items=nullptr;
+    int index=-1, level=-1;
+    bool following=false, exiting=false, collision=false;
+    double blendStart=0;
+    float height=-701, lateral=0, torsoEyeOffset=0;
+    bool torsoEyeValid=false;
+    locomotion::Vec facing{}, centre{};
+    stabilization::Point blend{}, lastEye{}, root{};
+    void Reset() { *this={}; }
+    void Suspend() { following=exiting=collision=false; }
+} g_blockCamera;
 locomotion::Vec g_bodyVisualOffset;
 int g_lastClimbCameraState = -1;
 bool g_haveHeading = false;
@@ -394,6 +412,56 @@ bool Gate() {
 // interpolated, from pos_prev to pos.
 int32_t Lerp(int32_t prev, int32_t cur, int32_t frac) {
     return static_cast<int32_t>(prev + (int64_t(cur) - prev) * frac / 256);
+}
+
+bool IsBlockCameraState(int state) { return state==36 || state==37 || state==38; }
+
+// Observe the native acceptance of a particular block. Never change Lara, the
+// block, input, animation cadence or collision results here.
+void __cdecl Detour_BlockCollision(int16_t number,uint8_t* lara,void* collision) {
+    using Fn=void (__cdecl*)(int16_t,uint8_t*,void*);
+    const auto original=g_hBlockCollision.Original<Fn>();
+    if (!lara || lara!=*Ptr<uint8_t*>(g_boundDll->laraItem) || number<0) {
+        original(number,lara,collision); return;
+    }
+    const int before=*reinterpret_cast<const int16_t*>(lara+off::item_anim_state);
+    const int frame=*reinterpret_cast<const int16_t*>(lara+off::item_frame_number);
+    const int anim=*reinterpret_cast<const int16_t*>(lara+off::item_anim_number);
+    original(number,lara,collision);
+    const int after=*reinterpret_cast<const int16_t*>(lara+off::item_anim_state);
+    if (!IsBlockCameraState(after) || !g_boundDll->items) return;
+    const auto* items=*Ptr<uint8_t*>(g_boundDll->items);
+    if (!items) return;
+    const auto* block=items+size_t(number)*off::item_stride;
+    const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(lara+off::item_pos);
+    const auto& blockPos=*reinterpret_cast<const PHD_3DPOS*>(block+off::item_pos);
+    const auto facing=locomotion::Rotate({0,1},locomotion::Radians(pos.y_rot));
+    const locomotion::Vec delta{float(blockPos.x_pos-pos.x_pos),float(blockPos.z_pos-pos.z_pos)};
+    // Ready can be restored from a save or entered in third person. Its native
+    // alignment is exactly 100 units behind a 1024-wide block's near face.
+    const bool alignedReady=after==38 && std::abs(blockPos.y_pos-pos.y_pos)<32 &&
+        std::fabs(delta.x*facing.x+delta.z*facing.z-612)<32 &&
+        std::fabs(delta.x*facing.z-delta.z*facing.x)<128;
+    const bool accepted=before!=after || frame!=*reinterpret_cast<const int16_t*>(lara+off::item_frame_number) ||
+        anim!=*reinterpret_cast<const int16_t*>(lara+off::item_anim_number);
+    if (!accepted && !alignedReady) return;
+    if (g_blockCamera.owner!=lara || g_blockCamera.items!=items || g_blockCamera.index!=number ||
+        g_blockCamera.level!=AppFlag(drva::app_off::level)) g_blockCamera.Reset();
+    g_blockCamera.owner=lara; g_blockCamera.items=items; g_blockCamera.index=number;
+    g_blockCamera.level=AppFlag(drva::app_off::level);
+    g_blockCamera.facing=facing;
+}
+
+// Movable blocks, like Lara, travel through their root joint before the item
+// origin advances a tile. Interpolate the SUM in world space so that root reset
+// at animation completion cannot freeze or jump the camera by 1024 units.
+locomotion::Vec RenderedBlockCentre(const uint8_t* block,int frac) {
+    const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(block+off::item_pos);
+    const auto& prev=*reinterpret_cast<const PHD_3DPOS*>(block+off::item_pos_prev);
+    const auto* a=reinterpret_cast<const int32_t*>(block+off::item_joints_prev);
+    const auto* b=reinterpret_cast<const int32_t*>(block+off::item_joints_cur);
+    return {float(Lerp(prev.x_pos,pos.x_pos,frac))+Lerp(a[3],b[3],frac)/16384.f,
+            float(Lerp(prev.z_pos,pos.z_pos,frac))+Lerp(a[11],b[11],frac)/16384.f};
 }
 
 bool CanModifyGroundMotion(const uint8_t* item) {
@@ -1835,6 +1903,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     if (!g_haveHeading || !sameBody || relocated) {
         g_rootMotion.Reset();
         g_mountBodyTransition.Reset();
+        g_blockCamera.Suspend();
         if (!sameBody) g_unarmedArmVisibility={};
         const float oldBase=g_heading.base;
         const float bodyTurn=sameBody ? Wrap(Radians(pos.y_rot)-g_lastBodyYaw) : 0;
@@ -1900,6 +1969,107 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     g_lastHeadWorld = g_heading.World(VR().HeadYawRadians());
 }
 
+// Joint 7 is Lara's torso in all three native skeletons. Read its translation
+// before any rendering/physics deformation, with the same interpolation as the
+// visible body. Head rotation and its forward anchor must not add vertical bob.
+bool BlockTorsoY(const uint8_t* item,int frac,float& y) {
+    const auto* a=reinterpret_cast<const int32_t*>(item+off::item_joints_prev+7*off::joint_stride);
+    const auto* b=reinterpret_cast<const int32_t*>(item+off::item_joints_cur+7*off::joint_stride);
+    const float height=Lerp(a[7],b[7],frac)/16384.f;
+    if (height < -1200 || height > -100) return false; // incomplete skeleton
+    const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
+    const auto& prev=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos_prev);
+    y=float(Lerp(prev.y_pos,pos.y_pos,frac))+height;
+    return true;
+}
+
+void UpdateBlockCamera(const uint8_t* item,PHD_3DPOS& pose,double now) {
+    using namespace locomotion;
+    auto& camera=g_blockCamera;
+    camera.collision=false;
+    const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
+    const auto& prev=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos_prev);
+    const int frac=std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac),0,256);
+    if (camera.owner!=item || camera.level!=AppFlag(drva::app_off::level) ||
+        !g_boundDll->items || camera.items!=*Ptr<uint8_t*>(g_boundDll->items) || camera.index<0 ||
+        LaraWaterStatus()!=0 || *reinterpret_cast<const int16_t*>(item+off::item_hit_points)<=0) {
+        camera.Reset(); return;
+    }
+    const auto* block=camera.items+size_t(camera.index)*off::item_stride;
+    const auto centre=RenderedBlockCentre(block,frac);
+    const auto& blockPos=*reinterpret_cast<const PHD_3DPOS*>(block+off::item_pos);
+    if (Length(centre-Vec{float(pos.x_pos),float(pos.z_pos)})>2048 ||
+        std::abs(blockPos.y_pos-pos.y_pos)>512) { camera.Reset(); return; }
+    if (IsBlockCameraState(state) && (!camera.following || camera.exiting)) {
+        const Vec side{camera.facing.z,-camera.facing.x};
+        camera.lateral=std::clamp((pos.x_pos-centre.x)*side.x+(pos.z_pos-centre.z)*side.z,-256.f,256.f);
+    }
+    const Vec stance=centre-camera.facing*612.f+
+        Vec{camera.facing.z,-camera.facing.x}*camera.lateral;
+    if (IsBlockCameraState(state)) {
+        const bool starting=!camera.following || camera.exiting;
+        float torsoY=0;
+        const bool haveTorso=BlockTorsoY(item,frac,torsoY);
+        if (starting) {
+            camera.height=g_groundEye.valid ? g_groundEye.local.y : -701.f;
+            // Fit once to the native eye, including entry halfway through a
+            // kneel. Keep that vertical separation as the torso drops/rises.
+            camera.torsoEyeOffset=pose.y_pos-torsoY;
+            camera.torsoEyeValid=haveTorso && camera.torsoEyeOffset>=-600 && camera.torsoEyeOffset<=128;
+            camera.blendStart=now;
+        }
+        // Keep the eye at most 36 units ahead of Lara's interaction stance:
+        // 100 units to the face minus 64 for the eyes/near plane. Follow the
+        // torso vertically while the block supplies steady horizontal motion.
+        const Vec flat=stance+camera.facing*36.f;
+        const float eyeY=camera.torsoEyeValid && haveTorso ? torsoY+camera.torsoEyeOffset :
+            camera.torsoEyeValid ? camera.lastEye.y : blockPos.y_pos+camera.height;
+        const stabilization::Point target{flat.x,eyeY,flat.z};
+        if (starting) {
+            const auto& source=g_scenePoseValid ? g_scenePose : pose;
+            camera.blend={source.x_pos-target.x,source.y_pos-target.y,source.z_pos-target.z};
+            camera.following=true; camera.exiting=false;
+        }
+        const float t=float(std::clamp((now-camera.blendStart)/.15,0.0,1.0));
+        const float weight=1-t*t*(3-2*t);
+        pose.x_pos=int32_t(std::lround(target.x+camera.blend.x*weight));
+        pose.y_pos=int32_t(std::lround(target.y+camera.blend.y*weight));
+        pose.z_pos=int32_t(std::lround(target.z+camera.blend.z*weight));
+        camera.root={stance.x,float(blockPos.y_pos),stance.z};
+        camera.centre=centre;
+        camera.collision=true;
+    } else if (camera.following && CanWalk(item)) {
+        // Native push/pull ends with a tile-sized origin advance. On that tick
+        // GroundEye's interpolated item origin is obsolete; the block and its
+        // rendered joints already reached the destination. Correct only that
+        // transition, then release the eye offset over 150 ms while walking.
+        const bool rootStep=std::hypot(float(pos.x_pos-prev.x_pos),float(pos.z_pos-prev.z_pos))>512;
+        const Vec root=rootStep ? Vec{float(pos.x_pos),float(pos.z_pos)} :
+            Vec{float(Lerp(prev.x_pos,pos.x_pos,frac)),float(Lerp(prev.z_pos,pos.z_pos,frac))};
+        if (rootStep) {
+            pose.x_pos+=pos.x_pos-Lerp(prev.x_pos,pos.x_pos,frac);
+            pose.z_pos+=pos.z_pos-Lerp(prev.z_pos,pos.z_pos,frac);
+        }
+        if (!camera.exiting) {
+            camera.blend={camera.lastEye.x-pose.x_pos,camera.lastEye.y-pose.y_pos,camera.lastEye.z-pose.z_pos};
+            camera.blendStart=now; camera.exiting=true;
+        }
+        const float t=float(std::clamp((now-camera.blendStart)/.15,0.0,1.0));
+        const float weight=1-t*t*(3-2*t);
+        pose.x_pos+=int32_t(std::lround(camera.blend.x*weight));
+        pose.y_pos+=int32_t(std::lround(camera.blend.y*weight));
+        pose.z_pos+=int32_t(std::lround(camera.blend.z*weight));
+        camera.root={root.x,float(pos.y_pos),root.z};
+        camera.centre=centre;
+        camera.collision=true;
+        if (t>=1) camera.following=false;
+    } else {
+        camera.Reset(); return;
+    }
+    camera.lastEye={float(pose.x_pos),float(pose.y_pos),float(pose.z_pos)};
+}
+
 void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     const bool ground = CanWalk(item);
     const int state = *reinterpret_cast<const int16_t*>(item + off::item_anim_state);
@@ -1912,12 +2082,12 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     // Wall climbing can briefly place the head joint beyond the contact wall.
     // Pull-up and hanging retain their native animated eye and retracted anchor.
     const bool climb=locomotion::IsClimbingCameraState(state);
-    if (!ground && !jump && !climb && !UseGroundRollCamera(item)) return;
+    if (!ground && !jump && !climb && !g_blockCamera.collision && !UseGroundRollCamera(item)) return;
 
     const auto& pos = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos);
     const auto& prev = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos_prev);
     const int frac = std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac), 0, 256);
-    const int32_t body[3] = {Lerp(prev.x_pos, pos.x_pos, frac),
+    int32_t body[3] = {Lerp(prev.x_pos, pos.x_pos, frac),
                              Lerp(prev.y_pos, pos.y_pos, frac),
                              Lerp(prev.z_pos, pos.z_pos, frac)};
 
@@ -1934,12 +2104,28 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation)
         eyeY -= VR().HeadVerticalOffset() * LiveWorldUnitsPerMetre();
     if (!std::isfinite(eyeY) || std::fabs(eyeY - pose.y_pos) > 4096) return;
+    if (g_blockCamera.collision) {
+        const auto& camera=g_blockCamera;
+        body[0]=int32_t(std::lround(camera.root.x));
+        body[1]=int32_t(std::lround(camera.root.y));
+        body[2]=int32_t(std::lround(camera.root.z));
+        // Native moving blocks temporarily remove their floor collision. Test
+        // their visible near face explicitly, including the HMD's final offset.
+        const float depth=(renderedHead[0]-camera.centre.x)*camera.facing.x+
+                          (renderedHead[2]-camera.centre.z)*camera.facing.z;
+        if (depth>-576) {
+            renderedHead[0]-=int32_t(std::lround((depth+576)*camera.facing.x));
+            renderedHead[2]-=int32_t(std::lround((depth+576)*camera.facing.z));
+        }
+    }
     ClampHeadToCollision(item, body, renderedHead, eyeY);
     // The stereo layer adds tracking after this scene pose. Move the anchor by
     // the same amount in reverse so the actual eye centre stays on the clear
     // side of the wall, even when the player physically leans toward it.
     pose.x_pos = renderedHead[0] - offsetX;
     pose.z_pos = renderedHead[2] - offsetZ;
+    if (g_blockCamera.collision)
+        g_blockCamera.lastEye={float(pose.x_pos),float(pose.y_pos),float(pose.z_pos)};
 }
 
 void ClampLowAnimationCameraToFloor(const uint8_t* item,PHD_3DPOS& pose) {
@@ -2057,6 +2243,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         if (g_active) {
             const PHD_3DPOS animatedHead=*pose;
             UpdateLocomotion(*pose);
+            UpdateBlockCamera(item,*pose,TurnTime());
             ClampRenderedHeadToCollision(item, *pose);
             ClampLowAnimationCameraToFloor(item, *pose);
             FitBodyToRenderedEye(item, *pose, animatedHead);
@@ -2067,6 +2254,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_scenePoseValid=false;
             g_bodyVisualOffset={};
             g_mountBodyTransition.Reset();
+            g_blockCamera.Suspend();
             g_haveHeading = false;
             g_haveManualInput = false;
             g_rootMotion.Reset();
@@ -2149,7 +2337,7 @@ bool Install(const GameDllLayout& d, uint64_t base) {
         d.frameFrac == 0 || d.laraItem == 0 || d.analogInput == 0 ||
         !d.input || !d.laraAboveWater || !d.laraGun || !d.animateLara ||
         !d.getCollisionInfo || !d.updateLaraRoom ||
-        !d.calculateLaraMatrices)
+        !d.calculateLaraMatrices || !d.items || !d.movableBlockCollision)
         return false;
     const uint8_t movementPrologue[] = {0x48, 0x89, 0x5C, 0x24,
         static_cast<uint8_t>(d.module[4] == L'1' ? 0x08 : d.module[4] == L'2' ? 0x10 : 0x18)};
@@ -2170,6 +2358,20 @@ bool Install(const GameDllLayout& d, uint64_t base) {
             reinterpret_cast<void*>(&Detour_LaraGun),8,
             kLaraGunTR3Prologue,sizeof(kLaraGunTR3Prologue),"LaraGun");
     if (!gunInstalled) return false;
+    bool blockInstalled=false;
+    if (d.module[4]==L'1')
+        blockInstalled=g_hBlockCollision.Install(reinterpret_cast<void*>(base+d.movableBlockCollision),
+            reinterpret_cast<void*>(&Detour_BlockCollision),5,
+            kBlockCollisionTR1Prologue,sizeof(kBlockCollisionTR1Prologue),"MovableBlockCollision");
+    if (d.module[4]==L'2')
+        blockInstalled=g_hBlockCollision.Install(reinterpret_cast<void*>(base+d.movableBlockCollision),
+            reinterpret_cast<void*>(&Detour_BlockCollision),6,
+            kBlockCollisionTR2Prologue,sizeof(kBlockCollisionTR2Prologue),"MovableBlockCollision");
+    if (d.module[4]==L'3')
+        blockInstalled=g_hBlockCollision.Install(reinterpret_cast<void*>(base+d.movableBlockCollision),
+            reinterpret_cast<void*>(&Detour_BlockCollision),5,
+            kBlockCollisionTR3Prologue,sizeof(kBlockCollisionTR3Prologue),"MovableBlockCollision");
+    if (!blockInstalled) return false;
     const uint8_t animate1[] = {0x48, 0x89, 0x7C, 0x24, 0x20};
     const uint8_t animate2[] = {0x57, 0x41, 0x54, 0x41, 0x57};
     const uint8_t animate3[] = {0x57, 0x41, 0x54, 0x41, 0x55};
@@ -2337,6 +2539,8 @@ void Remove() {
     g_hLaraAboveWater.Remove();
     g_hLaraGun.Remove();
     g_hAnimateLara.Remove();
+    g_hBlockCollision.Remove();
+    g_blockCamera.Reset();
     g_hCalculateLaraMatrices.Remove();
     g_hDrawActionIndicators.Remove();
     g_hDrawHair.Remove();
@@ -2368,6 +2572,7 @@ void Remove() {
     g_headingItem = nullptr;
     g_headingLevel = -1;
     g_groundEye.Reset();
+    g_blockCamera.Suspend();
     g_mountBodyTransition.Reset();
     g_bodyVisualOffset={};
     g_haveManualInput = false;
@@ -2469,6 +2674,7 @@ void FirstPersonToggle() {
     g_dragPrevious = g_dragCurrent = g_dragShown = {};
     g_renderTurn.Reset();
     g_groundEye.Reset();
+    g_blockCamera.Suspend();
     g_mountBodyTransition.Reset();
     g_bodyVisualOffset={};
     g_bodyTime = {};

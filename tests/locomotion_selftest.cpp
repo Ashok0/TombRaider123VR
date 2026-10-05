@@ -302,6 +302,7 @@ void TestResponsiveEntry() {
 #include "camera_clearance_selftest.h"
 #include "jump_roll_selftest.h"
 #include "arm_visibility_selftest.h"
+#include "block_camera_selftest.h"
 
 int main() {
     const struct { Vec stick; int gait; } directions[]={
@@ -388,6 +389,7 @@ int main() {
     TestCameraClearance();
     TestJumpRoll();
     TestArmVisibility();
+    TestBlockCamera();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }
