@@ -61,6 +61,29 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### Per-hand gun rumble (2026-10-09)
+
+First-person tracked weapons now give the firing controller a strong **80 ms**
+rumble burst, using the TR4/5 haptic scheduler. The left gun rumbles the left
+controller; the right gun rumbles the right controller. Both can fire and rumble
+independently, including held-trigger automatic fire. The TR3 Desert Eagle uses
+the right controller despite its native left-arm firing call. Long guns and
+projectile weapons use the right controller.
+
+Feedback follows confirmed native shots, including misses. Empty weapons,
+suppressed duplicate shots, equip/holster input and unavailable tracked shots do
+not request bursts. A shotgun volley is combined into one burst, rather than one
+per pellet; harpoons, rockets and grenades require successful native projectile
+allocation. TR2's separate grenade animation path is covered too.
+
+The burst uses 3,999 microsecond OpenVR legacy pulses, at least 5 ms apart,
+dispatched once per rendered frame without sleeping. Repeated shots refresh the
+80 ms deadline instead of queuing a long vibration tail. Disconnected controllers
+are skipped and runtime shutdown cancels pending pulses. No new bindings or INI
+changes are needed. Automated tests cover routing, misses, no-ammo failures,
+held fire, both guns, shotgun volleys, all projectile paths and pulse timing;
+in-headset strength confirmation remains pending.
+
 ### First-person wrist twist recovery (2026-10-09)
 
 Fixed unarmed controller IK leaving a wrist permanently twisted until first
@@ -1670,7 +1693,22 @@ shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 first-person wrist twist fix** Release/x64 DLL is
+The current **2026-10-09 per-hand gun rumble** Release/x64 DLL is installed
+with verified SHA-256:
+`099C7CC6A492D93B3D652C39967F34838F104BBDAE7F03C2FFA4994A638744E5`.
+The preceding DLL, INI and log are backed up under
+`build/before-gun-haptics-20261009-040918/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/gun-haptics/deployment.json).
+
+This build passes **513,019** production movement/control/camera/IK/shadow and
+gun-haptic checks, **66,150** tracking/eye/projection checks and **2,837** native
+address/layout/hook checks. The installed executable and gameplay DLL hashes still
+match the verified retail update. Release/x64 built without warnings. The wrist
+fix remains included; haptic strength has not yet been checked in the headset.
+
+The preceding **2026-10-09 first-person wrist twist fix** Release/x64 DLL was
 installed with verified SHA-256:
 `325D64A27108E7A928138D0DE3EB40A034265D8BB50F9A87A3DFF1CB17C3CA82`.
 The previous DLL, INI and log are backed up under

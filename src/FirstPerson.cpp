@@ -1620,6 +1620,24 @@ uint8_t* SelectGunTarget(const GunPose& gun, motiongun::Vec& ray) {
     return assisted;
 }
 
+// One native LaraGun update may fire two guns or six shotgun pellets.
+// Coalesce pellets into one burst per hand without changing shot cadence.
+int g_shotHapticMask=-1;
+void RecordGunShotHaptic(int hand) {
+    if (g_shotHapticMask>=0) g_shotHapticMask|=1<<hand;
+    else VR().GunShotHaptic(hand);
+}
+struct GunHapticScope {
+    int previous=g_shotHapticMask;
+    GunHapticScope() { g_shotHapticMask=0; }
+    ~GunHapticScope() {
+        const int fired=g_shotHapticMask;
+        g_shotHapticMask=previous;
+        for(int hand=0;hand<2;++hand)
+            if(fired&(1<<hand)) RecordGunShotHaptic(hand);
+    }
+};
+
 int32_t FireWeaponForCaller(uint64_t caller,int32_t weapon,void* target,void* extra,
                             const int16_t* aim) {
     const auto original=g_hFireWeapon.Original<Fn_FireWeapon>();
@@ -1664,6 +1682,8 @@ int32_t FireWeaponForCaller(uint64_t caller,int32_t weapon,void* target,void* ex
     g_firingHand=hand;
     const int32_t result=original(weapon,target,extra,aim);
     g_firingHand=prior;
+    // Native miss is -1, hit is 1, and no ammunition is 0.
+    if (result) RecordGunShotHaptic(hand);
     if (trace) {
         const int hpAfter=target ? *reinterpret_cast<int16_t*>(
             static_cast<uint8_t*>(target)+off::item_hit_points) : 0;
@@ -1747,6 +1767,7 @@ void RetargetProjectile(int16_t index,int weapon,int object,const GunPose& gun) 
     auto* missile=items+size_t(index)*3664;
     if (*reinterpret_cast<int16_t*>(missile+off::item_object_number)!=object)
         return;
+    RecordGunShotHaptic(1); // The native weapon really allocated its projectile.
     int16_t room=*reinterpret_cast<int16_t*>(missile+off::item_room_number);
     const int16_t oldRoom=room;
     using Fn_GetFloor=void* (__cdecl*)(int32_t,int32_t,int32_t,int16_t*);
@@ -1964,7 +1985,10 @@ void __cdecl Detour_LaraGun() {
             injected=true;
         }
     }
-    g_hLaraGun.Original<Fn_LaraGun>()();
+    {
+        GunHapticScope shots;
+        g_hLaraGun.Original<Fn_LaraGun>()();
+    }
     if (observed && g_boundDll) {
         const int afterStatus=*Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status);
         if ((injected && beforeStatus==0) || beforeStatus!=afterStatus ||

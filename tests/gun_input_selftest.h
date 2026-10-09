@@ -1,7 +1,7 @@
 // Included by locomotion_selftest.cpp to reuse the synthetic engine harness.
 // Exercises the real input adapter, LaraGun injection and per-hand FireWeapon.
 namespace {
-int nativeGunShots=0, nativeGunHand=-1;
+int nativeGunShots=0, nativeGunHand=-1, nativeGunResult=1;
 void __cdecl NativeGunControl() {
     auto& status=*tr::Ptr<int16_t>(dll.lara+2);
     const bool draw=(*tr::Ptr<uint32_t>(dll.input)&0x20)!=0;
@@ -10,7 +10,7 @@ void __cdecl NativeGunControl() {
     else if (status==4 && (hold ? !draw : draw)) status=3;
 }
 int32_t __cdecl NativeGunShot(int32_t,void*,void*,const int16_t*) {
-    ++nativeGunShots; nativeGunHand=tr::g_firingHand; return 1;
+    ++nativeGunShots; nativeGunHand=tr::g_firingHand; return nativeGunResult;
 }
 void SetMotionHooks(bool installed) {
     using namespace tr;
@@ -36,7 +36,8 @@ void GunSetup(int game,bool hold,bool motion=true,int status=0,int weapon=1) {
     g_hFireWeapon.m_trampoline=reinterpret_cast<void*>(&NativeGunShot);
     g_gunTriggers.Reset(); g_gunEquip.Reset(); g_triggerWeapon=0;
     g_nativeEquipRequested=false; g_nativeEquipStatus=-1;
-    nativeGunShots=0; nativeGunHand=-1;
+    nativeGunShots=0; nativeGunHand=-1; nativeGunResult=1;
+    testHapticShots[0]=testHapticShots[1]=0;
 }
 void NativeGunTick() {
     *tr::Ptr<uint32_t>(dll.input)=0;
@@ -115,9 +116,12 @@ void TestGunControls() {
             // TR3 Desert Eagle uses the native left-arm call for the right gun.
             const int callerHand=dual ? hand : 0;
             const int before=nativeGunShots;
+            const int beforeHaptics=testHapticShots[hand];
             Check(FireHand(callerHand,weapon)==1 && nativeGunHand==hand,
                   "trigger press fires its own native gun on the first eligible frame");
+            Check(testHapticShots[hand]==beforeHaptics+1,"confirmed shot rumbles only its native firing hand");
             Check(FireHand(callerHand,weapon)==0,"repeated native call cannot duplicate a consumed press");
+            Check(testHapticShots[hand]==beforeHaptics+1,"suppressed duplicate shot cannot duplicate rumble");
             lt=hand==0 ? 255 : 0;rt=hand==1 ? 255 : 0; PollGuns(lt,rt); // Recoil poll.
             lt=rt=0; PollGuns(lt,rt);
             Check(FireHand(callerHand,weapon)==0 && nativeGunShots==before+1,
@@ -126,6 +130,7 @@ void TestGunControls() {
                 lt=hand==0 ? 255 : 0;rt=hand==1 ? 255 : 0; PollGuns(lt,rt);
                 Check(FireHand(callerHand,weapon)==1,"either held trigger renews firing at native cadence");
             }
+            Check(testHapticShots[hand]==beforeHaptics+101,"held fire produces rumble for every native shot");
             lt=rt=0; PollGuns(lt,rt);
             Check(FireHand(callerHand,weapon)==0,"release stops held auto-fire");
         }

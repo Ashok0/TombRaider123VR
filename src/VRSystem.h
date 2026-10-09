@@ -8,6 +8,7 @@
 #pragma once
 
 #include "StereoMath.h"
+#include "GunHaptics.h"
 #include "GL.h"        // GLuint, and windows.h for HMODULE
 #include <openvr.h>
 
@@ -118,6 +119,8 @@ public:
     };
     // [0] = left hand, [1] = right hand.
     void ReadControllers(HandState out[2]) const;
+    // Confirmed shot: strong 80 ms burst on [0] left / [1] right.
+    void GunShotHaptic(int hand);
     bool ControllerPose(int hand, vr::HmdMatrix34_t& out) const;
     bool FirstPersonControllerOffset(int hand, float& right, float& down,
                                      float& forward) const;
@@ -130,6 +133,7 @@ public:
 
 private:
     void RefreshHeadTranslation();
+    GunHaptics m_gunHaptics;
     vr::IVRSystem*     m_system     = nullptr;
     vr::IVRCompositor* m_compositor = nullptr;
     HMODULE            m_dll        = nullptr;

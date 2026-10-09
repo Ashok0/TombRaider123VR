@@ -24,6 +24,8 @@ RenderState& VidState() { return testRenderState; }
 int testWater=0;
 int testConfigFlags=0;
 bool testPoseAvailable=true;
+int testHapticShots[2]{};
+void VRSystem::GunShotHaptic(int hand) { if (hand>=0 && hand<2) ++testHapticShots[hand]; }
 float testViewRight=0, testViewForward=0, testViewRise=0, testHeadPitch=0;
 int testPivotCount=0;
 float testPivotTurn=0;
@@ -304,6 +306,7 @@ void TestResponsiveEntry() {
 }
 
 #include "gun_input_selftest.h"
+#include "gun_haptics_selftest.h"
 #include "camera_clearance_selftest.h"
 #include "jump_roll_selftest.h"
 #include "arm_visibility_selftest.h"
@@ -393,6 +396,7 @@ int main() {
     }
     TestResponsiveEntry();
     TestGunControls();
+    TestGunHaptics();
     TestCameraClearance();
     TestJumpRoll();
     TestArmVisibility();

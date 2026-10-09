@@ -1,0 +1,13 @@
+﻿{
+    "deployed_at":  "2026-10-09T04:09:19.9326456-04:00",
+    "game_directory":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered",
+    "backup_directory":  "C:\\dev\\TombRaider123VR\\build\\before-gun-haptics-20261009-040918",
+    "previous_dll_sha256":  "325D64A27108E7A928138D0DE3EB40A034265D8BB50F9A87A3DFF1CB17C3CA82",
+    "installed_dll_sha256":  "099C7CC6A492D93B3D652C39967F34838F104BBDAE7F03C2FFA4994A638744E5",
+    "ini_sha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "verified_modules":  "verified-installed-modules.json",
+    "regression_checks":  513019,
+    "tracking_checks":  66150,
+    "address_checks":  2837,
+    "headset_test":  "pending"
+}

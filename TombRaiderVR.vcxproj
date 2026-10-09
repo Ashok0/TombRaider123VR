@@ -155,6 +155,7 @@
     <ClInclude Include="src\GL.h" />
     <ClInclude Include="src\GameDll.h" />
     <ClInclude Include="src\Gamepad.h" />
+    <ClInclude Include="src\GunHaptics.h" />
     <ClInclude Include="src\Hooks.h" />
     <ClInclude Include="src\InlineHook.h" />
     <ClInclude Include="src\Log.h" />
