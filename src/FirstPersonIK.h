@@ -34,9 +34,9 @@ inline Basis Align(Vec from, Vec to) {
     return r;
 }
 
-// Keep twist continuous across the +/-180-degree representation boundary.
-// This is reset whenever controller arm IK is no longer active.
-struct ArmTwistState { bool valid=false; float last=0, unwrapped=0; };
+// Retain a measured twist only for the 180-degree swing singularity, where
+// twist is undefined. Defined poses must never inherit accumulated full turns.
+struct ArmTwistState { bool valid=false; float last=0; };
 struct ArmRotation { float w=1; Vec v{}; };
 inline ArmRotation RotationProduct(ArmRotation a, ArmRotation b) {
     return {a.w*b.w-Dot(a.v,b.v),Add(Add(Scale(b.v,a.w),Scale(a.v,b.w)),Cross(a.v,b.v))};
@@ -94,10 +94,18 @@ inline void ConstrainWrist(const Basis& reference,const Basis& target,Vec axis,
     } else twist=AxisRotation(axis,angle);
     auto swing=UnitRotation(RotationProduct(relative,RotationInverse(twist)));
     if(swing.w<0) { swing.w=-swing.w;swing.v=Scale(swing.v,-1); }
-    if(state.valid) state.unwrapped+=std::remainder(angle-state.last,2*pi);
-    else state.unwrapped=angle;
+    constexpr float limit=pi*.5f;
+    float roll=std::clamp(angle,-limit,limit);
+    // The principal twist is periodic. Clamping it directly would jump from
+    // +90 to -90 at the +/-180 seam; unwrapping it instead can permanently
+    // pin the wrist after a full turn. Soften only the far, unreachable part
+    // (135..180 degrees) to meet at zero at that seam. Normal poses and the
+    // adjacent limit plateau stay unchanged. Every defined pose now has one
+    // result, independent of earlier motion or how many eyes/draws use it.
+    constexpr float seamStart=pi*.75f;
+    if(std::fabs(angle)>seamStart)
+        roll*=(pi-std::fabs(angle))/(pi-seamStart);
     state.last=angle;state.valid=true;
-    const float roll=std::clamp(state.unwrapped,-pi*.5f,pi*.5f);
     const float swingAngle=2*std::atan2(std::sqrt(Dot(swing.v,swing.v)),swing.w);
     constexpr float maxBend=55*pi/180;
     if(swingAngle>maxBend) {

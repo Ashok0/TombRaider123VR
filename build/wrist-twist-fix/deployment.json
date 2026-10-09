@@ -1,0 +1,13 @@
+﻿{
+    "deployed_at":  "2026-10-09T01:24:17.7601472-04:00",
+    "game_directory":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered",
+    "backup_directory":  "C:\\dev\\TombRaider123VR\\build\\before-wrist-twist-fix-20261009-012416",
+    "previous_dll_sha256":  "329A218957B45B2A2FD8936986B7D8A88CD019BDD9AE9C266020BA15C0EEC785",
+    "installed_dll_sha256":  "325D64A27108E7A928138D0DE3EB40A034265D8BB50F9A87A3DFF1CB17C3CA82",
+    "ini_sha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "verified_modules":  "verified-installed-modules.json",
+    "regression_checks":  512730,
+    "physics_shader_checks":  3522,
+    "address_checks":  2837,
+    "headset_test":  "pending"
+}

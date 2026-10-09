@@ -61,6 +61,31 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### First-person wrist twist recovery (2026-10-09)
+
+Fixed unarmed controller IK leaving a wrist permanently twisted until first
+person was toggled. The solver accumulated unwrapped rotation, then clamped the
+visible wrist to its anatomical limit. A complete turn around the twist boundary
+could leave a full turn in that history even after the controller returned to a
+normal pose. The forearm and hand then stayed pinned at the wrong angle.
+
+The solver now derives wrist roll from the current absolute pose. Normal wrist
+angles and their adjacent limit plateau retain the existing response. Beyond
+135 degrees, the limit softens toward zero at the +/-180-degree seam, so crossing
+that boundary stays continuous without accumulating turns. Every defined pose,
+including extreme angles, has the same result regardless of earlier motion or
+repeated eye/body draws. History is used only when a 180-degree swing makes the
+twist mathematically undefined. Existing bend limits, forearm roll sharing, weapon aiming,
+authored interaction hands and the native palette used by jiggle physics remain
+in place.
+
+The regression reproduces the stuck wrist on the preceding build. Coverage
+includes repeated complete turns in both directions, different body headings and
+wrist bends, wrap-boundary jitter, singular swings, abrupt valid-pose recovery,
+both arm bend directions, native animation roll, fixed grip positions and the
+unconstrained weapon path. The production movement/camera/IK/shadow suite passes
+**512,730** checks. In-headset confirmation remains pending.
+
 ### VR launch compatibility fix (2026-10-09)
 
 The installed game updated to executable PE timestamp `0x6AA156AA`. The mod
@@ -1645,7 +1670,23 @@ shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 VR launch compatibility fix** Release/x64 DLL is
+The current **2026-10-09 first-person wrist twist fix** Release/x64 DLL is
+installed with verified SHA-256:
+`325D64A27108E7A928138D0DE3EB40A034265D8BB50F9A87A3DFF1CB17C3CA82`.
+The previous DLL, INI and log are backed up under
+`build/before-wrist-twist-fix-20261009-012416/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/wrist-twist-fix/deployment.json).
+
+The stuck-wrist reproduction fails on the previous solver and passes with the
+fix. **512,730** production movement/control/camera/IK/shadow checks, **3,522**
+physics/shader checks across four executables and **2,837** address/layout/hook
+checks pass. Installed game hashes still match the verified retail update, so
+its launch support is retained. Release/x64 built without warnings. The new
+wrist behavior has not yet been confirmed in the headset.
+
+The preceding **2026-10-09 VR launch compatibility fix** Release/x64 DLL was
 installed with verified SHA-256:
 `329A218957B45B2A2FD8936986B7D8A88CD019BDD9AE9C266020BA15C0EEC785`.
 The preceding DLL, INI and log are backed up under

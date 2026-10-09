@@ -30,6 +30,127 @@ void IKSetup(int game=1) {
         }
     }
 }
+float WristBasisError(const tr::motiongun::Basis& a,const tr::motiongun::Basis& b) {
+    float error=0;
+    for(int row=0;row<3;++row) for(int col=0;col<3;++col) {
+        const float delta=std::fabs(a.r[row][col]-b.r[row][col]);
+        if(!std::isfinite(delta)) return 1000;
+        error=std::max(error,delta);
+    }
+    return error;
+}
+void TestWristTwistRecovery() {
+    using namespace tr::firstperson;
+    constexpr float rad=3.14159265358979323846f/180;
+    // Exercise the actual constraint used by SolveArm: a controller can return
+    // to exactly the same pose after winding around the decomposition boundary.
+    // Its palm and forearm must recover without a first-person toggle.
+    for(float yaw:{0.f,73.f,-141.f}) for(float bend:{0.f,30.f,80.f})
+    for(float start:{-179.f,-150.f,-120.f,-60.f,0.f,60.f,120.f,150.f,179.f}) for(int direction:{-1,1}) {
+        const auto reference=RotationMatrix(AxisRotation({0,1,0},yaw*rad));
+        const auto axis=tr::motiongun::Transform(reference,{0,0,1});
+        const auto swing=AxisRotation(tr::motiongun::Transform(reference,{1,0,0}),bend*rad);
+        auto target=[&](float angle) {
+            return RotationMatrix(RotationProduct(RotationProduct(swing,
+                AxisRotation(axis,angle*rad)),RotationOf(reference)));
+        };
+        ArmTwistState state{};
+        Basis wrist{},forearm{},initial{},initialForearm{};
+        ConstrainWrist(reference,target(start),axis,state,initial,initialForearm);
+        for(int loop=0;loop<4;++loop) {
+            Basis previous=initial,previousForearm=initialForearm;
+            for(int step=1;step<=360;++step) {
+                ConstrainWrist(reference,target(start+direction*(loop*360+step)),axis,state,wrist,forearm);
+                Check(WristBasisError(wrist,previous)<.036f &&
+                      WristBasisError(forearm,previousForearm)<.036f,
+                      "wrist and forearm remain continuous across wrap and limit recovery boundaries");
+                previous=wrist;previousForearm=forearm;
+            }
+            Check(WristBasisError(wrist,initial)<.0001f &&
+                  WristBasisError(forearm,initialForearm)<.0001f,
+                  "palm and forearm recover after a complete controller rotation without toggling first person");
+            for(int draw=0;draw<20;++draw) {
+                ConstrainWrist(reference,target(start),axis,state,wrist,forearm);
+                Check(WristBasisError(wrist,initial)<.0001f &&
+                      WristBasisError(forearm,initialForearm)<.0001f,
+                      "holding the recovered pose cannot leave the wrist stuck or accumulate per-eye drift");
+            }
+        }
+    }
+    // Keep the established response throughout the normal range and adjacent
+    // anatomical-limit plateau; only the far wrap seam is softened.
+    for(int angle=-135;angle<=135;++angle) {
+        const auto reference=IdentityBasis();
+        const tr::motiongun::Vec axis{0,0,1};
+        ArmTwistState state{};Basis wrist{},forearm{};
+        ConstrainWrist(reference,RotationMatrix(AxisRotation(axis,angle*rad)),axis,state,wrist,forearm);
+        const float limited=float(std::clamp(angle,-90,90))*rad;
+        Check(WristBasisError(wrist,RotationMatrix(AxisRotation(axis,limited)))<.0001f &&
+              WristBasisError(forearm,RotationMatrix(AxisRotation(axis,limited*.8f)))<.0001f,
+              "normal wrist angles, anatomical limits and forearm roll sharing retain their response");
+    }
+    for(int direction:{-1,1}) {
+        const auto reference=IdentityBasis();
+        const tr::motiongun::Vec axis{0,0,1};
+        ArmTwistState state{};
+        Basis wrist{},forearm{},previous{};
+        ConstrainWrist(reference,RotationMatrix(AxisRotation(axis,direction*179.8f*rad)),
+                       axis,state,previous,forearm);
+        for(int sample=0;sample<100;++sample) {
+            const float angle=direction*(sample%2 ? 179.8f : 180.2f)*rad;
+            const auto target=RotationMatrix(AxisRotation(axis,angle));
+            ConstrainWrist(reference,target,axis,state,wrist,forearm);
+            Check(WristBasisError(wrist,previous)<.015f,"wrap-boundary tracking jitter does not flip the palm");
+            previous=wrist;
+        }
+        // At a 180-degree swing the twist is undefined. Once a valid pose
+        // returns, it must replace this history, including abrupt pose jumps.
+        for(float swing:{179.9999f,180.f,180.0001f}) {
+            const auto singular=RotationMatrix(RotationProduct(AxisRotation({1,0,0},swing*rad),
+                AxisRotation(axis,120*rad)));
+            ConstrainWrist(reference,singular,axis,state,wrist,forearm);
+            Check(WristBasisError(wrist,wrist)==0 && WristBasisError(forearm,forearm)==0,
+                  "singular wrist swing stays finite");
+        }
+        for(float angle:{-70.f,0.f,70.f}) {
+            const auto target=RotationMatrix(AxisRotation(axis,angle*rad));
+            ConstrainWrist(reference,target,axis,state,wrist,forearm);
+            Check(WristBasisError(wrist,target)<.0001f,
+                  "valid reachable wrist pose immediately recovers after a singularity or pose discontinuity");
+        }
+    }
+    // Exercise the complete two-bone solver for both bend directions, with a
+    // native animation roll. Verify recovery of the visible forearm and hand,
+    // exact grip position, and unchanged weapon orientation bypass.
+    for(int side:{-1,1}) {
+        const auto identity=IdentityBasis();
+        Frame native[3]={{identity,{0,0,0}},{identity,{0,0,100}},
+                         {RotationMatrix(AxisRotation({0,0,1},73*rad)),{0,0,200}}};
+        const tr::motiongun::Vec axis{-side*.6f,0,.8f};
+        const auto reference=Multiply(Align({0,1,0},axis),identity);
+        ArmTwistState state{};
+        Frame initial[3]{},correction[3]{};
+        Frame target{reference,{0,0,160}};
+        Check(SolveArm(native,target,{float(side),0,0},initial,&state,&identity),"two-bone wrist recovery fixture solves");
+        for(int step=1;step<=1080;++step) {
+            target.basis=Multiply(RotationMatrix(AxisRotation(axis,side*step*rad)),reference);
+            Check(SolveArm(native,target,{float(side),0,0},correction,&state,&identity),
+                  "two-bone solver accepts repeated controller loops");
+        }
+        for(int joint=1;joint<3;++joint) {
+            const auto actual=Multiply(correction[joint],native[joint]);
+            const auto expected=Multiply(initial[joint],native[joint]);
+            Check(WristBasisError(actual.basis,expected.basis)<.0001f,
+                  "complete IK forearm and wrist recover despite native animation roll");
+            const auto offset=Sub(actual.origin,expected.origin);
+            Check(Dot(offset,offset)<.0001f,"wrist recovery keeps elbow and grip positions fixed");
+        }
+        target.basis=Multiply(RotationMatrix(AxisRotation(axis,155*rad)),reference);
+        Check(SolveArm(native,target,{float(side),0,0},correction,&state,&identity,false) &&
+              WristBasisError(Multiply(correction[2],native[2]).basis,target.basis)<.0001f,
+              "unconstrained armed wrist preserves the exact tracked orientation");
+    }
+}
 void TestFirstPersonParity() {
     using namespace tr;
     for (int game:{1,2,3}) {

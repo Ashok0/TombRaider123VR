@@ -397,6 +397,7 @@ int main() {
     TestJumpRoll();
     TestArmVisibility();
     TestBlockCamera();
+    TestWristTwistRecovery();
     TestFirstPersonParity();
     TestMonkeyControls();
     TestShadowPlacement();

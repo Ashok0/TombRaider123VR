@@ -1,0 +1,177 @@
+TombRaiderVR (Tomb Raider I-III Remastered): starting
+config: chest physics=on shader=1 apply=1 drive=1 strength=2.50
+config: mode=stereo tracking=rotation+position origin=seated units/m=423.0 ss=1.00 flipProjY=1 flipViewY=1 dup=1 flatHud=1
+config: culling=head frustum margin=8.0deg depth<=16 portals<=4096 far=0 widen=1 objects=1  sky=infinity
+config: startup camera=third person (always); Y+LT switches first/third person
+config: first person joint 14 offset (0,-32,144), interaction Z 16, stable VR heading, head translation ON, head hidden (mesh_bits bit 14)
+config: first person armed head aim=on
+config: first person body-follows-head=on (dead zone 0 deg, 4.0 deg/frame), move-with-head=on (camera-relative controls only)
+config: first person roomscale=on (dead zone 0.02 m, neck pivot 0.15 m, direct collision drag; turn 120 deg/sec)
+engine: build matched by PE timestamp 0x6AA156AA
+engine: bound to 00007FF756170000 (reference base 0000000140000000, slide +140694909288448)
+engine: build identified as TR I-III Remastered (retail update, PE 0x6AA156AA, no PDB)
+hook[vid_setPass]: 00007FF75617ABB0 -> 00007FFC021B5C30 (stole 6, tramp 00007FF762AF000E)
+hook[validate_draw]: 00007FF75617EFF0 -> 00007FFC021B5CD0 (stole 5, tramp 00007FF762B0000E)
+hook[ogl_draw]: 00007FF75617FBF0 -> 00007FFC021B8380 (stole 5, tramp 00007FF762B1000E)
+hook[ogl_present]: 00007FF75617F690 -> 00007FFC021B8A80 (stole 5, tramp 00007FF762B2000E)
+hook[fmvShow]: 00007FF75617E640 -> 00007FFC021B87F0 (stole 5, tramp 00007FF762B3000E)
+hook[ogl_setRenderTarget]: 00007FF7561803B0 -> 00007FFC021B5C10 (stole 13, tramp 00007FF762B4000E)
+hook[effect texture load]: 00007FF756179BA0 -> 00007FFC021B2820 (stole 11, tramp 00007FF762B5000E)
+hook[effect upscale load]: 00007FF75617A010 -> 00007FFC021B28D0 (stole 9, tramp 00007FF762B6000E)
+hook[effect texture create]: 00007FF7561805A0 -> 00007FFC021B2980 (stole 5, tramp 00007FF762B7000E)
+hook[effect texture update]: 00007FF756180770 -> 00007FFC021B2A70 (stole 5, tramp 00007FF762B8000E)
+effects: built-in enhancement enabled; no replacement DDS files required
+hook[shader_init]: 00007FF75617EC50 -> 00007FFC021A64B0 (stole 5, tramp 00007FF762B9000E)
+hooks: all six installed
+TombRaiderVR: hooks installed; OpenVR will be brought up on the first frame
+gl: loader ready (shader api ready)
+boneskin: 26 skin program(s) matched, 26 patched, 0 fell back to the original
+engine: now running Tomb Raider I (gGame=0)
+pad: Touch controllers presented as an Xbox pad (_XInputGetState 00007FF7565893B0 -> 00007FFC021B4B20, real 00007FFC4D894EE0)
+pad: move=Lstick look=Rstick(yaw only; hold RT+RB for pitch) jump=A(R lower) roll=B(R upper) action=Y(L upper)/LB+RB(both grips) system=BACK(L lower) walk=LS+RB(R grip) duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=L3+R3 graphics=Y+RT view=Y+LT dpad=R3+Lstick
+gamedll: bound to tomb1.dll (Tomb Raider I, gGame=0) at 00007FFBE6340000
+hook[DrawLaraHD]: 00007FFBE63AE7C0 -> 00007FFC021A1690 (stole 6, tramp 00007FFBE68A000E)
+dynbones: hooked tomb1.dll (Tomb Raider I) -- chest physics enabled; draws scoped to Lara
+hook[PrintRoomsList]: 00007FFBE63AF770 -> 00007FFC021D05F0 (stole 5, tramp 00007FFBE68B000E)
+hook[S_GetObjectBounds]: 00007FFBE63A4840 -> 00007FFC021D0CF0 (stole 5, tramp 00007FFBE68C000E)
+cull: hooked tomb1.dll (Tomb Raider I)
+hook[DrawSkyHD]: 00007FFBE63AF2A0 -> 00007FFC021D1610 (stole 5, tramp 00007FFBE68D000E)
+sky: hooked tomb1.dll (Tomb Raider I) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
+gun calibration: Ctrl+F1..F6 position, Ctrl+Shift+F1..F6 angles, F7 save/restore
+firstperson: startup view is always third person; press Y+LT to switch views
+hook[LaraAboveWater]: 00007FFBE6361250 -> 00007FFC021C84D0 (stole 5, tramp 00007FFBE68E000E)
+hook[DrawToShadow]: 00007FFBE63B3C10 -> 00007FFC021C0AA0 (stole 9, tramp 00007FFBE68F000E)
+hook[LaraGun]: 00007FFBE6368160 -> 00007FFC021C8100 (stole 6, tramp 00007FFBE690000E)
+hook[MovableBlockCollision]: 00007FFBE6371220 -> 00007FFC021BF440 (stole 5, tramp 00007FFBE691000E)
+hook[AnimateLara]: 00007FFBE636A2A0 -> 00007FFC021C7B30 (stole 5, tramp 00007FFBE692000E)
+hook[CalculateLaraMatrices]: 00007FFBE63535A0 -> 00007FFC021C0380 (stole 5, tramp 00007FFBE693000E)
+hook[DrawActionIndicators]: 00007FFBE63B36F0 -> 00007FFC021C06A0 (stole 6, tramp 00007FFBE694000E)
+hook[phd_GenerateW2V]: 00007FFBE63B4450 -> 00007FFC021CBB10 (stole 5, tramp 00007FFBE695000E)
+hook[DrawCreatureHD]: 00007FFBE63AC880 -> 00007FFC021C1000 (stole 5, tramp 00007FFBE696000E)
+hook[GetJoints]: 00007FFBE63AC190 -> 00007FFC021C4F30 (stole 7, tramp 00007FFBE697000E)
+hook[FireWeapon]: 00007FFBE6369440 -> 00007FFC021C6CF0 (stole 6, tramp 00007FFBE698000E)
+hook[DrawGunFlash]: relocated rip disp32 at +6 (4645147 -> -1907747)
+hook[DrawGunFlash]: 00007FFBE63502D0 -> 00007FFC021C3F70 (stole 11, tramp 00007FFBE699000E)
+hook[shotgun effect wrist position]: 00007FFBE6395160 -> 00007FFC021C3D10 (stole 5, tramp 00007FFBE69A000E)
+hook[GetTargetOnLOS]: 00007FFBE63692F0 -> 00007FFC021C6E50 (stole 5, tramp 00007FFBE69B000E)
+hook[AnimatePistols]: 00007FFBE6367C90 -> 00007FFC021C6D20 (stole 5, tramp 00007FFBE69C000E)
+hook[DrawHair]: relocated rip disp32 at +7 (765069 -> -5764849)
+hook[DrawHair]: 00007FFBE6395C90 -> 00007FFC021C1570 (stole 11, tramp 00007FFBE69D000E)
+firstperson: hooked tomb1.dll (Tomb Raider I) -- runtime camera switch ready (Y+LT, startup third person, joint 14). Fixed and cinematic cameras keep their own framing.
+vr: initialisation attempt 1 at frame 1
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: initialised as a Scene app
+vr: eye 0 raw tangents l=-1.3764 r=0.8391 t=-1.4281 b=0.9657
+vr: eye 0 eyeToHead offset = (-0.0309, +0.0000, +0.0000) m
+vr: eye 1 raw tangents l=-0.8391 r=1.3764 t=-1.4281 b=0.9657
+vr: eye 1 eyeToHead offset = (+0.0309, +0.0000, +0.0000) m
+vr: ready, per-eye target 1728x1824
+vr: up and running
+stereo: created 3456x1824 double-wide target (fbo 2, tex 17)
+present: redirected FBO_default 0 -> 2
+video: offscreen panel ready (2560x1440, fbo 3, tex 18, prog 225)
+vr: head neutral set at (-0.04, +1.19, +0.11) m -- tracked translation is measured from here
+gamedll: no level loaded yet -- ceiling clamp stands down until there is one (this is normal at the title screen)
+vr: head pose ACQUIRED
+present: first stereo frame submitted
+pad: water_status=0 (above water) -- stick pitch decoupled
+effects: texture slot 3 layer 2 classified as 3
+inject: eye=0 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=-0.2425 proj[9]=-0.1932
+inject: eye=0 eyeView translation = (+13.1, +0.3, +0.2) world units
+inject: eye=0 final view translation = (-33.2, -1475.4, 461.9)
+inject: eye=0 packed view translation IN MEMORY = (0.0, -1392.0, 675.0) [floats 3,7,11 at 00007FF762813650]
+inject: eye=0 uid[1] (uViewMatrix location) = 131, shader=11
+inject: eye=1 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=0.2425 proj[9]=-0.1932
+inject: eye=1 eyeView translation = (-13.1, +0.3, +0.2) world units
+inject: eye=1 final view translation = (-59.4, -1475.4, 461.9)
+inject: eye=1 packed view translation IN MEMORY = (0.0, -1392.0, 675.0) [floats 3,7,11 at 00007FF762813650]
+inject: eye=1 uid[1] (uViewMatrix location) = 131, shader=11
+inject: SEPARATION between eyes = 26.13 world units (dx=26.13 dy=0.00 dz=0.00)
+engine: now running Tomb Raider II (gGame=1)
+gamedll: bound to tomb2.dll (Tomb Raider II, gGame=1) at 00007FFBACDF0000
+dynbones: unhooking tomb1.dll
+hook[DrawLaraHD]: removed
+hook[DrawLaraHD]: 00007FFBACE8F9A0 -> 00007FFC021A1690 (stole 6, tramp 00007FFBAD34000E)
+cull: unhooking tomb1.dll
+hook[S_GetObjectBounds]: removed
+hook[PrintRoomsList]: removed
+hook[PrintRoomsList]: 00007FFBACE90950 -> 00007FFC021D05F0 (stole 5, tramp 00007FFBAD35000E)
+hook[S_GetObjectBounds]: 00007FFBACE85090 -> 00007FFC021D0CF0 (stole 5, tramp 00007FFBAD36000E)
+cull: hooked tomb2.dll (Tomb Raider II)
+sky: unhooking tomb1.dll
+hook[DrawSkyHD]: removed
+hook[DrawSkyHD]: 00007FFBACE90480 -> 00007FFC021D1610 (stole 5, tramp 00007FFBAD37000E)
+sky: hooked tomb2.dll (Tomb Raider II)
+firstperson: unhooking tomb1.dll (anchored 0 frames, stood down 448, 0 mesh_bits draws, 0 face/glasses skipped, 0 braid skipped)
+hook[LaraAboveWater]: removed
+hook[LaraGun]: removed
+hook[AnimateLara]: removed
+hook[MovableBlockCollision]: removed
+hook[CalculateLaraMatrices]: removed
+hook[DrawActionIndicators]: removed
+hook[DrawHair]: removed
+hook[DrawCreatureHD]: removed
+hook[GetJoints]: removed
+hook[GetTargetOnLOS]: removed
+hook[AnimatePistols]: removed
+hook[FireWeapon]: removed
+hook[DrawGunFlash]: removed
+hook[shotgun effect wrist position]: removed
+hook[DrawToShadow]: removed
+hook[phd_GenerateW2V]: removed
+hook[LaraAboveWater]: 00007FFBACE2E470 -> 00007FFC021C84D0 (stole 5, tramp 00007FFBAD38000E)
+hook[DrawToShadow]: 00007FFBACE952A0 -> 00007FFC021C0AA0 (stole 9, tramp 00007FFBAD39000E)
+hook[LaraGun]: 00007FFBACE3B090 -> 00007FFC021C8100 (stole 5, tramp 00007FFBAD3A000E)
+hook[MovableBlockCollision]: 00007FFBACE4E350 -> 00007FFC021BF440 (stole 6, tramp 00007FFBAD3B000E)
+hook[AnimateLara]: 00007FFBACE43FB0 -> 00007FFC021C7B30 (stole 6, tramp 00007FFBAD3C000E)
+hook[CalculateLaraMatrices]: 00007FFBACE0C9E0 -> 00007FFC021C0380 (stole 5, tramp 00007FFBAD3D000E)
+hook[DrawActionIndicators]: 00007FFBACE94F30 -> 00007FFC021C06A0 (stole 6, tramp 00007FFBAD3E000E)
+hook[phd_GenerateW2V]: 00007FFBACE97C20 -> 00007FFC021CBB10 (stole 5, tramp 00007FFBAD3F000E)
+hook[DrawCreatureHD]: 00007FFBACE8D6F0 -> 00007FFC021C1000 (stole 5, tramp 00007FFBAD40000E)
+hook[GetJoints]: 00007FFBACE8D000 -> 00007FFC021C4F30 (stole 7, tramp 00007FFBAD41000E)
+hook[FireWeapon]: 00007FFBACE3CAC0 -> 00007FFC021C6CF0 (stole 5, tramp 00007FFBAD42000E)
+hook[DrawGunFlash]: 00007FFBACE07EC0 -> 00007FFC021C3F70 (stole 10, tramp 00007FFBAD43000E)
+hook[shotgun effect wrist position]: 00007FFBACE76680 -> 00007FFC021C3D10 (stole 5, tramp 00007FFBAD44000E)
+hook[GetTargetOnLOS]: 00007FFBACE3C790 -> 00007FFC021C6E50 (stole 5, tramp 00007FFBAD45000E)
+hook[FireHarpoon]: relocated rip disp32 at +6 (3366949 -> -3093689)
+hook[FireHarpoon]: 00007FFBACE36B30 -> 00007FFC021C7510 (stole 11, tramp 00007FFBAD46000E)
+hook[AnimateShotgun]: 00007FFBACE37F10 -> 00007FFC021C75A0 (stole 5, tramp 00007FFBAD47000E)
+hook[AnimatePistols]: 00007FFBACE392F0 -> 00007FFC021C6D20 (stole 5, tramp 00007FFBAD48000E)
+hook[DrawHair]: relocated rip disp32 at +7 (798125 -> -5594913)
+hook[DrawHair]: 00007FFBACE77340 -> 00007FFC021C1570 (stole 11, tramp 00007FFBAD49000E)
+firstperson: hooked tomb2.dll (Tomb Raider II) -- runtime camera switch ready (Y+LT, startup third person, joint 14). Fixed and cinematic cameras keep their own framing.
+hook[DrawLaraHD]: removed
+hook[shader_init]: removed
+hook[effect texture update]: removed
+hook[effect texture create]: removed
+hook[effect upscale load]: removed
+hook[effect texture load]: removed
+pad: _XInputGetState restored
+hook[LaraAboveWater]: removed
+hook[LaraGun]: removed
+hook[AnimateLara]: removed
+hook[MovableBlockCollision]: removed
+hook[CalculateLaraMatrices]: removed
+hook[DrawActionIndicators]: removed
+hook[DrawHair]: removed
+hook[DrawCreatureHD]: removed
+hook[GetJoints]: removed
+hook[GetTargetOnLOS]: removed
+hook[FireHarpoon]: removed
+hook[AnimateShotgun]: removed
+hook[AnimatePistols]: removed
+hook[FireWeapon]: removed
+hook[DrawGunFlash]: removed
+hook[shotgun effect wrist position]: removed
+hook[DrawToShadow]: removed
+hook[phd_GenerateW2V]: removed
+hook[DrawSkyHD]: removed
+hook[S_GetObjectBounds]: removed
+hook[PrintRoomsList]: removed
+hook[ogl_setRenderTarget]: removed
+hook[fmvShow]: removed
+hook[ogl_present]: removed
+hook[ogl_draw]: removed
+hook[validate_draw]: removed
+hook[vid_setPass]: removed
