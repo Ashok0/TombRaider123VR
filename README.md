@@ -61,6 +61,52 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### Late stopping jump correction in both views (2026-10-09)
+
+Jump priority now works in **first and third person**. The first implementation
+only enabled it with an active first-person heading. Third-person scene renders
+also cleared its tap buffer; the buffer now survives repeated eye/render frames
+until the simulation can consume it.
+
+A queued jump goal no longer counts as an already-started jump. The tap remains
+eligible while Lara is still in an ordinary grounded animation, and is consumed
+when she actually enters compression or takeoff. In TR3, the final standing-entry
+frame advances beyond that clip's jump dispatch window, so pressing A there now
+restarts the command-free standing entry at its verified first frame. Native
+control, animation and collision perform the jump normally.
+
+The regression failed on the preceding implementation. It now covers the last
+frames of both walk-stop clips, both run-stop clips, standing entry and idle in
+both views, including held A, quick taps, pending jump goals and intervening eye
+draws. Running momentum and special-animation safeguards remain covered. The
+buffer is tied to the current Lara/level and is canceled by invalid gameplay or
+scripted cameras. All 140 installed animation banks verify the stopping
+handoffs and dispatch windows. Headset confirmation remains pending.
+
+### Jump priority during walking (2026-10-09)
+
+In first or third person, **A / Jump takes priority over ordinary walk, run-start,
+run-stop, sidestep and backpedal animations** in TR1, TR2 and TR3. Those gait
+transitions can now enter the game's native jump preparation on the next
+simulation tick, instead of waiting for the outgoing footstep animation. A
+quick press is retained for up to **250 ms**, so releasing A between controller
+polling and the next simulation tick does not discard the jump.
+
+The normal running loop keeps its native running-jump transition, speed and
+distance. Forward, backward, side and stationary jump input continues through
+the native handlers, including Jump + grab. Native compression, takeoff and
+collision still determine when and where Lara can jump. Authored landings,
+step-ups, climbing and interactions retain their normal animation handling;
+there is no queued midair jump or delayed automatic jump after a pause.
+
+The production-hook tests cover every ordinary gait clip in all three games,
+both control schemes, held/quick-tap input, all jump directions, cancellation,
+protected states and preservation of running momentum. Read-only verification
+of all **140 installed gameplay animation banks** confirms immediate native
+compression entry and running-jump dispatch at every stride frame. Camera,
+IK, ledge gesture, haptic and movement regressions also pass. Headset playtesting
+remains pending.
+
 ### Tracked IK hand pivot correction (2026-10-09)
 
 Unarmed IK hands now keep the same complete calibrated controller frame as the
@@ -1768,7 +1814,40 @@ shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 IK hand pivot correction** Release/x64 DLL is
+The current **2026-10-09 late-stop jump correction for both views** Release/x64
+DLL is installed with verified SHA-256:
+`B3DC1B95AB82BB4F5C71AF21DBE8C5A848773A45F79AD1D73DB3185A1986E5FF`.
+The preceding DLL, INI and log are backed up under
+`build/before-jump-stop-handoff-20261009-165111/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/jump-stop-handoff/deployment.json).
+
+**745,333** production movement/control/camera/IK/shadow/haptic/gesture checks
+and **66,162** tracking/eye/projection checks pass. The late-stop regression
+fails on the preceding implementation and passes with this correction in both
+views. All **140** installed gameplay animation banks pass the expanded jump
+verification. Installed game hashes match the verified retail update; no native
+addresses or hook windows changed. Release/x64 built without warnings.
+Headset confirmation remains pending.
+
+The preceding **2026-10-09 walking jump priority** Release/x64 DLL was
+installed with verified SHA-256:
+`C1254AC235440EC66D8EAE4C35E667CD50133DB2EDAB253267577A538FDA5636`.
+The preceding DLL, INI and log are backed up under
+`build/before-jump-priority-20261009-163831/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/jump-priority/deployment.json).
+
+**731,118** production movement/control/camera/IK/shadow/haptic/gesture checks
+and **66,162** tracking/eye/projection checks pass. All **140** installed gameplay
+animation banks pass `tools/verify_jump_priority.py` (TR1: 39, TR2: 47, TR3: 54).
+Installed game hashes still match the verified retail update; native addresses
+and hook windows are unchanged. Release/x64 built without warnings.
+Headset playtesting remains pending.
+
+The preceding **2026-10-09 IK hand pivot correction** Release/x64 DLL was
 installed with verified SHA-256:
 `3439B1CD6FF47584EDE8750CAA4051925748F51F8234CF6D0084A4BC76AEDC0D`.
 The preceding DLL, INI and log are backed up under

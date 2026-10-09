@@ -284,6 +284,26 @@ locomotion::Vec g_manualWorld;
 bool g_haveManualInput = false;
 bool g_shifted = false;
 bool g_jumpPressed = false;
+struct GroundJumpIntent {
+    bool held=false, pending=false;
+    double until=0;
+    const uint8_t* owner=nullptr;
+    int level=-1;
+    void Reset() { *this={}; }
+    void Bind(const uint8_t* item,int currentLevel) {
+        if (owner!=item || level!=currentLevel) pending=false;
+        owner=item;level=currentLevel;
+    }
+    void Observe(bool pressed,bool eligible,double now) {
+        if (!eligible) pending=false;
+        else if (pressed && !held) { pending=true; until=now+.25; }
+        held=pressed;
+    }
+    bool Wants(double now) {
+        if (now>until) pending=false;
+        return pending;
+    }
+} g_groundJump;
 uint32_t g_groundMoveAction = 0; // Scoped stick intent, not the active native gait.
 bool g_stabilizeRoot = false, g_hardStopRoot = false;
 uint32_t g_stabilizeAction = 0;
@@ -2006,6 +2026,63 @@ void __cdecl Detour_LaraGun() {
     }
 }
 
+bool OrdinaryGroundAnimation(const uint8_t* item) {
+    const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    const int animation=*reinterpret_cast<const int16_t*>(item+off::item_anim_number);
+    return (state==1 && (animation==0 || animation==6 || animation==8 || animation==10)) ||
+        (state==0 && ((animation>=1 && animation<=5) || animation==7 || animation==9 || animation==20 || animation==21)) ||
+        (state==2 && (animation==11 || animation==103)) ||
+        (state==16 && animation>=38 && animation<=41) ||
+        (state==22 && (animation==65 || animation==66)) ||
+        (state==21 && (animation==67 || animation==68));
+}
+
+bool GroundJumpReady(const uint8_t* item) {
+    // Jump priority is a VR gameplay input feature in either camera mode.
+    // First-person heading/calibration may legitimately be absent in third person.
+    if (!item || !g_boundDll || !g_boundBase || !Cfg().enabled || !VR().active() ||
+        !VR().poseValid() || g_shifted || InInventory() || InTitle() || InCutscene() ||
+        item!=*Ptr<uint8_t*>(g_boundDll->laraItem) || !CanWalk(item) ||
+        (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u) ||
+        *reinterpret_cast<const int16_t*>(item+off::item_required_state)!=0 ||
+        !OrdinaryGroundAnimation(item)) return false;
+    if (g_boundDll->module[4]==L'3' && (*Ptr<uint16_t>(g_boundDll->lara+60)&4u)) return false;
+    const int camera=*Ptr<int32_t>(g_boundDll->camera+off::camera_type);
+    if (camera==kCamFixed || camera>=kCamCinematic) return false;
+    const int goal=*reinterpret_cast<const int16_t*>(item+off::item_goal_state);
+    // A goal is only a request: keep the tap until current state actually
+    // enters compression/takeoff, even across the final stop-to-idle frame.
+    return locomotion::IsGroundLocomotionState(goal) || goal==15 || goal==3;
+}
+
+void UpdateGroundJumpCameraContext(const uint8_t* item) {
+    // This runs on every non-first-person scene render, including both eyes.
+    // Losing a head-camera anchor must not discard a third-person jump tap.
+    g_groundJump.Bind(item,AppFlag(drva::app_off::level));
+    if (!GroundJumpReady(item)) g_groundJump.pending=false;
+}
+
+bool EnterGroundIdle(uint8_t* item) {
+    if (!g_boundDll->anims) return false;
+    const auto* anims=*Ptr<const uint8_t*>(g_boundDll->anims);
+    if (!anims) return false;
+    const auto* idle=anims+11*off::anim_stride;
+    const int16_t first=*reinterpret_cast<const int16_t*>(idle+off::anim_frame_base);
+    const int16_t last=*reinterpret_cast<const int16_t*>(idle+off::anim_frame_end);
+    // TR1/2 standing entry has a single frame (base == end). GetChange
+    // checks base+1 before the end-of-animation jump to the idle loop.
+    if (*reinterpret_cast<const int16_t*>(idle+off::anim_state)!=2 ||
+        *reinterpret_cast<const int16_t*>(idle+off::anim_commands)!=0 ||
+        first<0 || last<first) return false;
+    *reinterpret_cast<int16_t*>(item+off::item_anim_number)=11;
+    *reinterpret_cast<int16_t*>(item+off::item_frame_number)=first;
+    *reinterpret_cast<int16_t*>(item+off::item_anim_state)=2;
+    *reinterpret_cast<int16_t*>(item+off::item_goal_state)=2;
+    *reinterpret_cast<int16_t*>(item+off::item_speed)=0;
+    g_rootMotion.Reset();
+    return true;
+}
+
 void PrepareGroundDirection(uint8_t* item,uint32_t action) {
     using namespace locomotion;
     // Shorten ordinary forward/side/back gait handoffs. Let native lara_as_stop
@@ -2021,30 +2098,43 @@ void PrepareGroundDirection(uint8_t* item,uint32_t action) {
     const int goal=*reinterpret_cast<const int16_t*>(item+off::item_goal_state);
     const bool stopping=animation==38 || animation==39 || animation==66 || animation==68;
     if (GroundGaitMatchesAction(state,action) && !stopping && goal==state) return;
-    const bool ordinary=(state==1 && (animation==0 || animation==6 || animation==8 || animation==10)) ||
-        (state==0 && ((animation>=1 && animation<=5) || animation==7 || animation==9 || animation==20 || animation==21)) ||
-        (state==2 && (animation==11 || animation==103)) ||
-        (state==16 && animation>=38 && animation<=41) ||
-        (state==22 && (animation==65 || animation==66)) ||
-        (state==21 && (animation==67 || animation==68));
-    if (!ordinary) return;
-    const auto* anims=*Ptr<const uint8_t*>(g_boundDll->anims);
-    if (!anims) return;
-    const auto* idle=anims+11*off::anim_stride;
-    const int16_t first=*reinterpret_cast<const int16_t*>(idle+off::anim_frame_base);
-    const int16_t last=*reinterpret_cast<const int16_t*>(idle+off::anim_frame_end);
-    // TR1/2 standing entry has a single frame (base == end). GetChange
-    // checks base+1 before the end-of-animation jump to the idle loop.
-    if (*reinterpret_cast<const int16_t*>(idle+off::anim_state)!=2 ||
-        *reinterpret_cast<const int16_t*>(idle+off::anim_commands)!=0 ||
-        first<0 || last<first) return;
-    *reinterpret_cast<int16_t*>(item+off::item_anim_number)=11;
-    *reinterpret_cast<int16_t*>(item+off::item_frame_number)=first;
-    *reinterpret_cast<int16_t*>(item+off::item_anim_state)=2;
-    *reinterpret_cast<int16_t*>(item+off::item_goal_state)=2;
-    *reinterpret_cast<int16_t*>(item+off::item_speed)=0;
-    g_rootMotion.Reset();
+    if (OrdinaryGroundAnimation(item)) EnterGroundIdle(item);
 }
+
+// A tap observed by XInput survives until one simulation tick can consume it.
+// Only ordinary grounded gaits are interruptible; animation/collision still
+// own compression, takeoff, gravity and landing. Never queue a midair jump.
+struct GroundJumpInputScope {
+    uint8_t* item;
+    uint32_t* input=nullptr;
+    bool injected=false;
+    explicit GroundJumpInputScope(uint8_t* target,double now):item(target) {
+        g_groundJump.Bind(item,AppFlag(drva::app_off::level));
+        if (!GroundJumpReady(item)) { g_groundJump.pending=false; return; }
+        input=Ptr<uint32_t>(g_boundDll->input);
+        if (*input&(0x100u|0x1000u)) { g_groundJump.pending=false; input=nullptr; return; }
+        if (g_groundJump.Wants(now) && !(*input&0x10u)) {
+            *input|=0x10u; injected=true;
+        }
+    }
+    void Prepare() {
+        if (!input || !(*input&0x10u) || !GroundJumpReady(item)) return;
+        const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+        const int animation=*reinterpret_cast<const int16_t*>(item+off::item_anim_number);
+        // The run loop already has a native jump dispatch at every frame.
+        // Keep its momentum and distance; walk/start/stop/side/back gaits
+        // enter the native standing jump consumer without waiting for a footstep.
+        if ((state==1 && animation==0) || (state==2 && animation==103)) return;
+        // TR3's final standing-entry frame increments past its compression
+        // dispatch window. Start at the verified entry frame even in state 2.
+        EnterGroundIdle(item);
+    }
+    ~GroundJumpInputScope() {
+        if (!input) return;
+        if (!GroundJumpReady(item)) g_groundJump.pending=false;
+        if (injected) *input&=~0x10u;
+    }
+};
 
 // Inject only within the native above-water tick: LaraHangTest and
 // lara_col_hang retain grab, clearance, animation and collision ownership.
@@ -2082,6 +2172,7 @@ struct LedgePullInputScope {
 
 void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     using namespace locomotion;
+    GroundJumpInputScope jumpInput(item,TurnTime());
     g_dragPrevious = g_dragCurrent;
     g_groundMoveAction = 0;
     g_stabilizeRoot = g_hardStopRoot = false;
@@ -2143,7 +2234,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
                 // directions. The airborne forward-jump path keeps the launch
                 // heading established here.
                 if (ground || state == 15) {
-                    const bool preparingJump = (ground && g_jumpPressed) || state == 15;
+                    const bool preparingJump = (ground && (g_jumpPressed || (input&0x10u))) || state == 15;
                     const uint32_t action = MovementAction(g_manualLocal, preparingJump);
                     pos.y_rot = Angle(head);
                     *Ptr<int16_t>(g_boundDll->lara + 252) = 0; // turn_rate
@@ -2185,6 +2276,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
             lastState = state;
         }
     }
+    jumpInput.Prepare();
     if (g_groundMoveAction) PrepareGroundDirection(item,g_groundMoveAction);
     {
         LedgePullInputScope pull(item,TurnTime());
@@ -2222,7 +2314,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         g_rootMotion.Reset();
         g_mountBodyTransition.Reset();
         g_mountRootHeight.Reset();
-        g_ledgePull.Reset();
+        g_ledgePull.Reset(); g_groundJump.Reset();
         g_lastClimbCameraState=-1;
         g_blockCamera.Suspend();
         if (!sameBody || relocated) { g_unarmedArmVisibility={}; g_unarmedTwist[0]={}; g_unarmedTwist[1]={}; }
@@ -2584,6 +2676,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_blockCamera.Suspend();
             g_haveHeading = false;
             g_ledgePull.Reset();
+            UpdateGroundJumpCameraContext(item);
             g_haveManualInput = false;
             g_rootMotion.Reset();
             g_renderTurn.Reset();
@@ -2907,7 +3000,7 @@ void Remove() {
     g_lastRawLT=0;
     g_lastGunTraceStatus=-1;
     g_haveHeading = false;
-    g_ledgePull.Reset();
+    g_ledgePull.Reset(); g_groundJump.Reset();
     g_headingItem = nullptr;
     g_headingLevel = -1;
     g_groundEye.Reset();
@@ -3008,7 +3101,7 @@ void FirstPersonToggle() {
     g_nativeEquipStatus=-1;
     if (wasActive && !g_runtimeEnabled) VR().RecenterHead();
     g_haveHeading = false;
-    g_ledgePull.Reset();
+    g_ledgePull.Reset(); g_groundJump.Reset();
     g_headingItem = nullptr;
     g_haveManualInput = false;
     g_shifted = false;
@@ -3170,6 +3263,9 @@ void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
     g_haveManualInput = false;
     g_shifted = shifted;
     g_jumpPressed = jumpPressed;
+    const auto* jumpItem=(g_boundDll && g_boundBase) ? *Ptr<uint8_t*>(g_boundDll->laraItem) : nullptr;
+    g_groundJump.Bind(jumpItem,AppFlag(drva::app_off::level));
+    g_groundJump.Observe(jumpPressed,GroundJumpReady(jumpItem),TurnTime());
     if (!g_active || !g_haveHeading || !Gate()) {
         g_renderTurn.Reset();
         return;

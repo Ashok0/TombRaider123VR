@@ -1,0 +1,640 @@
+TombRaiderVR (Tomb Raider I-III Remastered): starting
+config: chest physics=on shader=1 apply=1 drive=1 strength=2.50
+config: mode=stereo tracking=rotation+position origin=seated units/m=423.0 ss=1.00 flipProjY=1 flipViewY=1 dup=1 flatHud=1
+config: culling=head frustum margin=8.0deg depth<=16 portals<=4096 far=0 widen=1 objects=1  sky=infinity
+config: startup camera=third person (always); Y+LT switches first/third person
+config: first person joint 14 offset (0,-32,144), interaction Z 16, stable VR heading, head translation ON, head hidden (mesh_bits bit 14)
+config: first person armed head aim=on
+config: first person body-follows-head=on (dead zone 0 deg, 4.0 deg/frame), move-with-head=on (camera-relative controls only)
+config: first person roomscale=on (dead zone 0.02 m, neck pivot 0.15 m, direct collision drag; turn 120 deg/sec)
+engine: build matched by PE timestamp 0x6AA156AA
+engine: bound to 00007FF720C40000 (reference base 0000000140000000, slide +140694014656512)
+engine: build identified as TR I-III Remastered (retail update, PE 0x6AA156AA, no PDB)
+hook[vid_setPass]: 00007FF720C4ABB0 -> 00007FFC093B5C50 (stole 6, tramp 00007FF72D5C000E)
+hook[validate_draw]: 00007FF720C4EFF0 -> 00007FFC093B5CF0 (stole 5, tramp 00007FF72D5D000E)
+hook[ogl_draw]: 00007FF720C4FBF0 -> 00007FFC093B83A0 (stole 5, tramp 00007FF72D5E000E)
+hook[ogl_present]: 00007FF720C4F690 -> 00007FFC093B8AA0 (stole 5, tramp 00007FF72D5F000E)
+hook[fmvShow]: 00007FF720C4E640 -> 00007FFC093B8810 (stole 5, tramp 00007FF72D60000E)
+hook[ogl_setRenderTarget]: 00007FF720C503B0 -> 00007FFC093B5C30 (stole 13, tramp 00007FF72D61000E)
+hook[effect texture load]: 00007FF720C49BA0 -> 00007FFC093B2840 (stole 11, tramp 00007FF72D62000E)
+hook[effect upscale load]: 00007FF720C4A010 -> 00007FFC093B28F0 (stole 9, tramp 00007FF72D63000E)
+hook[effect texture create]: 00007FF720C505A0 -> 00007FFC093B29A0 (stole 5, tramp 00007FF72D64000E)
+hook[effect texture update]: 00007FF720C50770 -> 00007FFC093B2A90 (stole 5, tramp 00007FF72D65000E)
+effects: built-in enhancement enabled; no replacement DDS files required
+hook[shader_init]: 00007FF720C4EC50 -> 00007FFC093A64B0 (stole 5, tramp 00007FF72D66000E)
+hooks: all six installed
+TombRaiderVR: hooks installed; OpenVR will be brought up on the first frame
+gl: loader ready (shader api ready)
+boneskin: 26 skin program(s) matched, 26 patched, 0 fell back to the original
+engine: now running Tomb Raider I (gGame=0)
+pad: Touch controllers presented as an Xbox pad (_XInputGetState 00007FF7210593B0 -> 00007FFC093B4B40, real 00007FFC422C4EE0)
+pad: move=Lstick look=Rstick(yaw only; hold RT+RB for pitch) jump=A(R lower) roll=B(R upper) action=Y(L upper)/LB+RB(both grips) system=BACK(L lower) walk=LS+RB(R grip) duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=L3+R3 graphics=Y+RT view=Y+LT dpad=R3+Lstick
+gamedll: bound to tomb1.dll (Tomb Raider I, gGame=0) at 00007FFBB7F70000
+hook[DrawLaraHD]: 00007FFBB7FDE7C0 -> 00007FFC093A1690 (stole 6, tramp 00007FFBB848000E)
+dynbones: hooked tomb1.dll (Tomb Raider I) -- chest physics enabled; draws scoped to Lara
+hook[PrintRoomsList]: 00007FFBB7FDF770 -> 00007FFC093D12E0 (stole 5, tramp 00007FFBB849000E)
+hook[S_GetObjectBounds]: 00007FFBB7FD4840 -> 00007FFC093D19E0 (stole 5, tramp 00007FFBB84A000E)
+cull: hooked tomb1.dll (Tomb Raider I)
+hook[DrawSkyHD]: 00007FFBB7FDF2A0 -> 00007FFC093D2300 (stole 5, tramp 00007FFBB84B000E)
+sky: hooked tomb1.dll (Tomb Raider I) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
+gun calibration: Ctrl+F1..F6 position, Ctrl+Shift+F1..F6 angles, F7 save/restore
+firstperson: startup view is always third person; press Y+LT to switch views
+hook[LaraAboveWater]: 00007FFBB7F91250 -> 00007FFC093C8D10 (stole 5, tramp 00007FFBB84C000E)
+hook[DrawToShadow]: 00007FFBB7FE3C10 -> 00007FFC093C0E90 (stole 9, tramp 00007FFBB84D000E)
+hook[LaraGun]: 00007FFBB7F98160 -> 00007FFC093C85F0 (stole 6, tramp 00007FFBB84E000E)
+hook[MovableBlockCollision]: 00007FFBB7FA1220 -> 00007FFC093BF830 (stole 5, tramp 00007FFBB84F000E)
+hook[AnimateLara]: 00007FFBB7F9A2A0 -> 00007FFC093C8020 (stole 5, tramp 00007FFBB850000E)
+hook[CalculateLaraMatrices]: 00007FFBB7F835A0 -> 00007FFC093C0770 (stole 5, tramp 00007FFBB851000E)
+hook[DrawActionIndicators]: 00007FFBB7FE36F0 -> 00007FFC093C0A90 (stole 6, tramp 00007FFBB852000E)
+hook[phd_GenerateW2V]: 00007FFBB7FE4450 -> 00007FFC093CC610 (stole 5, tramp 00007FFBB853000E)
+hook[DrawCreatureHD]: 00007FFBB7FDC880 -> 00007FFC093C13F0 (stole 5, tramp 00007FFBB854000E)
+hook[GetJoints]: 00007FFBB7FDC190 -> 00007FFC093C52F0 (stole 7, tramp 00007FFBB855000E)
+hook[FireWeapon]: 00007FFBB7F99440 -> 00007FFC093C71A0 (stole 6, tramp 00007FFBB856000E)
+hook[DrawGunFlash]: relocated rip disp32 at +6 (4645147 -> -1580067)
+hook[DrawGunFlash]: 00007FFBB7F802D0 -> 00007FFC093C4360 (stole 11, tramp 00007FFBB857000E)
+hook[shotgun effect wrist position]: 00007FFBB7FC5160 -> 00007FFC093C4100 (stole 5, tramp 00007FFBB858000E)
+hook[GetTargetOnLOS]: 00007FFBB7F992F0 -> 00007FFC093C7300 (stole 5, tramp 00007FFBB859000E)
+hook[AnimatePistols]: 00007FFBB7F97C90 -> 00007FFC093C71D0 (stole 5, tramp 00007FFBB85A000E)
+hook[DrawHair]: relocated rip disp32 at +7 (765069 -> -5437169)
+hook[DrawHair]: 00007FFBB7FC5C90 -> 00007FFC093C1960 (stole 11, tramp 00007FFBB85B000E)
+firstperson: hooked tomb1.dll (Tomb Raider I) -- runtime camera switch ready (Y+LT, startup third person, joint 14). Fixed and cinematic cameras keep their own framing.
+vr: initialisation attempt 1 at frame 1
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: initialised as a Scene app
+vr: eye 0 raw tangents l=-1.3764 r=0.8391 t=-1.4281 b=0.9657
+vr: eye 0 eyeToHead offset = (-0.0310, +0.0000, +0.0000) m
+vr: eye 1 raw tangents l=-0.8391 r=1.3764 t=-1.4281 b=0.9657
+vr: eye 1 eyeToHead offset = (+0.0310, +0.0000, +0.0000) m
+vr: ready, per-eye target 1728x1824
+vr: up and running
+stereo: created 3456x1824 double-wide target (fbo 2, tex 17)
+present: redirected FBO_default 0 -> 2
+video: offscreen panel ready (2560x1440, fbo 3, tex 18, prog 225)
+vr: head neutral set at (+0.11, +1.26, -0.05) m -- tracked translation is measured from here
+gamedll: no level loaded yet -- ceiling clamp stands down until there is one (this is normal at the title screen)
+vr: head pose ACQUIRED
+present: first stereo frame submitted
+pad: water_status=0 (above water) -- stick pitch decoupled
+effects: texture slot 3 layer 2 classified as 3
+inject: eye=0 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=-0.2425 proj[9]=-0.1932
+inject: eye=0 eyeView translation = (+58.9, -17.6, -34.8) world units
+inject: eye=0 final view translation = (291.8, -1486.9, 434.5)
+inject: eye=0 packed view translation IN MEMORY = (0.0, -1411.0, 665.0) [floats 3,7,11 at 00007FF72D2E3650]
+inject: eye=0 uid[1] (uViewMatrix location) = 131, shader=11
+inject: eye=1 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=0.2425 proj[9]=-0.1932
+inject: eye=1 eyeView translation = (+32.7, -17.6, -34.8) world units
+inject: eye=1 final view translation = (265.6, -1486.9, 434.5)
+inject: eye=1 packed view translation IN MEMORY = (0.0, -1411.0, 665.0) [floats 3,7,11 at 00007FF72D2E3650]
+inject: eye=1 uid[1] (uViewMatrix location) = 131, shader=11
+inject: SEPARATION between eyes = 26.24 world units (dx=26.24 dy=0.00 dz=0.00)
+effects: texture slot 3 layer 94 classified as 3
+effects: texture slot 3 layer 108 classified as 2
+effects: texture slot 3 layer 109 classified as 1
+cull: head-frustum portal traversal live on Tomb Raider I -- frustum 124.0 x 126.0 degrees, depth<=16, 4096 portals/frame budget
+sky: first DrawSkyHD draw (shader 1) -- rotation-only eye transform, far-plane depth
+dynbones: TR1-3 Lara: 15 skeleton joints, 32-slot GPU upload
+dynbones: locked to shader 16 (15 joints) -- the latch stays here so the drive stays continuous
+vr: ceiling clamp paused for jump state=15 first=0
+boneskin: measured buffer 11 -- 8382 vertices, 1966 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+boneskin: front of the torso is local +Z (30 samples, mean alignment 1.00 with Lara's facing)
+boneskin: torso shape, side view -- BACK on the left, FRONT on the right, top row is the neck end. x -63..63  y -244..-71  depth -81..75
+boneskin:   |         :....          |
+boneskin:   |        ...:...         |
+boneskin:   |   . .:.-:.:-:-.        |
+boneskin:   |.-. . :.......:-.       |
+boneskin:   |:.     ........:..      |
+boneskin:   |:.-:.:-..............   |
+boneskin:   |@.     .... ..... ..... |
+boneskin:   |%:     ........ . . ...:|
+boneskin:   |-:............ . . . ..:|
+boneskin:   |.:.. . .:.  . . . ......|
+boneskin:   |  .. . .... .  .. ....  |
+boneskin:   |         ... . . . ..   |
+boneskin:   |          .... . ...    |
+boneskin:   |            .. .....    |
+boneskin: front profile, neck to waist: -3 13 13 15 22 26 35 43 60 69 75 75 75 72 68 56 51 47 47 46
+boneskin: chest region (measured bust) -- height -180..-109 of -244..-71, depth from 28 forward (front 75, belly line 49), within 43 of centre. Selects 109 torso vertices at full weight (y -170..-118) and 62 partly.
+boneskin: live -- Lara's body (shader 16) now deforms per vertex, and the whole-torso view has stood down
+firstperson: Y+LT switched to FIRST PERSON
+firstperson: anchored to joint 14 at (75254,2132,3730) -- Lara at (75264,2907,3652), frac 15/256, yaw 0 from the game camera (room 0)
+firstperson: taking the neutral head position now that first person is live -- press the recenter key to set it again
+locomotion: aligned base=-4.0 body=0.0 controls=modern
+firstperson: camera handoff resumed type=0 level=1 standing-eye=0 offset=(0.0,0.0,0.0)
+firstperson: jump view level=1 first=0 frames=97 repeatedY=4 lateFrames=8 maxStepY=32
+firstperson shadow: receiver origin native=(75264,1733,3106) FP=(75254,2132,3730); light camera isolated
+cull: first-person eye in room 0; game camera seeded room 0
+firstperson: motion state enabled=0 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=28 head=-0.0 body=0.0 cam=0.0 manual=(+0.00,+0.00) pending=(+0.001,+0.001)m drag=(+0.000,+0.000)m input=00000000
+firstperson: LaraGun status 0 -> 0 input=00000000 applied=00000000 LT=0 hp=1000 state=28
+firstperson: jump view level=1 first=1 frames=4 repeatedY=0 lateFrames=0 maxStepY=52
+locomotion: state=2 head=-4.5 body=-4.5 cam=-4.5 manual=(-0.30,+0.95) pending=(+0.004,+0.006)m drag=(+0.000,+0.000)m input=00002001
+firstperson: resolved body fit yaw=-6.0 base=-10.1 offset=(0.0,0.0) pending=(0.003,0.008)m
+locomotion: state=1 head=-6.7 body=-6.7 cam=-6.7 manual=(-0.34,+0.94) pending=(+0.002,+0.011)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=0.4 body=0.4 cam=0.4 manual=(-0.23,+0.97) pending=(+0.001,+0.011)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=1.9 body=1.9 cam=1.9 manual=(-0.20,+0.98) pending=(+0.001,+0.012)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-0.7 body=-0.7 cam=-0.7 manual=(-0.25,+0.97) pending=(-0.002,+0.010)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-1.6 body=-1.6 cam=-1.6 manual=(-0.27,+0.96) pending=(-0.003,+0.010)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-1.7 body=-1.7 cam=-1.7 manual=(+0.00,+0.00) pending=(-0.003,+0.011)m drag=(+0.000,+0.000)m input=00000000
+vr: ceiling clamp paused for jump state=3 first=1
+locomotion: state=3 head=-1.6 body=-1.7 cam=-1.6 manual=(+0.00,+0.00) pending=(-0.003,+0.011)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=3 head=-1.7 body=-1.7 cam=-1.7 manual=(+0.00,+0.00) pending=(-0.003,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=3 head=-2.1 body=-1.7 cam=-2.1 manual=(+0.00,+0.00) pending=(-0.003,+0.012)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=78 repeatedY=0 lateFrames=5 maxStepY=49
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+boneskin: measured buffer 49 -- 2166 vertices, 0 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+locomotion: state=2 head=-2.3 body=-2.3 cam=-2.3 manual=(+0.00,+0.00) pending=(-0.003,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-2.5 body=-2.5 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.003,+0.011)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=-2.5 base=-6.1 offset=(1.1,0.3) pending=(-0.003,0.011)m
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=-2.5 body=-2.5 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.003,+0.011)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=-2.5 body=-2.5 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.002,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=-2.6 body=-2.5 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.002,+0.013)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=-2.6 body=-2.5 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.002,+0.012)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=8 lateFrames=8 maxStepY=122
+locomotion: state=2 head=-2.6 body=-2.6 cam=-2.6 manual=(+0.00,+0.00) pending=(-0.002,+0.012)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-2.7 body=-2.7 cam=-2.7 manual=(+0.00,+0.00) pending=(-0.002,+0.012)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=-2.7 body=-2.7 cam=-2.7 manual=(+0.00,+0.00) pending=(-0.002,+0.012)m drag=(+0.000,+0.000)m input=00000000
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=-2.7 body=-2.7 cam=-2.7 manual=(+0.00,+0.00) pending=(-0.002,+0.013)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=-2.7 body=-2.7 cam=-2.8 manual=(+0.00,+0.00) pending=(-0.002,+0.012)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=28 head=-2.8 body=-2.7 cam=-2.8 manual=(+0.00,+0.00) pending=(-0.002,+0.013)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=-2.8 body=-2.7 cam=-2.8 manual=(+0.00,+0.00) pending=(-0.002,+0.013)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=7 lateFrames=7 maxStepY=184
+locomotion: state=2 head=-2.8 body=-2.8 cam=-2.8 manual=(+0.00,+0.00) pending=(-0.002,+0.014)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=-3.0 base=-6.1 offset=(1.6,0.6) pending=(-0.002,0.014)m
+locomotion: state=1 head=-3.0 body=-3.0 cam=-3.0 manual=(-0.07,+1.00) pending=(-0.002,+0.014)m drag=(+0.000,+0.000)m input=00002001
+vr: ceiling clamp paused for jump state=3 first=1
+locomotion: state=3 head=-3.0 body=-3.0 cam=-3.0 manual=(+0.00,+0.00) pending=(-0.002,+0.014)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=3 head=-3.0 body=-3.0 cam=-3.0 manual=(+0.00,+0.00) pending=(-0.002,+0.015)m drag=(+0.000,+0.000)m input=00000000
+stereo health @frame 1800 [Tomb Raider I]: world draws=77652  duplicated=41653  injected eye0=38826 eye1=38826  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=1732  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(61.6, 21.4, -29.2) prog=34 loc=129  eye1=(21.1, 21.4, -29.2) prog=34 loc=129  separation=40.55
+halves: 23 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF72D2E3270  mProj[1](persp)=00007FF72D2E32B0
+  proj=00007FF72D2E3270  draws=5655     ortho/2D
+  proj=00007FF72D2E32B0  draws=77652    perspective/world
+cull: 5.0 rooms/frame from the engine + 0.0 added by the head frustum, 4.8 items rescued/frame
+locomotion: state=3 head=-3.1 body=-3.0 cam=-3.1 manual=(+0.00,+0.00) pending=(-0.002,+0.015)m drag=(+0.000,+0.000)m input=00000000
+dynbones: joints=15 shader=16 lock=16  frames=900 dup=1% snaps=0  drive_peak=728.3 accel_raw=2611957 drive_used=0  disp_peak=27.92  L=(-0.05,8.37,1.84) R=(-0.05,8.37,1.84)
+dynbones: engine drive -- jumps=5 lands=4  last landing fallspeed=100 (airborne now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=3 head=-3.3 body=-3.0 cam=-3.3 manual=(+0.00,+0.00) pending=(-0.002,+0.015)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=92 repeatedY=0 lateFrames=6 maxStepY=66
+locomotion: state=2 head=-19.5 body=-19.6 cam=-19.5 manual=(+0.00,+0.00) pending=(+0.002,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=-16.0 body=-16.0 cam=-16.0 manual=(-0.47,+0.88) pending=(+0.000,+0.002)m drag=(+0.000,+0.000)m input=00002001
+vr: ceiling clamp paused for jump state=3 first=1
+locomotion: state=3 head=-15.3 body=-15.3 cam=-15.3 manual=(+0.00,+0.00) pending=(+0.001,+0.003)m drag=(+0.000,+0.000)m input=00100010
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=3 head=-4.5 body=-15.3 cam=-4.5 manual=(+0.00,+0.00) pending=(+0.002,+0.005)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=3 head=-1.3 body=-15.3 cam=-1.3 manual=(+0.00,+0.00) pending=(+0.002,+0.008)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=72 repeatedY=0 lateFrames=5 maxStepY=59
+locomotion: state=2 head=11.7 body=11.7 cam=11.7 manual=(+0.00,+0.00) pending=(+0.000,+0.006)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=11.4 base=5.5 offset=(-2.3,-1.2) pending=(0.000,0.005)m
+locomotion: state=2 head=11.0 body=11.0 cam=11.0 manual=(+0.00,+0.00) pending=(+0.000,+0.006)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=10.3 body=10.3 cam=10.3 manual=(+0.10,+1.00) pending=(-0.000,+0.006)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=10.2 body=10.2 cam=10.2 manual=(+0.00,+0.00) pending=(+0.000,+0.006)m drag=(+0.000,+0.000)m input=00000000
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=10.2 body=10.2 cam=10.2 manual=(+0.00,+0.00) pending=(-0.000,+0.006)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=10.2 body=10.2 cam=10.2 manual=(+0.00,+0.00) pending=(+0.000,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=10.1 body=10.2 cam=10.2 manual=(+0.00,+0.00) pending=(+0.000,+0.008)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=10.1 body=10.2 cam=10.2 manual=(+0.00,+0.00) pending=(+0.000,+0.008)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=99 repeatedY=6 lateFrames=6 maxStepY=115
+locomotion: state=2 head=5.4 body=5.4 cam=5.4 manual=(+0.00,+0.00) pending=(+0.001,+0.007)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=1 head=5.5 body=5.5 cam=5.5 manual=(+0.02,+0.80) pending=(+0.001,+0.008)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=5.6 body=5.6 cam=5.6 manual=(+0.04,+1.00) pending=(+0.002,+0.008)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=5.6 body=5.6 cam=5.6 manual=(+0.00,+0.00) pending=(+0.001,+0.008)m drag=(+0.000,+0.000)m input=00100010
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=5.6 body=5.6 cam=5.6 manual=(+0.00,+0.00) pending=(+0.001,+0.008)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=5.6 body=5.6 cam=5.6 manual=(+0.00,+0.00) pending=(+0.001,+0.008)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=5.7 body=5.6 cam=5.6 manual=(+0.00,+0.00) pending=(+0.001,+0.010)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=5.6 body=5.6 cam=5.6 manual=(+0.00,+0.00) pending=(+0.001,+0.010)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=6 lateFrames=8 maxStepY=115
+locomotion: state=2 head=5.6 body=5.6 cam=5.6 manual=(+0.00,+0.00) pending=(+0.001,+0.010)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=5.6 base=0.8 offset=(-0.4,-0.2) pending=(0.001,0.010)m
+locomotion: state=1 head=5.6 body=5.6 cam=5.6 manual=(-0.02,+0.70) pending=(+0.002,+0.010)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=5.6 body=5.6 cam=5.6 manual=(+0.00,+0.00) pending=(+0.001,+0.011)m drag=(+0.000,+0.000)m input=00000000
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=5.5 body=5.6 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.011)m drag=(+0.000,+0.000)m input=00100010
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=28 head=5.5 body=5.6 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=5.5 body=5.6 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=5.6 body=5.6 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.011)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=5 lateFrames=7 maxStepY=115
+locomotion: state=2 head=5.6 body=5.6 cam=5.6 manual=(+0.05,+0.82) pending=(+0.001,+0.011)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=5.5 body=5.5 cam=5.5 manual=(+0.05,+0.89) pending=(+0.001,+0.012)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=5.5 body=5.5 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.013)m drag=(+0.000,+0.000)m input=00100010
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=5.5 body=5.5 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.013)m drag=(+0.000,+0.000)m input=00100010
+dynbones: joints=15 shader=16 lock=16  frames=1800 dup=2% snaps=0  drive_peak=88.1 accel_raw=282600 drive_used=0  disp_peak=29.95  L=(-0.10,9.12,-0.67) R=(-0.10,9.12,-0.67)
+dynbones: engine drive -- jumps=10 lands=9  last landing fallspeed=100 (airborne now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=28 head=5.6 body=5.5 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.013)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=5.6 body=5.5 cam=5.5 manual=(+0.00,+0.00) pending=(+0.001,+0.013)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=5.9 body=5.5 cam=1.4 manual=(+0.00,+0.00) pending=(+0.002,+0.012)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=7 lateFrames=7 maxStepY=116
+locomotion: state=2 head=10.9 body=10.6 cam=10.9 manual=(+0.00,+0.00) pending=(+0.001,+0.000)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: resolved body fit yaw=12.0 base=-2.0 offset=(-10.9,-4.2) pending=(0.001,-0.006)m
+locomotion: state=1 head=6.1 body=6.1 cam=6.1 manual=(+0.01,+1.00) pending=(+0.002,-0.008)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=1.2 body=1.2 cam=1.2 manual=(-0.17,+0.99) pending=(+0.001,+0.015)m drag=(+0.000,+0.000)m input=40002001
+locomotion: state=1 head=3.4 body=3.4 cam=3.4 manual=(-0.18,+0.98) pending=(+0.001,+0.018)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=4.2 body=4.1 cam=4.2 manual=(+0.00,+0.00) pending=(+0.002,+0.018)m drag=(+0.000,+0.000)m input=00000000
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=4.3 body=4.3 cam=4.3 manual=(+0.00,+0.00) pending=(+0.002,+0.018)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=4.1 body=4.3 cam=4.1 manual=(+0.00,+0.00) pending=(+0.002,+0.018)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=4.1 body=4.3 cam=4.1 manual=(+0.00,+0.00) pending=(+0.002,+0.018)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=4.0 body=4.3 cam=4.1 manual=(+0.00,+0.00) pending=(+0.002,+0.019)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=6 lateFrames=7 maxStepY=116
+locomotion: state=2 head=4.0 body=4.0 cam=4.0 manual=(+0.06,+0.24) pending=(+0.003,+0.019)m drag=(+0.000,+0.000)m input=00000001
+locomotion: state=1 head=4.5 body=4.5 cam=4.5 manual=(-0.11,+0.96) pending=(+0.003,+0.020)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+locomotion: state=1 head=7.6 body=7.6 cam=7.6 manual=(-0.06,+0.96) pending=(+0.008,+0.019)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+firstperson: resolved body fit yaw=7.9 base=-2.0 offset=(-5.9,-2.5) pending=(0.008,0.019)m
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+locomotion: state=1 head=13.4 body=13.4 cam=13.4 manual=(+0.07,+0.95) pending=(+0.004,+0.010)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+locomotion: state=1 head=12.7 body=12.7 cam=12.7 manual=(+0.08,+0.93) pending=(+0.004,+0.014)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+cull: first-person eye in room 6; game camera seeded room 0
+cull: first-person eye in room 6; game camera seeded room 6
+locomotion: state=1 head=6.7 body=7.0 cam=6.7 manual=(+0.00,+0.00) pending=(+0.011,+0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=1.5 body=1.5 cam=1.5 manual=(+0.00,+0.00) pending=(+0.003,+0.003)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=9.0 body=8.6 cam=9.0 manual=(+0.00,+0.00) pending=(+0.001,+0.005)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=13.1 body=13.3 cam=13.1 manual=(+0.00,+0.00) pending=(-0.003,+0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=6.1 body=6.0 cam=6.1 manual=(+0.00,+0.00) pending=(-0.005,-0.019)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=3.5 body=3.4 cam=3.5 manual=(+0.00,+0.00) pending=(+0.001,+0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=1.7 body=1.8 cam=1.7 manual=(+0.00,+0.00) pending=(+0.010,+0.008)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=2 head=1.6 body=1.6 cam=1.6 manual=(+0.00,+0.00) pending=(+0.008,+0.014)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=1.6 base=-17.9 offset=(-15.4,-11.5) pending=(0.008,0.014)m
+locomotion: state=2 head=2.6 body=2.7 cam=2.6 manual=(+0.00,+0.00) pending=(+0.010,+0.019)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=3.3 body=3.4 cam=3.3 manual=(+0.00,+0.00) pending=(+0.012,+0.017)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-14.2 body=-14.4 cam=-14.2 manual=(+0.00,+0.00) pending=(+0.004,+0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-8.3 body=-8.6 cam=-8.3 manual=(+0.00,+0.00) pending=(-0.009,+0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-7.4 body=-7.3 cam=-7.3 manual=(+0.00,+0.00) pending=(-0.011,+0.016)m drag=(+0.000,+0.000)m input=00000000
+perf: 59.9 fps rendered
+stereo health @frame 3600 [Tomb Raider I]: world draws=140378  duplicated=70189  injected eye0=70189 eye1=70189  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(12.2, 3.8, -71.2) prog=106 loc=45  eye1=(-8.0, 3.8, -71.2) prog=106 loc=45  separation=20.23
+halves: 22 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF72D2E3270  mProj[1](persp)=00007FF72D2E32B0
+  proj=00007FF72D2E3270  draws=5655     ortho/2D
+  proj=00007FF72D2E32B0  draws=218030   perspective/world
+cull: 4.4 rooms/frame from the engine + 0.1 added by the head frustum, 1.5 items rescued/frame
+locomotion: state=2 head=-6.4 body=-6.6 cam=-6.4 manual=(+0.00,+0.00) pending=(-0.005,+0.012)m drag=(+0.000,+0.000)m input=00000000
+dynbones: joints=15 shader=16 lock=16  frames=2700 dup=1% snaps=0  drive_peak=47.7 accel_raw=139274 drive_used=0  disp_peak=27.91  L=(-0.09,8.54,-0.75) R=(-0.09,8.54,-0.75)
+dynbones: engine drive -- jumps=11 lands=11  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=2 head=-7.3 body=-6.9 cam=-7.3 manual=(+0.00,+0.00) pending=(-0.006,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-0.6 body=-0.9 cam=-0.6 manual=(+0.00,+0.00) pending=(-0.005,+0.004)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=6.2 body=6.1 cam=6.2 manual=(+0.00,+0.00) pending=(+0.007,-0.003)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=2 head=5.1 body=5.2 cam=5.1 manual=(+0.00,+0.00) pending=(+0.000,-0.000)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=5.0 base=-17.9 offset=(-19.3,-13.3) pending=(0.000,-0.000)m
+locomotion: state=2 head=6.0 body=5.9 cam=6.0 manual=(+0.00,+0.00) pending=(+0.001,+0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=6.3 body=6.3 cam=6.3 manual=(+0.00,+0.00) pending=(+0.001,-0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=5.9 body=5.9 cam=5.9 manual=(+0.00,+0.00) pending=(+0.006,+0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-1.4 body=-0.2 cam=-1.4 manual=(+0.00,+0.00) pending=(+0.009,-0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-8.9 body=-8.7 cam=-8.9 manual=(+0.00,+0.00) pending=(+0.006,-0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-7.7 body=-7.9 cam=-7.7 manual=(+0.00,+0.00) pending=(+0.007,+0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-7.4 body=-7.3 cam=-7.4 manual=(+0.00,+0.00) pending=(+0.006,+0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-8.1 body=-8.1 cam=-8.1 manual=(+0.00,+0.00) pending=(+0.004,+0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-6.1 body=-6.3 cam=-6.1 manual=(+0.00,+0.00) pending=(+0.005,+0.001)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=2 head=3.6 body=3.4 cam=3.5 manual=(+0.00,+0.00) pending=(-0.003,-0.006)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=3.4 base=-17.9 offset=(-17.3,-12.5) pending=(-0.003,-0.006)m
+locomotion: state=2 head=2.6 body=2.5 cam=2.6 manual=(+0.00,+0.00) pending=(+0.005,-0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-0.7 body=-0.4 cam=-0.6 manual=(+0.00,+0.00) pending=(-0.004,-0.023)m drag=(+0.000,-0.002)m input=00000000
+locomotion: state=1 head=-3.5 body=-3.5 cam=-3.5 manual=(-0.16,+0.86) pending=(-0.006,-0.005)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-3.4 body=-3.4 cam=-3.4 manual=(-0.28,+0.96) pending=(-0.004,-0.006)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-3.9 body=-3.9 cam=-3.9 manual=(-0.30,+0.95) pending=(-0.004,-0.006)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-3.6 body=-3.6 cam=-3.6 manual=(-0.34,+0.94) pending=(-0.004,-0.006)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-3.2 body=-3.2 cam=-3.2 manual=(-0.33,+0.94) pending=(-0.003,-0.005)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-2.8 body=-2.8 cam=-2.8 manual=(+0.00,+0.00) pending=(-0.003,-0.003)m drag=(+0.000,+0.000)m input=00000000
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=-2.6 body=-2.6 cam=-2.6 manual=(+0.00,+0.00) pending=(-0.004,-0.002)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=-2.4 body=-2.6 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.003,-0.001)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=28 head=-2.4 body=-2.6 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.003,+0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=-2.6 body=-2.6 cam=-2.5 manual=(+0.00,+0.00) pending=(-0.002,-0.001)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=6 lateFrames=6 maxStepY=115
+firstperson: Y+LT switched to third person
+dynbones: joints=15 shader=16 lock=16  frames=3600 dup=1% snaps=1  drive_peak=1652.9 accel_raw=311402 drive_used=0  disp_peak=27.90  L=(-0.14,8.40,1.67) R=(-0.14,8.40,1.67)
+dynbones: engine drive -- jumps=12 lands=12  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+boneskin: measured buffer 15 -- 1247 vertices, 0 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+vr: ceiling clamp paused for jump state=3 first=0
+firstperson: jump view level=1 first=0 frames=76 repeatedY=3 lateFrames=5 maxStepY=82
+perf: 60.0 fps rendered
+stereo health @frame 5400 [Tomb Raider I]: world draws=118264  duplicated=59134  injected eye0=59132 eye1=59132  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(8.5, 15.9, -79.3) prog=112 loc=31  eye1=(-7.8, 15.9, -79.3) prog=112 loc=31  separation=16.28
+halves: 22 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF72D2E3270  mProj[1](persp)=00007FF72D2E32B0
+  proj=00007FF72D2E3270  draws=5659     ortho/2D
+  proj=00007FF72D2E32B0  draws=336294   perspective/world
+cull: 3.6 rooms/frame from the engine + 0.1 added by the head frustum, 0.8 items rescued/frame
+vr: ceiling clamp paused for jump state=15 first=0
+dynbones: joints=15 shader=16 lock=16  frames=4500 dup=1% snaps=1  drive_peak=212.6 accel_raw=467841 drive_used=0  disp_peak=24.78  L=(-0.04,4.03,7.61) R=(-0.04,4.03,7.61)
+dynbones: engine drive -- jumps=13 lands=13  last landing fallspeed=86 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+firstperson: jump view level=1 first=0 frames=100 repeatedY=7 lateFrames=7 maxStepY=31
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=8 lateFrames=7 maxStepY=48
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=4 lateFrames=7 maxStepY=55
+dynbones: joints=15 shader=16 lock=16  frames=5400 dup=0% snaps=1  drive_peak=127.6 accel_raw=349050 drive_used=0  disp_peak=28.02  L=(-0.19,8.26,1.92) R=(-0.19,8.26,1.92)
+dynbones: engine drive -- jumps=16 lands=16  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+vr: ceiling clamp paused for jump state=3 first=0
+firstperson: jump view level=1 first=0 frames=30 repeatedY=0 lateFrames=2 maxStepY=23
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=11 lateFrames=6 maxStepY=69
+perf: 60.0 fps rendered
+stereo health @frame 7200 [Tomb Raider I]: world draws=143410  duplicated=71705  injected eye0=71705 eye1=71705  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(17.6, -0.8, -62.3) prog=112 loc=31  eye1=(-7.0, -0.8, -62.3) prog=112 loc=31  separation=24.55
+halves: 20 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF72D2E3270  mProj[1](persp)=00007FF72D2E32B0
+  proj=00007FF72D2E3270  draws=5659     ortho/2D
+  proj=00007FF72D2E32B0  draws=479704   perspective/world
+cull: 4.6 rooms/frame from the engine + 0.6 added by the head frustum, 1.3 items rescued/frame
+dynbones: joints=15 shader=16 lock=16  frames=6300 dup=0% snaps=1  drive_peak=196.9 accel_raw=660204 drive_used=0  disp_peak=27.88  L=(-0.07,8.59,-0.14) R=(-0.07,8.59,-0.14)
+dynbones: engine drive -- jumps=18 lands=18  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=8 lateFrames=7 maxStepY=32
+firstperson: jump view level=1 first=0 frames=88 repeatedY=3 lateFrames=6 maxStepY=31
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=6 lateFrames=7 maxStepY=88
+dynbones: joints=15 shader=16 lock=16  frames=7200 dup=0% snaps=1  drive_peak=101.4 accel_raw=257637 drive_used=0  disp_peak=27.94  L=(-0.09,8.56,-0.47) R=(-0.09,8.56,-0.47)
+dynbones: engine drive -- jumps=21 lands=21  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=9 lateFrames=6 maxStepY=79
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=6 lateFrames=7 maxStepY=33
+vr: ceiling clamp paused for jump state=3 first=0
+firstperson: jump view level=1 first=0 frames=78 repeatedY=3 lateFrames=5 maxStepY=35
+perf: 59.9 fps rendered
+stereo health @frame 9000 [Tomb Raider I]: world draws=97062  duplicated=48613  injected eye0=48531 eye1=48531  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(28.6, -6.0, -60.4) prog=112 loc=31  eye1=(3.1, -6.0, -60.4) prog=112 loc=31  separation=25.44
+halves: 15 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF72D2E3270  mProj[1](persp)=00007FF72D2E32B0
+  proj=00007FF72D2E3270  draws=5823     ortho/2D
+  proj=00007FF72D2E32B0  draws=576766   perspective/world
+cull: 2.0 rooms/frame from the engine + 0.2 added by the head frustum, 0.4 items rescued/frame
+dynbones: joints=15 shader=16 lock=16  frames=8100 dup=0% snaps=1  drive_peak=94.8 accel_raw=274100 drive_used=0  disp_peak=28.06  L=(-0.20,8.25,2.27) R=(-0.20,8.25,2.27)
+dynbones: engine drive -- jumps=24 lands=24  last landing fallspeed=92 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=10 lateFrames=7 maxStepY=32
+vr: ceiling clamp paused for jump state=3 first=0
+firstperson: jump view level=1 first=0 frames=78 repeatedY=5 lateFrames=5 maxStepY=44
+dynbones: joints=15 shader=16 lock=16  frames=9000 dup=0% snaps=1  drive_peak=112.9 accel_raw=1261500 drive_used=0  disp_peak=27.88  L=(0.00,8.27,2.22) R=(0.00,8.27,2.22)
+dynbones: engine drive -- jumps=26 lands=26  last landing fallspeed=92 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+perf: 59.9 fps rendered
+stereo health @frame 10800 [Tomb Raider I]: world draws=130266  duplicated=65133  injected eye0=65133 eye1=65133  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(25.2, -2.7, -63.3) prog=112 loc=31  eye1=(1.2, -2.7, -63.3) prog=112 loc=31  separation=24.07
+halves: 15 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF72D2E3270  mProj[1](persp)=00007FF72D2E32B0
+  proj=00007FF72D2E3270  draws=5823     ortho/2D
+  proj=00007FF72D2E32B0  draws=707032   perspective/world
+cull: 4.0 rooms/frame from the engine + 0.3 added by the head frustum, 1.8 items rescued/frame
+dynbones: joints=15 shader=16 lock=16  frames=9900 dup=0% snaps=1  drive_peak=185.3 accel_raw=208333 drive_used=0  disp_peak=8.79  L=(-0.09,8.54,-0.70) R=(-0.09,8.54,-0.70)
+dynbones: engine drive -- jumps=26 lands=26  last landing fallspeed=92 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=6 lateFrames=7 maxStepY=27
+vr: ceiling clamp paused for jump state=3 first=0
+firstperson: jump view level=1 first=0 frames=68 repeatedY=3 lateFrames=4 maxStepY=28
+dynbones: joints=15 shader=16 lock=16  frames=10800 dup=0% snaps=1  drive_peak=92.6 accel_raw=385556 drive_used=0  disp_peak=27.80  L=(-0.09,8.54,-0.76) R=(-0.09,8.54,-0.76)
+dynbones: engine drive -- jumps=28 lands=28  last landing fallspeed=62 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=99 repeatedY=8 lateFrames=7 maxStepY=33
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=88 repeatedY=4 lateFrames=6 maxStepY=69
+perf: 59.9 fps rendered
+stereo health @frame 12600 [Tomb Raider I]: world draws=147762  duplicated=73881  injected eye0=73881 eye1=73881  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(26.0, -9.3, -56.4) prog=112 loc=31  eye1=(-1.4, -9.3, -56.4) prog=112 loc=31  separation=27.37
+halves: 16 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF72D2E3270  mProj[1](persp)=00007FF72D2E32B0
+  proj=00007FF72D2E3270  draws=5823     ortho/2D
+  proj=00007FF72D2E32B0  draws=854794   perspective/world
+cull: 4.4 rooms/frame from the engine + 0.4 added by the head frustum, 2.3 items rescued/frame  *** A BUDGET WAS HIT -- raise CullMaxPortals/CullMaxDepth ***
+dynbones: joints=15 shader=16 lock=16  frames=11700 dup=0% snaps=1  drive_peak=223.6 accel_raw=724571 drive_used=0  disp_peak=27.92  L=(-0.09,8.54,-0.70) R=(-0.09,8.54,-0.70)
+dynbones: engine drive -- jumps=30 lands=30  last landing fallspeed=97 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+hook[DrawLaraHD]: removed
+hook[shader_init]: removed
+hook[effect texture update]: removed
+hook[effect texture create]: removed
+hook[effect upscale load]: removed
+hook[effect texture load]: removed
+pad: _XInputGetState restored
+hook[LaraAboveWater]: removed
+hook[LaraGun]: removed
+hook[AnimateLara]: removed
+hook[MovableBlockCollision]: removed
+hook[CalculateLaraMatrices]: removed
+hook[DrawActionIndicators]: removed
+hook[DrawHair]: removed
+hook[DrawCreatureHD]: removed
+hook[GetJoints]: removed
+hook[GetTargetOnLOS]: removed
+hook[AnimatePistols]: removed
+hook[FireWeapon]: removed
+hook[DrawGunFlash]: removed
+hook[shotgun effect wrist position]: removed
+hook[DrawToShadow]: removed
+hook[phd_GenerateW2V]: removed
+hook[DrawSkyHD]: removed
+hook[S_GetObjectBounds]: removed
+hook[PrintRoomsList]: removed
+hook[ogl_setRenderTarget]: removed
+hook[fmvShow]: removed
+hook[ogl_present]: removed
+hook[ogl_draw]: removed
+hook[validate_draw]: removed
+hook[vid_setPass]: removed
