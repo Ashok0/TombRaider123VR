@@ -31,6 +31,8 @@ bool VRSystem::ControllerHeightBelowHead(int hand,float& down) const {
     down=testHandDown[hand]; return testPoseAvailable;
 }
 int testHapticShots[2]{};
+int testLedgeCatches=0;
+void VRSystem::LedgeCatchHaptic() { ++testLedgeCatches; }
 void VRSystem::GunShotHaptic(int hand) { if (hand>=0 && hand<2) ++testHapticShots[hand]; }
 float testViewRight=0, testViewForward=0, testViewRise=0, testHeadPitch=0;
 int testPivotCount=0;
@@ -165,7 +167,7 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     testWater=0; testConfigFlags=0; testLevelType=0; testPoseAvailable=true;
     g_runtimeEnabled=g_active=g_haveHeading=g_haveManualInput=true;
     g_headingItem=item; g_heading.base=heading; g_headingLevel=0;
-    g_ledgePull.Reset(); g_groundJump.Reset(); g_groundJump.Bind(item,0); testHandDown[0]=testHandDown[1]=0;
+    g_ledgeCatch.Reset(); testLedgeCatches=0; g_ledgePull.Reset(); g_groundJump.Reset(); g_groundJump.Bind(item,0); testHandDown[0]=testHandDown[1]=0;
     for (auto& pose:testControllerPose) { pose={}; pose.m[0][0]=pose.m[1][1]=pose.m[2][2]=1; }
     g_manualLocal=stick; g_manualWorld=MovementWorld(stick,heading);
     g_shifted=g_jumpPressed=false;
@@ -325,6 +327,7 @@ void TestResponsiveEntry() {
 
 #include "ledge_pull_selftest.h"
 #include "jump_priority_selftest.h"
+#include "ledge_catch_selftest.h"
 
 int main() {
     const struct { Vec stick; int gait; } directions[]={
@@ -411,6 +414,7 @@ int main() {
     TestResponsiveEntry();
     TestGunControls();
     TestGunHaptics();
+    TestLedgeCatchHaptics();
     TestCameraClearance();
     TestJumpRoll();
     TestArmVisibility();

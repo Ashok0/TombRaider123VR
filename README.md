@@ -61,6 +61,27 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### Ledge catch impact rumble (2026-10-09)
+
+Catching a ledge after a substantial jump or fall now gives **both motion
+controllers a brief 120 ms maximum-strength rumble** in TR1, TR2 and TR3, in
+first or third person. Feedback follows the successful native collision/grab,
+not the grab button or the start of an animation.
+
+A qualifying flight has at least 10 airborne simulation ticks (about one third
+of a second) and either 768 units of horizontal displacement or 512 units of
+vertical excursion. A classic tile is 1024 units. Travel is measured before the
+collision snaps Lara onto the ledge. Small grabs, failed catches, monkey bars,
+ladder transitions, ordinary hanging and shimmying do not produce repeated
+bursts. Changing Lara/level, unavailable gameplay/tracking or a large position
+discontinuity clears the flight history.
+
+The shared pulse scheduler uses full-strength 3999-microsecond OpenVR pulses,
+spaced at least 5 ms apart. Gun rumble remains independent per hand and cannot
+shorten an active ledge impact. This is an observer of native movement: input,
+animation, collision, camera, IK and jiggle physics are unchanged. Automated
+catch and pulse tests pass; headset confirmation of the feel remains pending.
+
 ### Late stopping jump correction in both views (2026-10-09)
 
 Jump priority now works in **first and third person**. The first implementation
@@ -1814,8 +1835,24 @@ shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 late-stop jump correction for both views** Release/x64
-DLL is installed with verified SHA-256:
+The current **2026-10-09 ledge catch impact rumble** Release/x64 DLL is
+installed with verified SHA-256:
+`C095E252403DBC0A3A3E4DC76969157099A4ED3016561B1F6C6E4EBA22E1548A`.
+The preceding DLL, INI and log are backed up under
+`build/before-ledge-catch-haptics-20261009-171146/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ledge-catch-haptics/deployment.json).
+
+**748,009** production movement/control/camera/IK/shadow/gesture/haptic checks
+and **66,162** tracking/eye/projection checks pass. Coverage includes successful
+large jump/fall catches, exclusions, both views, one burst per catch, maximum
+pulse duration, both hands and coexistence with gun rumble. Installed game
+hashes match the verified retail update; native addresses and hook windows are
+unchanged. Release/x64 built without warnings. Headset confirmation is pending.
+
+The preceding **2026-10-09 late-stop jump correction for both views** Release/x64
+DLL was installed with verified SHA-256:
 `B3DC1B95AB82BB4F5C71AF21DBE8C5A848773A45F79AD1D73DB3185A1986E5FF`.
 The preceding DLL, INI and log are backed up under
 `build/before-jump-stop-handoff-20261009-165111/`.

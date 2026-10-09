@@ -592,6 +592,10 @@ float VRSystem::HudNdcShiftX(Eye eye, float depthMetres) const {
     return -p02 + s * p00 * halfSep / depthW;
 }
 
+void VRSystem::LedgeCatchHaptic() {
+    if (m_system) m_gunHaptics.LedgeCatch(GetTickCount64());
+}
+
 void VRSystem::GunShotHaptic(int hand) {
     if (m_system) m_gunHaptics.Shot(hand,GetTickCount64());
 }

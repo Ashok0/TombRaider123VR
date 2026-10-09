@@ -121,6 +121,7 @@ public:
     void ReadControllers(HandState out[2]) const;
     // Confirmed shot: strong 80 ms burst on [0] left / [1] right.
     void GunShotHaptic(int hand);
+    void LedgeCatchHaptic();
     bool ControllerPose(int hand, vr::HmdMatrix34_t& out) const;
     bool ControllerHeightBelowHead(int hand, float& down) const;
     bool FirstPersonControllerOffset(int hand, float& right, float& down,

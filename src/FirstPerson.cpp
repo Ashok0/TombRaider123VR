@@ -14,6 +14,7 @@
 #include "MotionGunInput.h"
 #include "FirstPersonIK.h"
 #include "LedgePullGesture.h"
+#include "LedgeCatchHaptics.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -258,6 +259,7 @@ stabilization::GroundEye g_groundEye;
 stabilization::MountBodyTransition g_mountBodyTransition;
 stabilization::MountRootHeight g_mountRootHeight;
 firstperson::LedgePullGesture g_ledgePull;
+LedgeCatchHaptics g_ledgeCatch;
 struct BlockCamera {
     const uint8_t* owner=nullptr;
     const uint8_t* items=nullptr;
@@ -2170,8 +2172,34 @@ struct LedgePullInputScope {
     }
 };
 
+bool CanObserveLedgeCatch(const uint8_t* item) {
+    return item && g_boundDll && g_boundBase && Cfg().enabled && VR().active() &&
+        VR().poseValid() && !InInventory() && !InTitle() && !InCutscene() &&
+        item==*Ptr<uint8_t*>(g_boundDll->laraItem) && LaraWaterStatus()==0 &&
+        *reinterpret_cast<const int16_t*>(item+off::item_hit_points)>0;
+}
+struct LedgeCatchScope {
+    uint8_t* item;
+    explicit LedgeCatchScope(uint8_t* target):item(target) {
+        if (!CanObserveLedgeCatch(item)) { g_ledgeCatch.Reset();return; }
+        const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
+        g_ledgeCatch.Before(true,item,AppFlag(drva::app_off::level),
+            *reinterpret_cast<const int16_t*>(item+off::item_anim_state),
+            (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u)!=0,
+            pos.x_pos,pos.y_pos,pos.z_pos);
+    }
+    ~LedgeCatchScope() {
+        if (!CanObserveLedgeCatch(item)) { g_ledgeCatch.Reset();return; }
+        const auto& pos=*reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos);
+        if (g_ledgeCatch.After(true,*reinterpret_cast<const int16_t*>(item+off::item_anim_state),
+                (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u)!=0,
+                pos.x_pos,pos.y_pos,pos.z_pos)) VR().LedgeCatchHaptic();
+    }
+};
+
 void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     using namespace locomotion;
+    LedgeCatchScope catchImpact(item);
     GroundJumpInputScope jumpInput(item,TurnTime());
     g_dragPrevious = g_dragCurrent;
     g_groundMoveAction = 0;
@@ -3000,7 +3028,7 @@ void Remove() {
     g_lastRawLT=0;
     g_lastGunTraceStatus=-1;
     g_haveHeading = false;
-    g_ledgePull.Reset(); g_groundJump.Reset();
+    g_ledgePull.Reset(); g_groundJump.Reset(); g_ledgeCatch.Reset();
     g_headingItem = nullptr;
     g_headingLevel = -1;
     g_groundEye.Reset();

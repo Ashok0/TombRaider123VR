@@ -166,6 +166,7 @@
     <ClInclude Include="src\FirstPersonIK.h" />
     <ClInclude Include="src\LocomotionMath.h" />
     <ClInclude Include="src\LedgePullGesture.h" />
+    <ClInclude Include="src\LedgeCatchHaptics.h" />
     <ClInclude Include="src\Sky.h" />
     <ClInclude Include="src\StereoMath.h" />
     <ClInclude Include="src\StereoRenderer.h" />

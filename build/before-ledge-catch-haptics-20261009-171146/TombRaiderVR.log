@@ -1,0 +1,1372 @@
+TombRaiderVR (Tomb Raider I-III Remastered): starting
+config: chest physics=on shader=1 apply=1 drive=1 strength=2.50
+config: mode=stereo tracking=rotation+position origin=seated units/m=423.0 ss=1.00 flipProjY=1 flipViewY=1 dup=1 flatHud=1
+config: culling=head frustum margin=8.0deg depth<=16 portals<=4096 far=0 widen=1 objects=1  sky=infinity
+config: startup camera=third person (always); Y+LT switches first/third person
+config: first person joint 14 offset (0,-32,144), interaction Z 16, stable VR heading, head translation ON, head hidden (mesh_bits bit 14)
+config: first person armed head aim=on
+config: first person body-follows-head=on (dead zone 0 deg, 4.0 deg/frame), move-with-head=on (camera-relative controls only)
+config: first person roomscale=on (dead zone 0.02 m, neck pivot 0.15 m, direct collision drag; turn 120 deg/sec)
+engine: build matched by PE timestamp 0x6AA156AA
+engine: bound to 00007FF736E10000 (reference base 0000000140000000, slide +140694385655808)
+engine: build identified as TR I-III Remastered (retail update, PE 0x6AA156AA, no PDB)
+hook[vid_setPass]: 00007FF736E1ABB0 -> 00007FFC05B75C50 (stole 6, tramp 00007FF74379000E)
+hook[validate_draw]: 00007FF736E1EFF0 -> 00007FFC05B75CF0 (stole 5, tramp 00007FF7437A000E)
+hook[ogl_draw]: 00007FF736E1FBF0 -> 00007FFC05B783A0 (stole 5, tramp 00007FF7437B000E)
+hook[ogl_present]: 00007FF736E1F690 -> 00007FFC05B78AA0 (stole 5, tramp 00007FF7437C000E)
+hook[fmvShow]: 00007FF736E1E640 -> 00007FFC05B78810 (stole 5, tramp 00007FF7437D000E)
+hook[ogl_setRenderTarget]: 00007FF736E203B0 -> 00007FFC05B75C30 (stole 13, tramp 00007FF7437E000E)
+hook[effect texture load]: 00007FF736E19BA0 -> 00007FFC05B72840 (stole 11, tramp 00007FF7437F000E)
+hook[effect upscale load]: 00007FF736E1A010 -> 00007FFC05B728F0 (stole 9, tramp 00007FF74380000E)
+hook[effect texture create]: 00007FF736E205A0 -> 00007FFC05B729A0 (stole 5, tramp 00007FF74381000E)
+hook[effect texture update]: 00007FF736E20770 -> 00007FFC05B72A90 (stole 5, tramp 00007FF74382000E)
+effects: built-in enhancement enabled; no replacement DDS files required
+hook[shader_init]: 00007FF736E1EC50 -> 00007FFC05B664B0 (stole 5, tramp 00007FF74383000E)
+hooks: all six installed
+TombRaiderVR: hooks installed; OpenVR will be brought up on the first frame
+gl: loader ready (shader api ready)
+boneskin: 26 skin program(s) matched, 26 patched, 0 fell back to the original
+engine: now running Tomb Raider I (gGame=0)
+pad: Touch controllers presented as an Xbox pad (_XInputGetState 00007FF7372293B0 -> 00007FFC05B74B40, real 00007FFC3E7E4EE0)
+pad: move=Lstick look=Rstick(yaw only; hold RT+RB for pitch) jump=A(R lower) roll=B(R upper) action=Y(L upper)/LB+RB(both grips) system=BACK(L lower) walk=LS+RB(R grip) duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=L3+R3 graphics=Y+RT view=Y+LT dpad=R3+Lstick
+gamedll: bound to tomb1.dll (Tomb Raider I, gGame=0) at 00007FFBB7B50000
+hook[DrawLaraHD]: 00007FFBB7BBE7C0 -> 00007FFC05B61690 (stole 6, tramp 00007FFBB848000E)
+dynbones: hooked tomb1.dll (Tomb Raider I) -- chest physics enabled; draws scoped to Lara
+hook[PrintRoomsList]: 00007FFBB7BBF770 -> 00007FFC05B91560 (stole 5, tramp 00007FFBB849000E)
+hook[S_GetObjectBounds]: 00007FFBB7BB4840 -> 00007FFC05B91C60 (stole 5, tramp 00007FFBB84A000E)
+cull: hooked tomb1.dll (Tomb Raider I)
+hook[DrawSkyHD]: 00007FFBB7BBF2A0 -> 00007FFC05B92580 (stole 5, tramp 00007FFBB84B000E)
+sky: hooked tomb1.dll (Tomb Raider I) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
+gun calibration: Ctrl+F1..F6 position, Ctrl+Shift+F1..F6 angles, F7 save/restore
+firstperson: startup view is always third person; press Y+LT to switch views
+hook[LaraAboveWater]: 00007FFBB7B71250 -> 00007FFC05B88E50 (stole 5, tramp 00007FFBB84C000E)
+hook[DrawToShadow]: 00007FFBB7BC3C10 -> 00007FFC05B80E90 (stole 9, tramp 00007FFBB84D000E)
+hook[LaraGun]: 00007FFBB7B78160 -> 00007FFC05B885F0 (stole 6, tramp 00007FFBB84E000E)
+hook[MovableBlockCollision]: 00007FFBB7B81220 -> 00007FFC05B7F830 (stole 5, tramp 00007FFBB84F000E)
+hook[AnimateLara]: 00007FFBB7B7A2A0 -> 00007FFC05B88020 (stole 5, tramp 00007FFBB850000E)
+hook[CalculateLaraMatrices]: 00007FFBB7B635A0 -> 00007FFC05B80770 (stole 5, tramp 00007FFBB851000E)
+hook[DrawActionIndicators]: 00007FFBB7BC36F0 -> 00007FFC05B80A90 (stole 6, tramp 00007FFBB852000E)
+hook[phd_GenerateW2V]: 00007FFBB7BC4450 -> 00007FFC05B8C7C0 (stole 5, tramp 00007FFBB853000E)
+hook[DrawCreatureHD]: 00007FFBB7BBC880 -> 00007FFC05B813F0 (stole 5, tramp 00007FFBB854000E)
+hook[GetJoints]: 00007FFBB7BBC190 -> 00007FFC05B852F0 (stole 7, tramp 00007FFBB855000E)
+hook[FireWeapon]: 00007FFBB7B79440 -> 00007FFC05B871A0 (stole 6, tramp 00007FFBB856000E)
+hook[DrawGunFlash]: relocated rip disp32 at +6 (4645147 -> -5905443)
+hook[DrawGunFlash]: 00007FFBB7B602D0 -> 00007FFC05B84360 (stole 11, tramp 00007FFBB857000E)
+hook[shotgun effect wrist position]: 00007FFBB7BA5160 -> 00007FFC05B84100 (stole 5, tramp 00007FFBB858000E)
+hook[GetTargetOnLOS]: 00007FFBB7B792F0 -> 00007FFC05B87300 (stole 5, tramp 00007FFBB859000E)
+hook[AnimatePistols]: 00007FFBB7B77C90 -> 00007FFC05B871D0 (stole 5, tramp 00007FFBB85A000E)
+hook[DrawHair]: relocated rip disp32 at +7 (765069 -> -9762545)
+hook[DrawHair]: 00007FFBB7BA5C90 -> 00007FFC05B81960 (stole 11, tramp 00007FFBB85B000E)
+firstperson: hooked tomb1.dll (Tomb Raider I) -- runtime camera switch ready (Y+LT, startup third person, joint 14). Fixed and cinematic cameras keep their own framing.
+vr: initialisation attempt 1 at frame 1
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: initialised as a Scene app
+vr: eye 0 raw tangents l=-1.3764 r=0.8391 t=-1.4281 b=0.9657
+vr: eye 0 eyeToHead offset = (-0.0310, +0.0000, +0.0000) m
+vr: eye 1 raw tangents l=-0.8391 r=1.3764 t=-1.4281 b=0.9657
+vr: eye 1 eyeToHead offset = (+0.0310, +0.0000, +0.0000) m
+vr: ready, per-eye target 1728x1824
+vr: up and running
+stereo: created 3456x1824 double-wide target (fbo 2, tex 17)
+present: redirected FBO_default 0 -> 2
+video: offscreen panel ready (2560x1440, fbo 3, tex 18, prog 225)
+vr: head neutral set at (-0.29, +1.28, +0.41) m -- tracked translation is measured from here
+gamedll: no level loaded yet -- ceiling clamp stands down until there is one (this is normal at the title screen)
+vr: head pose ACQUIRED
+present: first stereo frame submitted
+pad: water_status=0 (above water) -- stick pitch decoupled
+effects: texture slot 3 layer 2 classified as 3
+inject: eye=0 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=-0.2425 proj[9]=-0.1932
+inject: eye=0 eyeView translation = (-116.7, +9.2, +159.9) world units
+inject: eye=0 final view translation = (-55.0, -1071.1, 1319.0)
+inject: eye=0 packed view translation IN MEMORY = (0.0, -1449.0, 644.0) [floats 3,7,11 at 00007FF7434B3650]
+inject: eye=0 uid[1] (uViewMatrix location) = 131, shader=11
+inject: eye=1 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=0.2425 proj[9]=-0.1932
+inject: eye=1 eyeView translation = (-143.0, +9.2, +159.9) world units
+inject: eye=1 final view translation = (-81.3, -1071.1, 1319.0)
+inject: eye=1 packed view translation IN MEMORY = (0.0, -1449.0, 644.0) [floats 3,7,11 at 00007FF7434B3650]
+inject: eye=1 uid[1] (uViewMatrix location) = 131, shader=11
+inject: SEPARATION between eyes = 26.24 world units (dx=26.24 dy=0.00 dz=0.00)
+effects: texture slot 3 layer 94 classified as 3
+effects: texture slot 3 layer 108 classified as 2
+effects: texture slot 3 layer 109 classified as 1
+cull: head-frustum portal traversal live on Tomb Raider I -- frustum 124.0 x 126.0 degrees, depth<=16, 4096 portals/frame budget
+sky: first DrawSkyHD draw (shader 1) -- rotation-only eye transform, far-plane depth
+dynbones: TR1-3 Lara: 15 skeleton joints, 32-slot GPU upload
+dynbones: locked to shader 16 (15 joints) -- the latch stays here so the drive stays continuous
+vr: ceiling clamp paused for jump state=15 first=0
+boneskin: measured buffer 11 -- 8382 vertices, 1966 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+boneskin: front of the torso is local +Z (30 samples, mean alignment 1.00 with Lara's facing)
+boneskin: torso shape, side view -- BACK on the left, FRONT on the right, top row is the neck end. x -63..63  y -244..-71  depth -81..75
+boneskin:   |         :....          |
+boneskin:   |        ...:...         |
+boneskin:   |   . .:.-:.:-:-.        |
+boneskin:   |.-. . :.......:-.       |
+boneskin:   |:.     ........:..      |
+boneskin:   |:.-:.:-..............   |
+boneskin:   |@.     .... ..... ..... |
+boneskin:   |%:     ........ . . ...:|
+boneskin:   |-:............ . . . ..:|
+boneskin:   |.:.. . .:.  . . . ......|
+boneskin:   |  .. . .... .  .. ....  |
+boneskin:   |         ... . . . ..   |
+boneskin:   |          .... . ...    |
+boneskin:   |            .. .....    |
+boneskin: front profile, neck to waist: -3 13 13 15 22 26 35 43 60 69 75 75 75 72 68 56 51 47 47 46
+boneskin: chest region (measured bust) -- height -180..-109 of -244..-71, depth from 28 forward (front 75, belly line 49), within 43 of centre. Selects 109 torso vertices at full weight (y -170..-118) and 62 partly.
+boneskin: live -- Lara's body (shader 16) now deforms per vertex, and the whole-torso view has stood down
+firstperson: jump view level=1 first=0 frames=100 repeatedY=2 lateFrames=8 maxStepY=32
+stereo health @frame 1800 [Tomb Raider I]: world draws=47436  duplicated=28977  injected eye0=23718 eye1=23718  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=790  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(-144.1, -38.5, -224.1) prog=34 loc=129  eye1=(-90.3, -38.5, -224.1) prog=34 loc=129  separation=53.85
+halves: 18 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF7434B3270  mProj[1](persp)=00007FF7434B32B0
+  proj=00007FF7434B3270  draws=10519    ortho/2D
+  proj=00007FF7434B32B0  draws=47436    perspective/world
+cull: 5.0 rooms/frame from the engine + 0.0 added by the head frustum, 5.7 items rescued/frame
+firstperson: Y+LT switched to FIRST PERSON
+firstperson: anchored to joint 14 at (74583,2620,11197) -- Lara at (74588,3276,11056), frac 23/256, yaw -235 from the game camera (room 0)
+firstperson: taking the neutral head position now that first person is live -- press the recenter key to set it again
+locomotion: aligned base=0.4 body=-1.2 controls=modern
+firstperson: resolved body fit yaw=-1.2 base=0.4 offset=(0.0,0.0) pending=(0.000,-0.000)m
+firstperson: camera handoff resumed type=0 level=1 standing-eye=1 offset=(-6.1,-656.0,141.0)
+firstperson shadow: receiver origin native=(74629,2355,9231) FP=(74583,2620,11197); light camera isolated
+cull: first-person eye in room 0; game camera seeded room 0
+firstperson: motion state enabled=0 blocked=guns-not-ready status=2 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=1 head=-1.3 body=-1.3 cam=-1.3 manual=(+0.00,+0.00) pending=(+0.000,+0.000)m drag=(+0.000,+0.000)m input=00000000
+firstperson: LaraGun status 2 -> 2 input=00000000 applied=00000000 LT=0 hp=1000 state=1
+boneskin: measured buffer 33 -- 5872 vertices, 0 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+firstperson: LaraGun status 2 -> 4 input=00000000 applied=00000020 LT=0 hp=1000 state=1
+firstperson: no-target gun pose follows HMD; native auto-aim preserved
+firstperson: HD gun hand follows tracked controller
+handskin: rigid wrist and 50-percent seam active (shader=16 joint=10)
+handskin: surface boundary joint=10 vao=17 triangles=7246 hand=3622 crossings=0 closed-loops=5
+handskin: opaque wrist cap draw active joint=10 boundary-vertices=16 wrist-distance=3.66
+handskin: rigid wrist and 50-percent seam active (shader=14 joint=10)
+handskin: surface boundary joint=13 vao=17 triangles=7246 hand=3624 crossings=0 closed-loops=5
+handskin: opaque wrist cap draw active joint=13 boundary-vertices=16 wrist-distance=2.96
+locomotion: state=2 head=-2.3 body=-2.3 cam=-2.3 manual=(+0.00,+0.00) pending=(+0.001,+0.000)m drag=(+0.000,+0.000)m input=00000000
+firstperson: Y+LT switched to third person
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=2 lateFrames=7 maxStepY=41
+vr: ceiling clamp paused for jump state=3 first=0
+dynbones: joints=15 shader=16 lock=16  frames=900 dup=0% snaps=1  drive_peak=1924.4 accel_raw=1359150 drive_used=0  disp_peak=27.90  L=(0.00,8.11,2.65) R=(0.00,8.11,2.65)
+dynbones: engine drive -- jumps=2 lands=2  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+firstperson: jump view level=1 first=0 frames=84 repeatedY=3 lateFrames=5 maxStepY=36
+vr: ceiling clamp paused for jump state=3 first=0
+firstperson: jump view level=1 first=0 frames=64 repeatedY=4 lateFrames=4 maxStepY=29
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=8 lateFrames=8 maxStepY=63
+vr: ceiling clamp paused for jump state=3 first=0
+firstperson: jump view level=1 first=0 frames=77 repeatedY=2 lateFrames=5 maxStepY=31
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=9 lateFrames=7 maxStepY=32
+dynbones: joints=15 shader=16 lock=16  frames=1800 dup=0% snaps=1  drive_peak=95.8 accel_raw=345465 drive_used=0  disp_peak=29.57  L=(-0.53,9.26,-0.20) R=(-0.53,9.26,-0.20)
+dynbones: engine drive -- jumps=7 lands=7  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,15]
+vr: ceiling clamp paused for jump state=15 first=0
+firstperson: jump view level=1 first=0 frames=100 repeatedY=11 lateFrames=8 maxStepY=56
+firstperson: Y+LT switched to FIRST PERSON
+firstperson: taking the neutral head position now that first person is live -- press the recenter key to set it again
+locomotion: aligned base=9.8 body=6.2 controls=modern
+firstperson: camera handoff resumed type=0 level=1 standing-eye=0 offset=(0.0,0.0,0.0)
+cull: first-person eye in room 6; game camera seeded room 6
+firstperson: motion state enabled=0 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=72/72 joints=72/72 corrected=72/72 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=2 head=6.2 body=6.2 cam=6.2 manual=(+0.00,+0.00) pending=(-0.000,-0.000)m drag=(+0.000,+0.000)m input=00000000
+firstperson: LaraGun status 0 -> 0 input=00000000 applied=00000000 LT=0 hp=1000 state=2
+locomotion: state=2 head=5.5 body=5.5 cam=5.5 manual=(-0.20,+0.98) pending=(-0.000,+0.001)m drag=(+0.000,+0.000)m input=00002001
+firstperson: resolved body fit yaw=5.5 base=9.8 offset=(-0.9,0.1) pending=(-0.000,0.001)m
+locomotion: state=1 head=-7.1 body=-7.1 cam=-7.1 manual=(-0.41,+0.91) pending=(+0.000,+0.002)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=4.7 body=4.7 cam=4.7 manual=(-0.22,+0.98) pending=(+0.001,+0.000)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=4.2 body=4.2 cam=4.2 manual=(-0.22,+0.97) pending=(-0.001,+0.003)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=4.1 body=4.1 cam=4.1 manual=(-0.23,+0.97) pending=(-0.000,+0.003)m drag=(+0.000,+0.000)m input=00002001
+vr: ceiling clamp paused for jump state=3 first=1
+locomotion: state=3 head=4.2 body=4.1 cam=4.1 manual=(+0.00,+0.00) pending=(-0.000,+0.003)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=3 head=4.2 body=4.1 cam=4.1 manual=(+0.00,+0.00) pending=(-0.000,+0.003)m drag=(+0.000,+0.000)m input=00000000
+perf: 60.0 fps rendered
+stereo health @frame 3600 [Tomb Raider I]: world draws=147746  duplicated=73897  injected eye0=73873 eye1=73873  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(-135.7, -5.9, -218.3) prog=106 loc=45  eye1=(-84.7, -5.9, -218.3) prog=106 loc=45  separation=51.06
+halves: 14 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF7434B3270  mProj[1](persp)=00007FF7434B32B0
+  proj=00007FF7434B3270  draws=10567    ortho/2D
+  proj=00007FF7434B32B0  draws=195182   perspective/world
+cull: 4.4 rooms/frame from the engine + 0.0 added by the head frustum, 3.4 items rescued/frame
+locomotion: state=3 head=26.6 body=4.1 cam=26.6 manual=(+0.00,+0.00) pending=(-0.002,+0.004)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=78 repeatedY=0 lateFrames=5 maxStepY=93
+boneskin: measured buffer 25 -- 2490 vertices, 0 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+locomotion: state=2 head=79.4 body=60.1 cam=79.4 manual=(+0.00,+0.00) pending=(-0.007,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=91.4 body=91.5 cam=91.4 manual=(+0.00,-0.00) pending=(-0.009,+0.008)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=0/0 joints=0/0 corrected=0/0 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=1 head=74.2 body=74.2 cam=74.2 manual=(+0.86,+0.51) pending=(-0.006,+0.011)m drag=(+0.000,+0.000)m input=00002001
+firstperson: resolved body fit yaw=74.9 base=77.6 offset=(-1.5,2.4) pending=(-0.006,0.009)m
+locomotion: state=1 head=76.7 body=76.7 cam=76.7 manual=(+0.87,+0.50) pending=(-0.006,+0.009)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=88.5 body=88.5 cam=88.5 manual=(+0.95,+0.31) pending=(-0.008,+0.008)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+locomotion: state=1 head=87.6 body=87.6 cam=87.6 manual=(+0.94,+0.33) pending=(-0.008,+0.008)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+cull: first-person eye in room 4; game camera seeded room 6
+cull: first-person eye in room 4; game camera seeded room 4
+locomotion: state=1 head=87.6 body=87.6 cam=87.6 manual=(+0.00,+0.00) pending=(-0.009,+0.009)m drag=(+0.000,+0.000)m input=00100010
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=87.5 body=87.6 cam=87.5 manual=(+0.00,+0.00) pending=(-0.008,+0.009)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=87.6 body=87.6 cam=87.5 manual=(+0.00,+0.00) pending=(-0.008,+0.010)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=87.7 body=87.6 cam=87.5 manual=(+0.00,+0.00) pending=(-0.008,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=87.2 body=87.6 cam=87.5 manual=(+0.00,+0.00) pending=(-0.008,+0.012)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=3 lateFrames=7 maxStepY=94
+locomotion: state=2 head=84.6 body=84.6 cam=84.6 manual=(+0.96,+0.27) pending=(-0.004,+0.005)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=84.8 body=84.8 cam=84.8 manual=(+0.96,+0.29) pending=(-0.004,+0.005)m drag=(+0.000,+0.000)m input=00002001
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=0/0 joints=0/0 corrected=0/0 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=1 head=84.8 body=84.8 cam=84.8 manual=(+0.96,+0.29) pending=(-0.005,+0.007)m drag=(+0.000,+0.000)m input=00002001
+firstperson: resolved body fit yaw=84.7 base=91.1 offset=(1.8,-1.4) pending=(-0.005,0.007)m
+locomotion: state=1 head=84.7 body=84.7 cam=84.7 manual=(+0.96,+0.29) pending=(-0.005,+0.006)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=57.8 body=57.8 cam=57.8 manual=(+0.72,+0.69) pending=(-0.001,+0.012)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=29.0 body=28.9 cam=28.9 manual=(+0.30,+0.95) pending=(+0.007,+0.015)m drag=(+0.000,+0.000)m input=00002001
+dynbones: joints=15 shader=16 lock=16  frames=2700 dup=0% snaps=2  drive_peak=1771.0 accel_raw=2693511 drive_used=0  disp_peak=27.96  L=(0.76,8.48,-0.90) R=(0.76,8.48,-0.90)
+dynbones: engine drive -- jumps=10 lands=10  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=1 head=6.8 body=6.8 cam=6.8 manual=(+0.00,+0.00) pending=(+0.014,+0.005)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=0.6 body=0.5 cam=0.5 manual=(-0.30,+0.95) pending=(+0.011,-0.000)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=0.8 body=0.8 cam=0.8 manual=(+0.00,+0.00) pending=(+0.011,-0.003)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=0.0 body=0.0 cam=0.0 manual=(-0.29,+0.96) pending=(+0.011,-0.000)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=2 head=-0.3 body=-0.3 cam=-0.3 manual=(+0.00,+0.00) pending=(+0.010,+0.003)m drag=(+0.000,+0.000)m input=00000000
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=-0.4 body=-0.4 cam=-0.4 manual=(-0.31,+0.95) pending=(+0.011,+0.004)m drag=(+0.000,+0.000)m input=00102011
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=0/0 joints=0/0 corrected=0/0 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=28 head=-0.5 body=-0.5 cam=-0.5 manual=(-0.31,+0.95) pending=(+0.011,+0.005)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=28 head=-0.6 body=-0.5 cam=-0.5 manual=(-0.31,+0.95) pending=(+0.011,+0.007)m drag=(+0.000,+0.000)m input=00002001
+firstperson: jump view level=1 first=1 frames=88 repeatedY=7 lateFrames=6 maxStepY=116
+locomotion: state=2 head=-1.9 body=-1.9 cam=-1.9 manual=(-0.33,+0.95) pending=(+0.009,+0.018)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=2 head=-1.8 body=-1.8 cam=-1.8 manual=(-0.26,+0.97) pending=(+0.010,+0.018)m drag=(+0.000,+0.000)m input=00002001
+firstperson: resolved body fit yaw=-1.7 base=3.5 offset=(-0.0,0.4) pending=(0.010,0.017)m
+locomotion: state=1 head=-1.2 body=-1.2 cam=-1.2 manual=(+0.00,+0.00) pending=(+0.010,+0.009)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=-0.7 body=-0.7 cam=-0.7 manual=(-0.30,+0.95) pending=(+0.011,+0.002)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-0.4 body=-0.4 cam=-0.4 manual=(+0.00,+0.00) pending=(+0.011,+0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=-0.4 body=-0.4 cam=-0.4 manual=(+0.00,+0.00) pending=(+0.011,-0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-0.6 body=-0.6 cam=-0.6 manual=(+0.00,+0.00) pending=(+0.011,+0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-0.6 body=-0.6 cam=-0.6 manual=(+0.00,+0.00) pending=(+0.011,+0.000)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=0/0 joints=0/0 corrected=0/0 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=2 head=-0.7 body=-0.7 cam=-0.7 manual=(-0.29,+0.96) pending=(+0.011,+0.001)m drag=(+0.000,+0.000)m input=00002001
+firstperson: LaraGun status 1 -> 1 input=02002001 applied=02002001 LT=0 hp=1000 state=19
+firstperson: pull-up state=19 anim=42 rootY=1274 nativeEyeY=581 viewY=581 standingEye=1 storedHeight=-704
+locomotion: state=19 head=-0.8 body=0.0 cam=-0.7 manual=(-0.29,+0.96) pending=(+0.011,+0.002)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=19 head=-0.7 body=0.0 cam=-0.7 manual=(-0.29,+0.96) pending=(+0.011,+0.003)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=19 head=-1.1 body=0.0 cam=-0.7 manual=(-0.29,+0.96) pending=(+0.011,+0.005)m drag=(+0.000,+0.000)m input=00002001
+firstperson: LaraGun status 0 -> 0 input=00002001 applied=00002001 LT=0 hp=1000 state=19
+locomotion: state=19 head=-1.8 body=0.0 cam=-0.7 manual=(-0.29,+0.96) pending=(+0.011,+0.009)m drag=(+0.000,+0.000)m input=00002001
+boneskin: measured buffer 29 -- 2490 vertices, 0 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+firstperson: pull-up state=2 anim=11 rootY=505 nativeEyeY=-202 viewY=-199 standingEye=1 storedHeight=-704
+firstperson: resolved body fit yaw=-0.4 base=3.5 offset=(-49.4,-143.0) pending=(0.011,0.009)m
+locomotion: state=1 head=-2.4 body=-2.4 cam=-2.4 manual=(+0.00,+0.00) pending=(+0.011,+0.010)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=-6.7 body=-6.7 cam=-6.7 manual=(-0.39,+0.92) pending=(+0.012,+0.009)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-12.8 body=-12.7 cam=-12.7 manual=(-0.48,+0.88) pending=(+0.013,+0.006)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=1 head=-9.3 body=-9.3 cam=-9.3 manual=(+0.00,+0.00) pending=(+0.013,+0.005)m drag=(+0.000,+0.000)m input=00000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-9.5 body=-9.5 cam=-9.5 manual=(+0.00,+0.00) pending=(+0.013,+0.007)m drag=(+0.000,+0.000)m input=00000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=0/0 joints=0/0 corrected=0/0 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-9.5 body=-9.5 cam=-9.5 manual=(+0.00,+0.00) pending=(+0.012,+0.008)m drag=(+0.000,+0.000)m input=00000000
+firstperson: LaraGun status 0 -> 2 input=00000000 applied=00000020 LT=56 hp=1000 state=2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+firstperson: LaraGun status 2 -> 4 input=00000000 applied=00000020 LT=236 hp=1000 state=2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-9.5 body=-9.5 cam=-9.5 manual=(+0.00,+0.00) pending=(+0.013,+0.006)m drag=(+0.000,+0.000)m input=00000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-9.9 body=-9.8 cam=-9.9 manual=(+0.00,+0.00) pending=(+0.016,-0.019)m drag=(+0.002,-0.002)m input=00000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-13.1 body=-13.1 cam=-13.1 manual=(+0.00,+0.00) pending=(+0.018,-0.013)m drag=(+0.002,-0.002)m input=00000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-15.3 body=-15.3 cam=-15.3 manual=(+0.00,+0.00) pending=(+0.014,-0.015)m drag=(+0.000,+0.000)m input=00000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+firstperson: resolved body fit yaw=-15.6 base=-3.4 offset=(6.2,5.9) pending=(0.010,-0.015)m
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-16.8 body=-16.6 cam=-16.8 manual=(+0.00,+0.00) pending=(+0.008,-0.015)m drag=(+0.000,+0.000)m input=02000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-16.2 body=-16.5 cam=-16.2 manual=(+0.00,+0.00) pending=(+0.001,-0.008)m drag=(+0.000,+0.000)m input=02000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=2 head=-12.8 body=-12.7 cam=-12.8 manual=(+0.00,+0.00) pending=(-0.003,+0.023)m drag=(+0.000,+0.002)m input=00000000
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=1 head=-11.5 body=-11.5 cam=-11.5 manual=(-0.40,+0.91) pending=(+0.003,-0.018)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=1 head=-11.9 body=-11.9 cam=-11.9 manual=(-0.41,+0.91) pending=(+0.003,-0.021)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=831/831 joints=831/831 corrected=831/831 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=1 head=-11.6 body=-11.6 cam=-11.6 manual=(-0.38,+0.92) pending=(+0.001,-0.017)m drag=(+0.000,+0.000)m input=00002001
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+cull: first-person eye in room 2; game camera seeded room 4
+cull: first-person eye in room 2; game camera seeded room 2
+locomotion: state=1 head=-12.2 body=-12.2 cam=-12.2 manual=(-0.39,+0.92) pending=(+0.004,-0.018)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-16.3 body=-16.3 cam=-16.3 manual=(-0.45,+0.89) pending=(+0.009,-0.019)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-16.1 body=-16.1 cam=-16.1 manual=(-0.45,+0.89) pending=(+0.006,-0.021)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-12.5 body=-12.5 cam=-12.5 manual=(-0.39,+0.92) pending=(-0.003,-0.020)m drag=(+0.000,+0.000)m input=00002001
+firstperson: resolved body fit yaw=-12.5 base=-3.4 offset=(3.5,3.4) pending=(-0.004,-0.018)m
+locomotion: state=1 head=-12.7 body=-12.7 cam=-12.7 manual=(+0.00,+0.00) pending=(-0.006,-0.019)m drag=(+0.000,+0.000)m input=00000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=1 head=-12.0 body=-12.1 cam=-12.0 manual=(+0.00,+0.00) pending=(-0.008,-0.019)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+perf: 59.9 fps rendered
+stereo health @frame 5400 [Tomb Raider I]: world draws=124826  duplicated=62884  injected eye0=62413 eye1=62413  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(12.2, 0.6, -65.6) prog=112 loc=31  eye1=(-10.7, 0.6, -65.6) prog=112 loc=31  separation=22.92
+halves: 14 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF7434B3270  mProj[1](persp)=00007FF7434B32B0
+  proj=00007FF7434B3270  draws=11509    ortho/2D
+  proj=00007FF7434B32B0  draws=320008   perspective/world
+cull: 4.1 rooms/frame from the engine + 0.7 added by the head frustum, 2.3 items rescued/frame
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-10.4 body=-10.7 cam=-10.4 manual=(+0.00,+0.00) pending=(-0.010,-0.019)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-9.6 body=-9.6 cam=-9.6 manual=(+0.00,+0.00) pending=(-0.009,-0.016)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-10.1 body=-10.1 cam=-10.1 manual=(+0.00,+0.00) pending=(-0.013,-0.013)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=255 RT=255
+firstperson: tracked hands mask=00003000 passes=900/900 joints=900/900 corrected=900/900 reason=corrected/corrected
+firstperson: trigger state pending=1/1 press=0/0 held=1/1
+locomotion: state=2 head=-10.8 body=-10.9 cam=-10.8 manual=(+0.00,+0.00) pending=(-0.009,-0.013)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+locomotion: state=2 head=-11.2 body=-11.2 cam=-11.2 manual=(+0.00,+0.00) pending=(-0.011,-0.015)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=5->4
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=4->4
+locomotion: state=2 head=-8.5 body=-8.7 cam=-8.5 manual=(+0.00,+0.00) pending=(-0.011,-0.015)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=4->4
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=4->4
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=4->4
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=1 hp=5->4
+firstperson: controller free fire bypasses native target lock=0/0 pending=1/1
+locomotion: state=2 head=-8.2 body=-8.2 cam=-8.2 manual=(+0.00,+0.00) pending=(-0.009,-0.014)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=4->4
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=1 hp=4->3
+locomotion: state=2 head=-7.9 body=-7.9 cam=-7.9 manual=(+0.00,+0.00) pending=(-0.016,-0.013)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=3->3
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=3->3
+firstperson: resolved body fit yaw=-7.0 base=-3.4 offset=(-1.9,-0.7) pending=(-0.017,-0.012)m
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=3->2
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=2->2
+locomotion: state=2 head=-10.4 body=-10.0 cam=-10.4 manual=(+0.00,+0.00) pending=(-0.011,-0.013)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=2->1
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=1->1
+locomotion: state=2 head=-16.1 body=-16.1 cam=-16.1 manual=(+0.00,+0.00) pending=(+0.011,-0.018)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=1->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=4->4
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=4->3
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=1 hp=3->2
+locomotion: state=2 head=-22.6 body=-22.3 cam=-22.6 manual=(+0.00,+0.00) pending=(+0.021,-0.009)m drag=(+0.002,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=2->1
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=1->1
+locomotion: state=2 head=-25.6 body=-25.1 cam=-25.5 manual=(+0.00,+0.00) pending=(+0.014,-0.017)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=1->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-37.2 body=-37.0 cam=-37.2 manual=(+0.00,+0.00) pending=(+0.021,-0.004)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=255 RT=255
+firstperson: tracked hands mask=00003000 passes=897/897 joints=897/897 corrected=897/897 reason=corrected/corrected
+firstperson: trigger state pending=1/1 press=0/0 held=1/1
+locomotion: state=2 head=-27.6 body=-27.4 cam=-27.6 manual=(+0.00,+0.00) pending=(-0.012,-0.012)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-37.8 body=-37.3 cam=-37.8 manual=(+0.00,+0.00) pending=(+0.010,-0.002)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=5->5
+locomotion: state=2 head=-17.2 body=-17.9 cam=-17.2 manual=(+0.00,+0.00) pending=(-0.018,-0.016)m drag=(-0.002,-0.002)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=5->4
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=1 hp=4->3
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=3->2
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=2->2
+locomotion: state=2 head=-8.2 body=-8.3 cam=-8.2 manual=(+0.00,+0.00) pending=(-0.022,-0.002)m drag=(-0.002,+0.000)m input=02000000
+locomotion: state=2 head=-12.7 body=-11.8 cam=-12.7 manual=(+0.00,+0.00) pending=(+0.001,+0.012)m drag=(+0.000,+0.000)m input=00000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=1 hp=2->1
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=-1 hp=1->1
+firstperson: resolved body fit yaw=-18.0 base=-3.4 offset=(8.1,7.8) pending=(0.014,-0.014)m
+firstperson: tracked shot hand=1 native-target=0 gun-target=1 assist=1 result=-1 hp=1->1
+firstperson: tracked shot hand=0 native-target=0 gun-target=1 assist=1 result=1 hp=1->0
+locomotion: state=2 head=-22.3 body=-22.4 cam=-22.3 manual=(+0.00,+0.00) pending=(+0.020,-0.012)m drag=(+0.002,-0.002)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-22.2 body=-22.3 cam=-22.2 manual=(+0.00,+0.00) pending=(+0.019,-0.005)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-14.7 body=-14.8 cam=-14.7 manual=(+0.00,+0.00) pending=(+0.005,+0.014)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-14.6 body=-14.4 cam=-14.6 manual=(+0.00,+0.00) pending=(+0.006,+0.017)m drag=(+0.000,+0.000)m input=00000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+locomotion: state=2 head=-16.6 body=-16.7 cam=-16.6 manual=(+0.00,+0.00) pending=(+0.007,+0.020)m drag=(+0.000,+0.000)m input=02000000
+firstperson: tracked shot hand=1 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: tracked shot hand=0 native-target=0 gun-target=0 assist=0 result=-1 hp=0->0
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=900/900 joints=900/900 corrected=900/900 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=2 head=-7.6 body=-7.9 cam=-7.6 manual=(+0.00,+0.00) pending=(-0.008,+0.020)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=4.4 body=4.5 cam=4.4 manual=(+0.00,+0.00) pending=(-0.013,+0.017)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-2.7 body=-2.4 cam=-2.7 manual=(+0.00,+0.00) pending=(-0.005,+0.022)m drag=(+0.000,+0.002)m input=00000000
+locomotion: state=2 head=-6.6 body=-6.8 cam=-6.6 manual=(+0.00,+0.00) pending=(-0.001,+0.020)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=8.9 body=9.0 cam=8.9 manual=(+0.00,+0.00) pending=(-0.014,+0.016)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=8.6 base=-3.4 offset=(-19.0,-9.2) pending=(-0.012,0.018)m
+locomotion: state=2 head=2.6 body=3.1 cam=2.6 manual=(+0.00,+0.00) pending=(-0.001,+0.016)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=-5.3 body=-5.3 cam=-5.3 manual=(-0.17,+0.78) pending=(+0.007,+0.001)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-5.9 body=-5.9 cam=-5.9 manual=(-0.20,+0.98) pending=(+0.008,-0.001)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-6.3 body=-6.3 cam=-6.3 manual=(-0.18,+0.98) pending=(+0.007,-0.004)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-6.1 body=-6.1 cam=-6.1 manual=(+0.00,+0.00) pending=(+0.007,-0.006)m drag=(+0.000,+0.000)m input=00000000
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=897/897 joints=897/897 corrected=897/897 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+locomotion: state=1 head=-6.0 body=-6.0 cam=-6.0 manual=(-0.34,+0.94) pending=(+0.007,-0.006)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-5.8 body=-5.8 cam=-5.8 manual=(-0.32,+0.95) pending=(+0.006,-0.001)m drag=(+0.000,+0.000)m input=00002001
+vr: ceiling clamp paused for jump state=15 first=1
+locomotion: state=15 head=-5.8 body=-5.8 cam=-5.8 manual=(+0.00,+0.00) pending=(+0.006,+0.000)m drag=(+0.000,+0.000)m input=00100010
+locomotion: state=28 head=-6.0 body=-5.8 cam=-5.8 manual=(+0.00,+0.00) pending=(+0.006,+0.000)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=-6.1 body=-5.8 cam=-5.8 manual=(+0.00,+0.00) pending=(+0.005,+0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=28 head=-6.3 body=-5.8 cam=-5.8 manual=(+0.00,+0.00) pending=(+0.005,+0.003)m drag=(+0.000,+0.000)m input=00000000
+firstperson: jump view level=1 first=1 frames=100 repeatedY=7 lateFrames=7 maxStepY=115
+firstperson: camera handoff suspended type=0 level=1 standing-eye=1 offset=(-41.4,-704.0,122.8)
+perf: 59.6 fps rendered
+stereo health @frame 7200 [Tomb Raider I]: world draws=98883  duplicated=51788  injected eye0=49421 eye1=49421  (99% of world draws got per-eye matrices)  offscreen-skipped=82  classify-mismatch=0  ortho3D=0  sky=2316  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(22.8, -11.2, -59.3) prog=106 loc=45  eye1=(-3.2, -11.2, -59.3) prog=106 loc=45  separation=25.96
+halves: 0 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF7434B3270  mProj[1](persp)=00007FF7434B32B0
+  proj=00007FF7434B3270  draws=15601    ortho/2D
+  proj=00007FF7434B32B0  draws=418891   perspective/world
+cull: 4.9 rooms/frame from the engine + 0.1 added by the head frustum, 2.6 items rescued/frame
+hook[DrawLaraHD]: removed
+hook[shader_init]: removed
+hook[effect texture update]: removed
+hook[effect texture create]: removed
+hook[effect upscale load]: removed
+hook[effect texture load]: removed
+pad: _XInputGetState restored
+hook[LaraAboveWater]: removed
+hook[LaraGun]: removed
+hook[AnimateLara]: removed
+hook[MovableBlockCollision]: removed
+hook[CalculateLaraMatrices]: removed
+hook[DrawActionIndicators]: removed
+hook[DrawHair]: removed
+hook[DrawCreatureHD]: removed
+hook[GetJoints]: removed
+hook[GetTargetOnLOS]: removed
+hook[AnimatePistols]: removed
+hook[FireWeapon]: removed
+hook[DrawGunFlash]: removed
+hook[shotgun effect wrist position]: removed
+hook[DrawToShadow]: removed
+hook[phd_GenerateW2V]: removed
+hook[DrawSkyHD]: removed
+hook[S_GetObjectBounds]: removed
+hook[PrintRoomsList]: removed
+hook[ogl_setRenderTarget]: removed
+hook[fmvShow]: removed
+hook[ogl_present]: removed
+hook[ogl_draw]: removed
+hook[validate_draw]: removed
+hook[vid_setPass]: removed
