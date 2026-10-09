@@ -117,11 +117,12 @@ inline void ConstrainWrist(const Basis& reference,const Basis& target,Vec axis,
     wrist=RotationMatrix(RotationProduct(RotationProduct(swing,AxisRotation(axis,roll)),referenceRotation));
 }
 
-// Feet, ledge grips and armed wrists preserve the exact target orientation.
-// Unarmed hands alone use the anti-twist wrist constraints.
+// The tracked wrist always preserves the full calibrated controller frame.
+// Only the forearm uses anti-twist constraints; clamping the hand after its
+// grip offset was rotated would make the grip orbit away from the controller.
 inline bool SolveArm(const Frame (&native)[3], const Frame& target,
                      Vec preferredBend, Frame* corrections, ArmTwistState* twistState=nullptr,
-                     const Basis* neutralWrist=nullptr, bool constrainWrist=true) {
+                     const Basis* neutralWrist=nullptr, bool stabilizeForearm=true) {
     const Vec upper=Sub(native[1].origin,native[0].origin);
     const Vec lower=Sub(native[2].origin,native[1].origin);
     float a=std::sqrt(Dot(upper,upper)),b=std::sqrt(Dot(lower,lower));
@@ -144,7 +145,7 @@ inline bool SolveArm(const Frame (&native)[3], const Frame& target,
     const Vec elbow=Add(native[0].origin,Add(Scale(direction,along),Scale(bend,height)));
     const Vec points[3]={native[0].origin,elbow,target.origin};
     ArmTwistState localTwist{};
-    Basis wrist=target.basis,forearmRoll=IdentityBasis();
+    Basis limitedWrist{},forearmRoll=IdentityBasis();
     const Basis lowerSwing=Align(lower,Sub(points[2],points[1]));
     Vec lowerAxis{};
     if (!Unit(Sub(points[2],points[1]),lowerAxis)) return false;
@@ -153,9 +154,9 @@ inline bool SolveArm(const Frame (&native)[3], const Frame& target,
     const Basis rest=neutralWrist ? *neutralWrist : GunBasis(IdentityBasis());
     const Vec restForward{rest.r[0][1],rest.r[1][1],rest.r[2][1]};
     const Basis reference=Multiply(Align(restForward,lowerAxis),rest);
-    if (constrainWrist) {
+    if (stabilizeForearm) {
         ConstrainWrist(reference,target.basis,lowerAxis,
-                       twistState ? *twistState : localTwist,wrist,forearmRoll);
+                       twistState ? *twistState : localTwist,limitedWrist,forearmRoll);
         // Remove native animation roll before adding controller roll. Otherwise
         // the running animation can reintroduce a knot even with wrist limits.
         const auto animated=RotationOf(Multiply(lowerSwing,native[2].basis));
@@ -164,7 +165,9 @@ inline bool SolveArm(const Frame (&native)[3], const Frame& target,
         forearmRoll=Multiply(forearmRoll,RotationMatrix(roll));
     }
     for (int i=0;i<3;++i) {
-        Frame desired{wrist,target.origin}, inv{};
+        // Keep rotation and position from the SAME GripFrame, as gun hands do.
+        // The limited orientation is for forearm stabilization, not tracking.
+        Frame desired{target.basis,target.origin}, inv{};
         if (i<2) {
             const Vec old=Sub(native[i+1].origin,native[i].origin);
             const Vec next=Sub(points[i+1],points[i]);

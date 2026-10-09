@@ -61,6 +61,26 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### Tracked IK hand pivot correction (2026-10-09)
+
+Unarmed IK hands now keep the same complete calibrated controller frame as the
+floating gun hands. Previously the IK positioned the wrist using the gun grip
+calibration, then limited the hand's rotation to a forearm-relative pose. The
+position and rotation no longer agreed, making the visible grip move around the
+physical controller when rotating the wrist.
+
+The hand now follows controller pitch, yaw and roll exactly. Forearm twist
+stabilization and its full-turn recovery remain active, with no accumulated
+rotation history. Floating guns, camera tracking, authored ledge/climbing hands
+and the native skeleton used by jiggle physics are unchanged.
+
+A production-palette regression fails on the prior implementation and passes
+with this fix. It checks both hands in TR1/2/3, running/standing/jumping poses,
+multiple headings, full rotations about all three axes and repeated eye draws.
+The calibrated grip stays on the stationary physical controller, and the hand's
+orientation matches the floating gun reference. Existing wrist-recovery tests
+and HD inverse-bind checks also pass. Headset confirmation remains pending.
+
 ### First-person ledge pull gesture (2026-10-09)
 
 In TR1, TR2 and TR3, while Lara is already hanging from a ledge, pull **both
@@ -144,7 +164,9 @@ visible wrist to its anatomical limit. A complete turn around the twist boundary
 could leave a full turn in that history even after the controller returned to a
 normal pose. The forearm and hand then stayed pinned at the wrong angle.
 
-The solver now derives wrist roll from the current absolute pose. Normal wrist
+The recovery fix derives roll from the current absolute pose. The newer hand
+pivot correction above keeps these limits on forearm stabilization only; tracked
+hands now retain exact controller orientation. In the original recovery fix, wrist
 angles and their adjacent limit plateau retain the existing response. Beyond
 135 degrees, the limit softens toward zero at the +/-180-degree seam, so crossing
 that boundary stays continuous without accumulating turns. Every defined pose,
@@ -229,7 +251,8 @@ Ported the corresponding logic from `C:\dev\TombRaider456VR` to TR1, TR2 and TR3
   retained, and gun-trigger state is cleared during the camera handoff.
 - **Unarmed arm/hand IK** follows both tracked controllers in HD first person
   during ordinary movement and free jumps/falls. Elbows use a two-bone solve;
-  wrist bend and twist limits match TR4/5. Running uses relaxed bare/gloved hand
+  forearm twist is stabilized while hands keep the exact tracked grip frame.
+  Running uses relaxed bare/gloved hand
   meshes instead of fists. Climbing, grabbing, mounting, pickups and crate
   interactions retain authored hand poses; existing weapon hands stay unchanged.
 - Tracked unarmed hands remain visible independently of head pitch. With
@@ -1745,7 +1768,24 @@ shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 first-person ledge pull gesture** Release/x64 DLL is
+The current **2026-10-09 IK hand pivot correction** Release/x64 DLL is
+installed with verified SHA-256:
+`3439B1CD6FF47584EDE8750CAA4051925748F51F8234CF6D0084A4BC76AEDC0D`.
+The preceding DLL, INI and log are backed up under
+`build/before-ik-hand-pivot-20261009-161014/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ik-hand-pivot/deployment.json).
+
+**718,613** production movement/control/camera/IK/shadow/haptic/gesture checks,
+**66,162** tracking/eye/projection checks and **3,522** physics checks pass.
+The new stationary-grip regression fails before the fix and passes afterward.
+The earlier wrist-recovery and ledge-gesture regressions remain covered.
+Installed game hashes still match the verified retail update, and no native
+addresses or hook windows changed. Release/x64 built without warnings.
+Headset confirmation remains pending.
+
+The preceding **2026-10-09 first-person ledge pull gesture** Release/x64 DLL was
 installed with verified SHA-256:
 `0B305D77BC53440C0FCEB6AEDDD74EC9735637D85B07518FF792E52FA97D59A2`.
 The preceding DLL, INI and log are backed up under

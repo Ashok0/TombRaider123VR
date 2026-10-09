@@ -39,6 +39,49 @@ float WristBasisError(const tr::motiongun::Basis& a,const tr::motiongun::Basis& 
     }
     return error;
 }
+void TestIKHandPivot() {
+    using namespace tr;
+    using namespace tr::motiongun;
+    using namespace tr::firstperson;
+    constexpr float rad=3.14159265358979323846f/180;
+    for (int game:{1,2,3}) for (int state:{1,2,3})
+    for (float heading:{0.f,70.f,-140.f}) for (int axis=0;axis<3;++axis) {
+        IKSetup(game);Field<int16_t>(off::item_anim_state)=int16_t(state);
+        g_heading.base=heading*rad;
+        for (int angle=-360;angle<=360;angle+=5) {
+            for (int hand=0;hand<2;++hand) {
+                const motiongun::Vec direction=axis==0 ? motiongun::Vec{1,0,0} : axis==1 ? motiongun::Vec{0,1,0} : motiongun::Vec{0,0,1};
+                const auto rotation=RotationMatrix(AxisRotation(direction,(hand ? 1.f : -1.f)*angle*rad));
+                for (int row=0;row<3;++row) for (int col=0;col<3;++col)
+                    testControllerPose[hand].m[row][col]=rotation.r[row][col];
+            }
+            // Repeat each pose for both eye draws; history must not move the grip.
+            for (int eye=0;eye<2;++eye) {
+                g_bodySkinScope=true;Detour_GetJoints(item);
+                uint32_t mask=0;const auto* rendered=FirstPersonBodySkin(mask);
+                const auto* physics=FirstPersonNativeBodySkin();
+                Check(rendered && physics,"tracked pivot production palette available");
+                Check(!std::memcmp(physics,ikNative,15*12*sizeof(float)),
+                      "rotating tracked hands cannot modify jiggle physics source palette");
+                for (int hand=0;hand<2;++hand) {
+                    Frame target{};Basis controller{};
+                    Check(BuildControllerWrist(hand,target,controller),"working gun reference frame available");
+                    const auto wrist=ReadRows(rendered+(hand ? 10 : 13)*12);
+                    const auto& fit=LiveMotionGunCalibration();
+                    const float scale=LiveWorldUnitsPerMetre();
+                    const motiongun::Vec localGrip{-fit.rightMetres*scale,fit.gripForwardMetres*scale,-fit.raiseMetres*scale};
+                    const auto actualGrip=Transform(wrist,localGrip);
+                    const motiongun::Vec physical{float(g_scenePose.x_pos),float(g_scenePose.y_pos),float(g_scenePose.z_pos)};
+                    const auto error=Sub(actualGrip,physical);
+                    Check(Dot(error,error)<.01f,
+                          "rotating IK hand keeps the calibrated grip on the stationary physical controller");
+                    Check(WristBasisError(wrist.basis,target.basis)<.0001f,
+                          "IK hand orientation matches floating gun hand through pitch, yaw and roll");
+                }
+            }
+        }
+    }
+}
 void TestWristTwistRecovery() {
     using namespace tr::firstperson;
     constexpr float rad=3.14159265358979323846f/180;
@@ -275,7 +318,8 @@ void TestFirstPersonParity() {
             Check(ReadIKJoint(Ptr<uint8_t>(dll.objects),hd,16,16,mapping,poses,hand ? 10 : 13,joint) &&
                   BuildControllerWrist(hand,target,controller),"HD inverse-bind recovery remains valid after IK");
             const auto e=motiongun::Sub(joint.origin,target.origin);
-            Check(motiongun::Dot(e,e)<.01f,"HD and legacy palettes reach identical controller targets");
+            Check(motiongun::Dot(e,e)<.01f && WristBasisError(joint.basis,target.basis)<.0001f,
+                  "HD and legacy palettes preserve the complete calibrated controller frame");
         }
         IKSetup(game);*Ptr<int32_t>(dll.renderPass)=4;
         g_bodyVisualOffset={100,200};Detour_GetJoints(item);

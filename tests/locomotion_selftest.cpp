@@ -25,6 +25,7 @@ int testWater=0;
 int testConfigFlags=0;
 int testLevelType=0;
 bool testPoseAvailable=true;
+vr::HmdMatrix34_t testControllerPose[2]{};
 float testHandDown[2]{};
 bool VRSystem::ControllerHeightBelowHead(int hand,float& down) const {
     down=testHandDown[hand]; return testPoseAvailable;
@@ -49,8 +50,8 @@ void VRSystem::RecenterHead() { std::abort(); }
 void VRSystem::FirstPersonViewOffset(float& x,float& z) const { x=testViewRight; z=testViewForward; }
 float VRSystem::HeadVerticalOffset() const { return testViewRise; }
 void VRSystem::ConsumeHeadFloorOffset(float x,float z) { if (x!=0 || z!=0) std::abort(); }
-bool VRSystem::ControllerPose(int,vr::HmdMatrix34_t& pose) const {
-    pose={}; pose.m[0][0]=pose.m[1][1]=pose.m[2][2]=1; return testPoseAvailable;
+bool VRSystem::ControllerPose(int hand,vr::HmdMatrix34_t& pose) const {
+    pose=testControllerPose[hand]; return testPoseAvailable;
 }
 bool VRSystem::FirstPersonControllerOffset(int,float& x,float& y,float& z) const {
     x=y=z=0; return testPoseAvailable;
@@ -165,6 +166,7 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     g_runtimeEnabled=g_active=g_haveHeading=g_haveManualInput=true;
     g_headingItem=item; g_heading.base=heading; g_headingLevel=0;
     g_ledgePull.Reset(); testHandDown[0]=testHandDown[1]=0;
+    for (auto& pose:testControllerPose) { pose={}; pose.m[0][0]=pose.m[1][1]=pose.m[2][2]=1; }
     g_manualLocal=stick; g_manualWorld=MovementWorld(stick,heading);
     g_shifted=g_jumpPressed=false;
     g_groundMoveAction=0; g_stabilizeRoot=g_hardStopRoot=false;
@@ -411,6 +413,7 @@ int main() {
     TestJumpRoll();
     TestArmVisibility();
     TestBlockCamera();
+    TestIKHandPivot();
     TestWristTwistRecovery();
     TestMountCameraHandoff();
     TestFirstPersonParity();
