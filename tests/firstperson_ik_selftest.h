@@ -151,6 +151,64 @@ void TestWristTwistRecovery() {
               "unconstrained armed wrist preserves the exact tracked orientation");
     }
 }
+void TestMountCameraHandoff() {
+    using namespace tr;
+    for(int game:{1,2,3}) for(int mount:{19,54}) for(int rise:{256,513,769}) {
+        IKSetup(game);Field<int16_t>(18)=2;Field<int16_t>(24)=11;
+        g_headingLevel=0;g_previousBody={};g_dragPrevious=g_dragCurrent=g_dragShown={};
+        g_groundEye={};g_groundEye.Apply({0,0,0},0,{0,-718,100},0);
+        g_lastClimbCameraState=mount;
+        auto& current=Field<PHD_3DPOS>(off::item_pos);
+        auto& previous=Field<PHD_3DPOS>(off::item_pos_prev);
+        current={0,1000-rise,0};previous={0,1000,0};
+        const auto fit=g_groundEye.local;
+        g_mountRootHeight.Reset();g_blockCamera.Reset();
+        testViewRight=testViewForward=testViewRise=0;
+        // All these rendered frames belong to one simulation tick. The head
+        // has already finished the climb while pos_prev still precedes it.
+        for(int fraction:{0,0,16,32,64,128,192,255,256}) {
+            *Ptr<int32_t>(dll.frameFrac)=fraction;
+            PHD_3DPOS eye{0,current.y_pos-700,100};
+            UpdateLocomotion(eye);
+            Check(eye.y_pos==current.y_pos-718,
+                  "mount-completion height holds across every render of the same native root pair");
+            Check(g_groundEye.local.y==fit.y,"mount recovery cannot change standing height calibration");
+            // Run the real eye sweep with an independent native-query stub.
+            // Both camera anchoring and room collision must agree on root Y.
+            const uint64_t savedBase=g_boundBase;
+            const auto savedDll=dll;
+            g_boundBase=reinterpret_cast<uint64_t>(&NativeEyeCollision);
+            Check(savedBase>g_boundBase && savedBase-g_boundBase<UINT32_MAX,
+                  "mount collision callback fits synthetic module");
+            dll.lara+=uint32_t(savedBase-g_boundBase);
+            dll.frameFrac+=uint32_t(savedBase-g_boundBase);
+            dll.getCollisionInfo=0;
+            eyeSamples=game==3 ? 6 : 4;blockedEyeSample=-1;eyeObstacle=0;
+            eyeQueryY=INT32_MIN;
+            ClampRenderedHeadToCollision(item,eye);
+            Check(eyeQueryY==current.y_pos,"post-mount clearance samples the same root height as the camera");
+            g_boundBase=savedBase;dll=savedDll;
+        }
+        Check(g_mountRootHeight.active,"mount height stays latched while the native pair remains unchanged");
+        // On the next native root pair, ordinary movement resumes interpolation.
+        previous=current;current.y_pos+=32;
+        for(int fraction:{0,64,128,256}) {
+            *Ptr<int32_t>(dll.frameFrac)=fraction;
+            PHD_3DPOS eye{0,Lerp(previous.y_pos,current.y_pos,fraction)-700,100};
+            UpdateLocomotion(eye);
+            Check(eye.y_pos==Lerp(previous.y_pos,current.y_pos,fraction)-718,
+                  "mount handoff releases when the native root pair advances");
+        }
+    }
+    for(int state:{3,19,54,7}) {
+        IKSetup(1);g_headingLevel=0;g_previousBody={};
+        g_dragPrevious=g_dragCurrent=g_dragShown={};g_lastClimbCameraState=2;
+        g_mountRootHeight.Begin(0,0);Field<int16_t>(18)=int16_t(state);
+        Field<int16_t>(24)=int16_t(state==7 ? 13 : 11);
+        PHD_3DPOS eye{0,-700,100};UpdateLocomotion(eye);
+        Check(!g_mountRootHeight.active,"leaving grounded locomotion clears the mount-height override");
+    }
+}
 void TestFirstPersonParity() {
     using namespace tr;
     for (int game:{1,2,3}) {

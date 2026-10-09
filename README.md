@@ -61,6 +61,29 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### Post-mount camera flicker correction (2026-10-09)
+
+Fixed a reproducible height reversal immediately after a ledge mount. On the
+first grounded render, the camera accepted Lara's new root height. On the second
+render of the same native simulation tick, the mount-state marker had already
+advanced, so the camera returned toward the old interpolated height. A 513-unit
+mount could therefore move the view by hundreds of units for a single frame.
+
+Once the completed mount's height is accepted, it now stays fixed for every
+render using that same previous/current native root pair. Ordinary interpolation
+resumes as soon as the pair advances. Eye collision samples use that same height
+so they do not test the old position below the ledge. The override resets on
+non-grounded animations, camera suspension/toggle, relocation and level changes.
+Standing calibration, tracked head motion, arm IK, physics and simulation roots
+remain unchanged.
+
+A production-camera replay fails on the preceding build and passes with this
+fix across TR1/2/3, both mount states, 256/513/769-unit rises, repeated frames and
+interpolation fractions from 0 to 256. It also checks collision query height and
+release on subsequent movement or animation transitions. This addresses a
+confirmed camera discontinuity; headset confirmation of the reported flicker
+remains pending.
+
 ### Per-hand gun rumble (2026-10-09)
 
 First-person tracked weapons now give the firing controller a strong **80 ms**
@@ -1693,7 +1716,23 @@ shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 per-hand gun rumble** Release/x64 DLL is installed
+The current **2026-10-09 post-mount camera correction** Release/x64 DLL is
+installed with verified SHA-256:
+`1AA8A888D3A2604677A93446B586FBB45802EC78AAD81E9783004B79F7320409`.
+The preceding DLL, INI and log are backed up under
+`build/before-ledge-flicker-fix-20261009-152413/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ledge-flicker-fix/deployment.json).
+
+The mount-height replay fails on the previous build and passes after the fix.
+**514,895** production movement/control/camera/IK/shadow/haptic checks,
+**66,150** tracking/eye/projection checks, all general self-tests and **2,837**
+address/layout/hook checks pass. Installed game hashes still match the verified
+retail update. Release/x64 built without warnings. Headset confirmation of the
+reported flicker remains pending.
+
+The preceding **2026-10-09 per-hand gun rumble** Release/x64 DLL was installed
 with verified SHA-256:
 `099C7CC6A492D93B3D652C39967F34838F104BBDAE7F03C2FFA4994A638744E5`.
 The preceding DLL, INI and log are backed up under

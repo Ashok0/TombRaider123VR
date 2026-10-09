@@ -1,9 +1,10 @@
 // Included by locomotion_selftest.cpp. Native callbacks reproduce the actual
 // sample writes in GetCollisionInfo: four in TR1/2, six in TR3.
 namespace {
-int eyeSamples=4, blockedEyeSample=-1, eyeObstacle=0;
-void __cdecl NativeEyeCollision(tr::RoomCollision* coll,int32_t,int32_t,
+int eyeSamples=4, blockedEyeSample=-1, eyeObstacle=0, eyeQueryY=0;
+void __cdecl NativeEyeCollision(tr::RoomCollision* coll,int32_t,int32_t y,
                                 int32_t,int16_t,int32_t height) {
+    eyeQueryY=y;
     Check(height==762,"camera query uses native capsule height");
     for (int i=0;i<eyeSamples;++i) {
         coll->floorSamples[3*i]=0;

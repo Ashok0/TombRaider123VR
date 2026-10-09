@@ -94,6 +94,19 @@ struct MountBodyTransition {
         return residual*weight;
     }
 };
+// A mount can relocate the native root before pos_prev catches up. Once the
+// camera accepts that destination height, keep it for the entire root pair,
+// not just the first rendered frame of the grounded state.
+struct MountRootHeight {
+    bool active=false;
+    int32_t from=0,to=0;
+    void Reset() { *this={}; }
+    void Begin(int32_t previous,int32_t current) { active=true;from=previous;to=current; }
+    int32_t Apply(int32_t previous,int32_t current,int32_t interpolated) {
+        if(active && previous==from && current==to) return current;
+        Reset();return interpolated;
+    }
+};
 // Keep a standing eye reference across grounded animation frames. Physical
 // body turns do not rotate this offset a second time; artificial turns do.
 struct GroundEye {

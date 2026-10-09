@@ -1,0 +1,14 @@
+﻿{
+    "deployed_at":  "2026-10-09T15:24:14.3252721-04:00",
+    "game_directory":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered",
+    "backup_directory":  "C:\\dev\\TombRaider123VR\\build\\before-ledge-flicker-fix-20261009-152413",
+    "previous_dll_sha256":  "099C7CC6A492D93B3D652C39967F34838F104BBDAE7F03C2FFA4994A638744E5",
+    "installed_dll_sha256":  "1AA8A888D3A2604677A93446B586FBB45802EC78AAD81E9783004B79F7320409",
+    "ini_sha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "verified_modules":  "verified-installed-modules.json",
+    "regression_checks":  514895,
+    "tracking_checks":  66150,
+    "address_checks":  2837,
+    "general_tests":  "passed",
+    "headset_test":  "pending"
+}

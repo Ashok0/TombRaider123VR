@@ -255,6 +255,7 @@ locomotion::Heading g_heading;
 stabilization::RenderTurn g_renderTurn;
 stabilization::GroundEye g_groundEye;
 stabilization::MountBodyTransition g_mountBodyTransition;
+stabilization::MountRootHeight g_mountRootHeight;
 struct BlockCamera {
     const uint8_t* owner=nullptr;
     const uint8_t* items=nullptr;
@@ -2181,6 +2182,8 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     if (!g_haveHeading || !sameBody || relocated) {
         g_rootMotion.Reset();
         g_mountBodyTransition.Reset();
+        g_mountRootHeight.Reset();
+        g_lastClimbCameraState=-1;
         g_blockCamera.Suspend();
         if (!sameBody || relocated) { g_unarmedArmVisibility={}; g_unarmedTwist[0]={}; g_unarmedTwist[1]={}; }
         const float oldBase=g_heading.base;
@@ -2209,13 +2212,15 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
     }
     if (CanWalk(item) && !UseLandingCamera(item)) {
         // A mount can finish with a one-tick root step while the native head
-        // joint is already at the new height. Interpolating the old root puts
-        // the stabilized eye inside Lara for that transition frame.
+        // is already at the new height. Hold that destination across every
+        // render of this root pair; g_lastClimbCameraState advances per render,
+        // so using it alone jumped back toward the old height on frame two.
         const float nativeHeight=float(nativeEyeY-pos.y_pos);
         const bool mountFinished=IsLedgeMountState(g_lastClimbCameraState) &&
             nativeHeight>=-950.0f && nativeHeight<=-500.0f;
-        const float bodyY = mountFinished ? float(pos.y_pos) :
-            static_cast<float>(Lerp(prev.y_pos, pos.y_pos, frac));
+        if (mountFinished) g_mountRootHeight.Begin(prev.y_pos,pos.y_pos);
+        const float bodyY=float(g_mountRootHeight.Apply(prev.y_pos,pos.y_pos,
+            Lerp(prev.y_pos,pos.y_pos,frac)));
         const auto eye = g_groundEye.Apply(
             {body.x, bodyY, body.z}, g_heading.base,
             {float(pose.x_pos), float(pose.y_pos), float(pose.z_pos)},
@@ -2224,7 +2229,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         pose.x_pos = static_cast<int32_t>(std::lround(eye.x));
         pose.y_pos = static_cast<int32_t>(std::lround(eye.y));
         pose.z_pos = static_cast<int32_t>(std::lround(eye.z));
-    }
+    } else g_mountRootHeight.Reset();
     if (state != g_lastClimbCameraState &&
         (IsLedgeMountState(state) || IsLedgeMountState(g_lastClimbCameraState))) {
         LogF("firstperson: pull-up state=%d anim=%d rootY=%d nativeEyeY=%d "
@@ -2366,8 +2371,8 @@ void ClampRenderedHeadToCollision(const uint8_t* item, PHD_3DPOS& pose) {
     const auto& prev = *reinterpret_cast<const PHD_3DPOS*>(item + off::item_pos_prev);
     const int frac = std::clamp(*Ptr<int32_t>(g_boundDll->frameFrac), 0, 256);
     int32_t body[3] = {Lerp(prev.x_pos, pos.x_pos, frac),
-                             Lerp(prev.y_pos, pos.y_pos, frac),
-                             Lerp(prev.z_pos, pos.z_pos, frac)};
+        g_mountRootHeight.Apply(prev.y_pos,pos.y_pos,Lerp(prev.y_pos,pos.y_pos,frac)),
+        Lerp(prev.z_pos, pos.z_pos, frac)};
 
     locomotion::Vec tracked{};
     if (Cfg().positionalTracking && Cfg().firstPersonHeadTranslation) {
@@ -2545,6 +2550,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             // inventory and scripted sequences. Resume rebases its yaw; a
             // different Lara/level invalidates it before it can be applied.
             g_lastClimbCameraState = -1;
+            g_mountRootHeight.Reset();
             g_dragPrevious = g_dragCurrent = g_dragShown = {};
             g_neutralTaken = false;
         }
@@ -2863,6 +2869,8 @@ void Remove() {
     g_headingItem = nullptr;
     g_headingLevel = -1;
     g_groundEye.Reset();
+    g_mountRootHeight.Reset();
+    g_lastClimbCameraState=-1;
     g_blockCamera.Suspend();
     g_mountBodyTransition.Reset();
     g_bodyVisualOffset={};
@@ -2967,6 +2975,8 @@ void FirstPersonToggle() {
     g_dragPrevious = g_dragCurrent = g_dragShown = {};
     g_renderTurn.Reset();
     g_groundEye.Reset();
+    g_mountRootHeight.Reset();
+    g_lastClimbCameraState=-1;
     g_blockCamera.Suspend();
     g_mountBodyTransition.Reset();
     g_bodyVisualOffset={};
