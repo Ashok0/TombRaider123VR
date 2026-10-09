@@ -23,7 +23,12 @@ RenderState testRenderState{};
 RenderState& VidState() { return testRenderState; }
 int testWater=0;
 int testConfigFlags=0;
+int testLevelType=0;
 bool testPoseAvailable=true;
+float testHandDown[2]{};
+bool VRSystem::ControllerHeightBelowHead(int hand,float& down) const {
+    down=testHandDown[hand]; return testPoseAvailable;
+}
 int testHapticShots[2]{};
 void VRSystem::GunShotHaptic(int hand) { if (hand>=0 && hand<2) ++testHapticShots[hand]; }
 float testViewRight=0, testViewForward=0, testViewRise=0, testHeadPitch=0;
@@ -32,7 +37,8 @@ float testPivotTurn=0;
 const Config& Cfg() { return testConfig; }
 VRSystem& VR() { return testVR; }
 int LaraWaterStatus() { return testWater; }
-int32_t AppFlag(uint32_t offset) { return offset==drva::app_off::cfg_flags ? testConfigFlags : 0; }
+int32_t AppFlag(uint32_t offset) { return offset==drva::app_off::cfg_flags ? testConfigFlags :
+    offset==drva::app_off::level_type ? testLevelType : 0; }
 float LiveWorldUnitsPerMetre() { return 1000; }
 float VRSystem::HeadYawRadians() const { return 0; }
 void VRSystem::PivotHeadFloorOffset(float turn) { ++testPivotCount; testPivotTurn=turn; }
@@ -155,9 +161,10 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     testConfig.firstPersonDriftLog=false;
     testVR.m_system=reinterpret_cast<vr::IVRSystem*>(1);
     testVR.m_poseValid=true;
-    testWater=0; testConfigFlags=0; testPoseAvailable=true;
+    testWater=0; testConfigFlags=0; testLevelType=0; testPoseAvailable=true;
     g_runtimeEnabled=g_active=g_haveHeading=g_haveManualInput=true;
-    g_headingItem=item; g_heading.base=heading;
+    g_headingItem=item; g_heading.base=heading; g_headingLevel=0;
+    g_ledgePull.Reset(); testHandDown[0]=testHandDown[1]=0;
     g_manualLocal=stick; g_manualWorld=MovementWorld(stick,heading);
     g_shifted=g_jumpPressed=false;
     g_groundMoveAction=0; g_stabilizeRoot=g_hardStopRoot=false;
@@ -314,6 +321,8 @@ void TestResponsiveEntry() {
 #include "monkey_shadow_selftest.h"
 #include "block_camera_selftest.h"
 
+#include "ledge_pull_selftest.h"
+
 int main() {
     const struct { Vec stick; int gait; } directions[]={
         {{0,1},1}, {{0,-1},16}, {{1,0},21}, {{-1,0},22}};
@@ -394,6 +403,7 @@ int main() {
             }
         }
     }
+    TestLedgePullGesture();
     TestResponsiveEntry();
     TestGunControls();
     TestGunHaptics();

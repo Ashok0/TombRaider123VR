@@ -13,6 +13,7 @@
 #include "MotionGunMath.h"
 #include "MotionGunInput.h"
 #include "FirstPersonIK.h"
+#include "LedgePullGesture.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -256,6 +257,7 @@ stabilization::RenderTurn g_renderTurn;
 stabilization::GroundEye g_groundEye;
 stabilization::MountBodyTransition g_mountBodyTransition;
 stabilization::MountRootHeight g_mountRootHeight;
+firstperson::LedgePullGesture g_ledgePull;
 struct BlockCamera {
     const uint8_t* owner=nullptr;
     const uint8_t* items=nullptr;
@@ -2044,6 +2046,40 @@ void PrepareGroundDirection(uint8_t* item,uint32_t action) {
     g_rootMotion.Reset();
 }
 
+// Inject only within the native above-water tick: LaraHangTest and
+// lara_col_hang retain grab, clearance, animation and collision ownership.
+struct LedgePullInputScope {
+    uint32_t* input=nullptr;
+    uint32_t directions=0;
+    explicit LedgePullInputScope(uint8_t* item,double now) {
+        bool eligible=item && item==g_headingItem && g_active && g_haveHeading &&
+            Cfg().gamepadEnabled && !g_shifted && Gate() && !InteractionAligning() &&
+            item==*Ptr<uint8_t*>(g_boundDll->laraItem) &&
+            g_headingLevel==AppFlag(drva::app_off::level) && LaraWaterStatus()==0 &&
+            firstperson::LedgePullGesture::Hanging(*reinterpret_cast<int16_t*>(item+off::item_anim_state)) &&
+            firstperson::LedgePullGesture::Hanging(*reinterpret_cast<int16_t*>(item+off::item_goal_state));
+        auto* nativeInput=eligible ? Ptr<uint32_t>(g_boundDll->input) : nullptr;
+        // Mirror native LaraHangTest: modern controls use the existing grab
+        // latch and Duck to drop; tank controls require held Action. Never
+        // manufacture a grab or suppress the player's drop/jump/roll input.
+        const bool autoGrab=NewControls() && AppFlag(drva::app_off::level_type)!=3;
+        eligible=eligible && (autoGrab ? (*Ptr<uint16_t>(g_boundDll->lara+60)&0x8000u)!=0 :
+            (*nativeInput&0x40u)!=0) &&
+            !(*nativeInput&(locomotion::Back|0x10u|0x100u|0x1000u));
+        float left=0,right=0;
+        const bool tracked=eligible && VR().ControllerHeightBelowHead(0,left) &&
+            VR().ControllerHeightBelowHead(1,right);
+        if (g_ledgePull.Update(eligible,tracked,left,right,now)) {
+            input=nativeInput;
+            directions=*input&locomotion::Directions;
+            *input=(*input&~locomotion::Directions)|locomotion::Forward;
+        }
+    }
+    ~LedgePullInputScope() {
+        if (input) *input=(*input&~locomotion::Directions)|directions;
+    }
+};
+
 void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     using namespace locomotion;
     g_dragPrevious = g_dragCurrent;
@@ -2150,7 +2186,10 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
         }
     }
     if (g_groundMoveAction) PrepareGroundDirection(item,g_groundMoveAction);
-    g_hLaraAboveWater.Original<Fn_LaraAboveWater>()(item, nativeCollision);
+    {
+        LedgePullInputScope pull(item,TurnTime());
+        g_hLaraAboveWater.Original<Fn_LaraAboveWater>()(item, nativeCollision);
+    }
     g_groundMoveAction = 0;
     g_stabilizeRoot = g_hardStopRoot = false;
 }
@@ -2183,6 +2222,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         g_rootMotion.Reset();
         g_mountBodyTransition.Reset();
         g_mountRootHeight.Reset();
+        g_ledgePull.Reset();
         g_lastClimbCameraState=-1;
         g_blockCamera.Suspend();
         if (!sameBody || relocated) { g_unarmedArmVisibility={}; g_unarmedTwist[0]={}; g_unarmedTwist[1]={}; }
@@ -2543,6 +2583,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_mountBodyTransition.Reset();
             g_blockCamera.Suspend();
             g_haveHeading = false;
+            g_ledgePull.Reset();
             g_haveManualInput = false;
             g_rootMotion.Reset();
             g_renderTurn.Reset();
@@ -2866,6 +2907,7 @@ void Remove() {
     g_lastRawLT=0;
     g_lastGunTraceStatus=-1;
     g_haveHeading = false;
+    g_ledgePull.Reset();
     g_headingItem = nullptr;
     g_headingLevel = -1;
     g_groundEye.Reset();
@@ -2966,6 +3008,7 @@ void FirstPersonToggle() {
     g_nativeEquipStatus=-1;
     if (wasActive && !g_runtimeEnabled) VR().RecenterHead();
     g_haveHeading = false;
+    g_ledgePull.Reset();
     g_headingItem = nullptr;
     g_haveManualInput = false;
     g_shifted = false;

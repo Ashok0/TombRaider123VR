@@ -86,5 +86,22 @@ int main() {
         Near(down,neutral[1]-1.2f,"controller height stays world-stable");
         Near(forward,neutral[2]-.3f,"controller forward offset stays world-stable");
     }
+    for (int hand=0;hand<2;++hand) {
+        vr.m_poseValid=vr.m_controllerPoseValid[hand]=true;
+        vr.m_headPosRaw[1]=1.7f; vr.m_controllerPose[hand].m[1][3]=1.5f;
+        float down=0;
+        Near(vr.ControllerHeightBelowHead(hand,down),true,"gesture has tracked hand");
+        Near(down,.2,"gesture uses live head-relative height");
+        vr.m_headPosRaw[1]-=.3f; vr.m_controllerPose[hand].m[1][3]-=.3f;
+        vr.ControllerHeightBelowHead(hand,down);
+        Near(down,.2,"ducking head and hands together cannot pull");
+        vr.m_controllerPose[hand].m[1][3]-=.18f;
+        vr.ControllerHeightBelowHead(hand,down);
+        Near(down,.38,"physical hand pull is measured in tracking metres");
+        vr.m_controllerPoseValid[hand]=false;
+        Near(vr.ControllerHeightBelowHead(hand,down),false,"missing hand disables gesture");
+        vr.m_controllerPoseValid[hand]=true; vr.m_poseValid=false;
+        Near(vr.ControllerHeightBelowHead(hand,down),false,"missing head disables gesture");
+    }
     std::printf("PASS: %d real tracking/eye/projection checks\n",checks);
 }

@@ -61,6 +61,35 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### First-person ledge pull gesture (2026-10-09)
+
+In TR1, TR2 and TR3, while Lara is already hanging from a ledge, pull **both
+controllers downward about 18 cm** in one deliberate motion to climb up. The
+pull window is **0.75 seconds**, starting after the first 4 cm of movement.
+Tank controls still require holding your usual grab/Action input; modern
+controls also recognize the game's existing automatic grab latch. Normal stick
+climbing and dropping remain available.
+
+This applies only to ordinary ledge hanging and shimmying, not monkey bars,
+ladder climbing, swimming, falling, grounded movement or third person. It sends
+native Forward briefly while preserving the existing grab. Native collision
+checks still decide whether there is clearance and which mount animation to use.
+Drop, back, jump and roll inputs cancel the gesture, as do missing tracking,
+camera suspension, view changes and relocation. The request cannot leak into
+walking once the native ledge tick finishes.
+
+Movement is measured relative to the live headset, so moving head and hands
+down together does not count. One-hand motion, small jitter, slow drift and
+tracking discontinuities are rejected. If a ledge blocks the climb, raise both
+hands at least 10 cm before pulling again. No overhead starting pose or extra
+calibration is required. Camera transforms, native animations, arm IK and jiggle
+physics are unchanged.
+
+Automated tests cover all three games, native state gating, modern auto-grab,
+tank grab release, native clearance decisions, tracking loss, retry behavior and
+sampling at 30/60/90/144 Hz. Physical gesture comfort and timing still need
+headset confirmation.
+
 ### Post-mount camera flicker correction (2026-10-09)
 
 Fixed a reproducible height reversal immediately after a ledge mount. On the
@@ -1716,7 +1745,24 @@ shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 post-mount camera correction** Release/x64 DLL is
+The current **2026-10-09 first-person ledge pull gesture** Release/x64 DLL is
+installed with verified SHA-256:
+`0B305D77BC53440C0FCEB6AEDDD74EC9735637D85B07518FF792E52FA97D59A2`.
+The preceding DLL, INI and log are backed up under
+`build/before-ledge-pull-gesture-20261009-155935/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ledge-pull-gesture/deployment.json).
+
+**530,693** production movement/control/camera/IK/shadow/haptic/gesture checks,
+**66,162** tracking/eye/projection checks, **3,522** physics checks across four
+supported executable builds, all general self-tests and **2,837** native
+address/layout/hook checks pass. Installed game hashes still match the verified
+retail update. Release/x64 built without warnings. The general test harness
+retains its two existing local-variable shadow warnings. Headset confirmation of
+the gesture remains pending.
+
+The preceding **2026-10-09 post-mount camera correction** Release/x64 DLL was
 installed with verified SHA-256:
 `1AA8A888D3A2604677A93446B586FBB45802EC78AAD81E9783004B79F7320409`.
 The preceding DLL, INI and log are backed up under

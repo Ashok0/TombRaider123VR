@@ -1,0 +1,38 @@
+﻿{
+    "timestamp":  "2026-10-09T15:59:36.0637831-04:00",
+    "backup_directory":  "build/before-ledge-pull-gesture-20261009-155935",
+    "old_dll_sha256":  "1AA8A888D3A2604677A93446B586FBB45802EC78AAD81E9783004B79F7320409",
+    "installed_dll_sha256":  "0B305D77BC53440C0FCEB6AEDDD74EC9735637D85B07518FF792E52FA97D59A2",
+    "ini_sha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "verified_modules":  {
+                             "value":  [
+                                           {
+                                               "module":  "tomb123.exe",
+                                               "installed_path":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\tomb123.exe",
+                                               "sha256":  "614F9578215A213A0950B0CB1533D7D416FB5EB1DAAC6E6375DA0E08C8E2B729"
+                                           },
+                                           {
+                                               "module":  "tomb1.dll",
+                                               "installed_path":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\1\\tomb1.dll",
+                                               "sha256":  "979990F9A2DB7474E2B18F204D748CECB5AAE2B72CEC5ED05E0A2353683A1687"
+                                           },
+                                           {
+                                               "module":  "tomb2.dll",
+                                               "installed_path":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\2\\tomb2.dll",
+                                               "sha256":  "C91E8FE752D765F0EE6B52BF0CC5016C33EE9D850FE001272F17A302C6253D1A"
+                                           },
+                                           {
+                                               "module":  "tomb3.dll",
+                                               "installed_path":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\3\\tomb3.dll",
+                                               "sha256":  "067A18610EA06F28AE63E615D8B0986CF2A87383E2ACB61F1FAF37A175102E30"
+                                           }
+                                       ],
+                             "Count":  4
+                         },
+    "production_checks":  530693,
+    "tracking_checks":  66162,
+    "physics_checks":  3522,
+    "address_checks":  2837,
+    "general_selftests":  "passed",
+    "headset_confirmation":  "pending"
+}

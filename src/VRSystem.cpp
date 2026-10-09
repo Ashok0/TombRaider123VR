@@ -351,6 +351,12 @@ bool VRSystem::ControllerPose(int hand, vr::HmdMatrix34_t& out) const {
     return true;
 }
 
+bool VRSystem::ControllerHeightBelowHead(int hand, float& down) const {
+    if (hand<0 || hand>1 || !m_poseValid || !m_controllerPoseValid[hand]) return false;
+    down=m_headPosRaw[1]-m_controllerPose[hand].m[1][3];
+    return std::isfinite(down);
+}
+
 bool VRSystem::FirstPersonControllerOffset(int hand, float& right, float& down,
                                            float& forward) const {
     if (hand < 0 || hand > 1 || !m_poseValid || !m_haveNeutral ||
