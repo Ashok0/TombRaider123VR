@@ -555,6 +555,13 @@ void __cdecl Detour_validate_draw() {
         }
     } physicsDrawGuard;
 
+    // Keep the native light camera (perspective or orthographic). The guard
+    // still clears uniforms left by an eye-view draw using the same shader.
+    if (FirstPersonShadowPass()) {
+        g_hValidateDraw.Original<Fn_validate_draw>()();
+        return;
+    }
+
     DumpDrawState();
 
     // Read the world/2D classification LIVE, from vid_state.proj, rather than

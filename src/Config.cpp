@@ -235,6 +235,7 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonYawFromLara, ini);
     g_cfg.firstPersonHeadTranslation = GetBool(L"FirstPersonHeadTranslation",
                                                 g_cfg.firstPersonHeadTranslation, ini);
+    g_cfg.firstPersonUnarmedIK = GetBool(L"FirstPersonUnarmedIK", g_cfg.firstPersonUnarmedIK, ini);
     g_cfg.firstPersonHideHead        = GetBool(L"FirstPersonHideHead",
                                                 g_cfg.firstPersonHideHead, ini);
     g_cfg.firstPersonHeadAim         = GetBool(L"FirstPersonHeadAim",

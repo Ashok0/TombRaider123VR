@@ -18,12 +18,16 @@ GameDllLayout testDll{};
 alignas(8) unsigned char testModule[32]{};
 alignas(8) unsigned char testItem[512]{};
 bool testWorld = true;
+bool testShadowPass=false;
+bool FirstPersonShadowPass() { return testShadowPass; }
 int testGame = 0;
 int CurrentGame() { return testGame; }
 int testLevel = 1;
 const float* testHandPalette=nullptr;
 int testHandJoint=-1;
 const float* FirstPersonHandSkin(int& joint) { joint=testHandJoint; return testHandPalette; }
+const float* testNativeBodyPalette=nullptr;
+const float* FirstPersonNativeBodySkin() { return testNativeBodyPalette; }
 const float* testBodyPalette=nullptr;
 uint32_t testVisibleJoints=0;
 const float* FirstPersonBodySkin(uint32_t& mask) { mask=testVisibleJoints; return testBodyPalette; }
@@ -132,10 +136,26 @@ int main(int argc, char** argv) {
     g_inLara = true;
     DynamicBonesObserveDraw();
     Require(DynamicBonesRenderBody() && g_numJoints == 15, "only 15 skeleton joints classified from fixed upload");
+    Joint nativePalette[32]; std::memcpy(nativePalette,palette,sizeof(palette));
+    testNativeBodyPalette=nativePalette[0].m;
+    for (int j=8;j<=13;++j) palette[j].m[3]+=10000; // Tracked arm pose.
+    palette[7].m[3]+=20000; // Ensure even torso sampling selects native palette.
+    g_haveBest=false;
+    DynamicBonesObserveDraw();
+    Require(DynamicBonesRenderBody() &&
+        std::memcmp(g_best.joints,nativePalette,sizeof(float)*12*15)==0 &&
+        std::memcmp(g_torsoThis.m,nativePalette[7].m,sizeof(g_torsoThis.m))==0,
+        "IK/visibility render palettes cannot feed jiggle classification or torso inertia");
+    testNativeBodyPalette=nullptr; std::memcpy(palette,nativePalette,sizeof(palette));
     for (int j = 0; j < 15; ++j) palette[j].m[3] = 0;
     DynamicBonesObserveDraw();
     Require(!DynamicBonesRenderBody(), "distinct padding cannot make an attachment into a body");
     for (int j = 0; j < 15; ++j) palette[j].m[3] = float(j * 40);
+    testShadowPass=true;g_haveBest=false;
+    DynamicBonesObserveDraw();
+    Require(!DynamicBonesRenderBody() && !g_haveBest,
+            "shadow cannot drive jiggle even when projection pointer resembles world rendering");
+    testShadowPass=false;
     testWorld = false;
     DynamicBonesObserveDraw();
     Require(!DynamicBonesRenderBody(), "non-world passes are rejected");
@@ -382,6 +402,18 @@ void main() {
     Require(pixelWhite(),"ledge arm seam retains full native positions with torso hidden");
     gl::Uniform4fv(weightsLoc,1,forearmWeights);
     Require(!pixelWhite(),"body mask discards hidden torso fragments");
+    // The shadow pass can reuse a program after an eye-view hand/body draw.
+    // Native uploads its palette; the production cleanup must clear old masks.
+    testShadowPass=true;gl::Uniform4fv(jointsLoc,96,fullPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"shadow draw clears a preceding first-person body visibility mask");
+    testShadowPass=false;testHandPalette=fullPalette;testHandJoint=10;
+    BoneSkinAfterValidate(false);
+    Require(!pixelWhite(),"eye-view tracked-hand seam restored after shadow");
+    testShadowPass=true;gl::Uniform4fv(jointsLoc,96,fullPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"shadow draw clears a preceding tracked-wrist clipping uniform");
+    testShadowPass=false;testHandPalette=nullptr;testHandJoint=-1;
     // Drop, walk, rehang, and exit first person on the same shader program.
     for (int transition=0;transition<8;++transition) {
         gl::Uniform4fv(weightsLoc,1,mixedWeights);

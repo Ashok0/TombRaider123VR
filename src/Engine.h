@@ -280,7 +280,7 @@ constexpr Layout kBuildStock = {
     rva::vidLoadTexture, rva::vidLoadTextureUpscaled, rva::ogl_texCreate, rva::ogl_texUpdate,
 };
 
-// The current Aspyr retail build: PE TimeDateStamp 0x6A4B7C52, SizeOfImage
+// The earlier Aspyr retail build: PE TimeDateStamp 0x6A4B7C52, SizeOfImage
 // 0x0C972000, PDB GUID b116f8a8-1f9e-f144-82a1-374ec673b733. Relinked with a newer
 // toolchain (it gains a .fptable section and loses _RDATA) and shipped WITHOUT
 // PDBs, so nothing below came out of dbghelp. Every value was carried across
@@ -340,6 +340,39 @@ constexpr Layout kBuildAspyrRetail = {
     /* vidLoadTextureUpscaled */ 0x0000A000,
     /* ogl_texCreate       */ 0x00010590,
     /* ogl_texUpdate       */ 0x00010760,
+};
+
+// Retail update installed on 2026-10-09, without PDBs. Each RVA is mapped
+// independently by tools/port_build.py and checked against the installed images
+// in build/current-october-verify. SizeOfImage: 0x0C973000.
+constexpr Layout kBuildRetailOctober = {
+    "TR I-III Remastered (retail update, PE 0x6AA156AA, no PDB)", 0x6AA156AA,
+    /* vid_setPass            */ 0x0000ABB0,
+    /* validate_draw          */ 0x0000EFF0,
+    /* ogl_draw               */ 0x0000FBF0,
+    /* ogl_present            */ 0x0000F690,
+    /* fmvShow                */ 0x0000E640,
+    /* ogl_setRenderTarget    */ 0x000103B0,
+    /* gGame                  */ 0x000F0438,
+    /* XInputGetState         */ 0x004193B0,
+    /* vid_state              */ 0x0C6A34C0,
+    /* vid_state_prev         */ 0x0C6A3560,
+    /* mProj                  */ 0x0C6A3270,
+    /* mView_packed           */ 0x0C6A3650,
+    /* shaders                */ 0x0C94E9C0,
+    /* ogl_textures           */ 0x0C94E950,
+    /* FBO_custom             */ 0x0C6AB948,
+    /* FBO_default            */ 0x0C94E99C,
+    /* app                    */ 0x0038F400,
+    /* gWidth                 */ 0x0041F1D0,
+    /* gHeight                */ 0x0041F1CC,
+    /* gTargetWidth           */ 0x0269F220,
+    /* gTargetHeight          */ 0x0041F1EC,
+    /* shader_init            */ 0x0000EC50,
+    /* vidLoadTexture         */ 0x00009BA0,
+    /* vidLoadTextureUpscaled */ 0x0000A010,
+    /* ogl_texCreate          */ 0x000105A0,
+    /* ogl_texUpdate          */ 0x00010770,
 };
 
 // ---------------------------------------------------------------------------

@@ -30,6 +30,13 @@ inline bool IsHardLanding(int state,int animation) {
     // The state alone also includes idle, vault recovery and ordinary landings.
     return state==2 && animation==24;
 }
+// Verified against all installed TR1/2/3 PDP banks. TR1 animation 99 is
+// a water-exit clip (state 58), not the TR2/3 stop landing.
+inline bool IsLandingAnimation(int state,int animation) {
+    return (state==7 && animation==13) || (state==1 && animation==92) ||
+        (state==2 && (animation==24 || animation==31 || animation==82 || animation==99));
+}
+inline bool IsSwitchAnimation(int state) { return state==40 || state==41; }
 inline float GroundRollTurn(int beforeState,int afterState,int16_t beforeYaw,int16_t afterYaw) {
     const bool roll=IsGroundRollState(beforeState) || IsGroundRollState(afterState);
     return roll && uint16_t(int(afterYaw)-int(beforeYaw))==0x8000u ? Pi : 0.f;
@@ -101,6 +108,10 @@ inline bool CanHardStopState(int state, int goal, bool gravity) {
 inline bool IsJumpOrFallState(int state) {
     return state == 3 || state == 9 || state == 15 ||
         (state >= 25 && state <= 29);
+}
+inline bool IsMonkeyBarState(int state) {
+    // TR3 lara_control_routines: hang2, swing, traverse, half-turn, hanging turns.
+    return (state>=75 && state<=79) || state==82 || state==83;
 }
 inline bool IsLedgeHangState(int state) {
     // Control-table entries shared by TR1-3; 75/82/83 exist only in TR3.

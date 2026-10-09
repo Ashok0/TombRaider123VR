@@ -981,9 +981,10 @@ void BoneSkinAfterValidate(bool jointApplied) {
     // before either eye draws. The hand shader uses the corrected wrist
     // rigidly for position/normal and hides the original forearm-side weights.
     int handJoint=-1;
-    const float* handPalette=FirstPersonHandSkin(handJoint);
+    const bool shadow=FirstPersonShadowPass();
+    const float* handPalette=shadow ? nullptr : FirstPersonHandSkin(handJoint);
     uint32_t visibleJoints=0;
-    const float* bodyPalette=FirstPersonBodySkin(visibleJoints);
+    const float* bodyPalette=shadow ? nullptr : FirstPersonBodySkin(visibleJoints);
     const auto& state=VidState();
     if (gl::LoadedSkinApi() && state.shader>=0 && state.shader<kShaderCount) {
         const GLuint program=Shaders()[state.shader].id;
@@ -1052,7 +1053,7 @@ void BoneSkinAfterValidate(bool jointApplied) {
 
     // DynamicBonesApply is the one switch for "change what is drawn", and it
     // has to govern this path as well as the rigid one.
-    const bool body = !handPalette && Cfg().dynamicBonesApply && DynamicBonesRenderBody();
+    const bool body = !shadow && !handPalette && Cfg().dynamicBonesApply && DynamicBonesRenderBody();
 
     if (ps.locBone < 0) {
         // The failure that went unreported the first time round: her body

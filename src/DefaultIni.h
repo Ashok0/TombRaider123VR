@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 38174 bytes, 788 lines.
+// Source: TombRaiderVR.ini, 38287 bytes, 790 lines.
 #pragma once
 
 namespace tr {
@@ -377,6 +377,8 @@ FirstPersonRoomscaleNeckMetres=0.15
 ; Optional simulation heading, jump-state and requested/accepted drag log.
 FirstPersonDriftLog=1
 FirstPersonHideHead=1
+; Tracked unarmed arms/hands. 0 restores native arms and the look-down visibility rule.
+FirstPersonUnarmedIK=1
 
 ; Apply the per-eye view matrix at all. 0 leaves the game's own camera in both
 ; eyes, so the only remaining difference is the frustum shear -- a constant
@@ -617,10 +619,10 @@ GamepadLogButtons=0
 ; has to be lined up by tilting your head instead. It is ON by default anyway,
 ; because DecoupledPitchChord below hands the stick pitch back whenever you hold
 ; RT+RB -- nothing is out of reach, and comfort is the right default in a
-; headset. Set this to 0 for the stock two-axis stick.
-;
 )INI"
-           R"INI(; Applied to whatever right stick reaches the game, including a physical pad
+           R"INI(; headset. Set this to 0 for the stock two-axis stick.
+;
+; Applied to whatever right stick reaches the game, including a physical pad
 ; merged in alongside the Touch controllers. The binding line in the log says
 ; "look=Rstick(yaw only; hold RT+RB for pitch)" when both are on.
 DecoupledPitch=1

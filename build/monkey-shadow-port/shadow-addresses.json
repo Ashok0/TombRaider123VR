@@ -1,0 +1,17 @@
+{
+  "tomb1.dll": {
+    "old": 470384,
+    "current-retail-verify": 471552,
+    "current-gold-verify": 471552
+  },
+  "tomb2.dll": {
+    "old": 677120,
+    "current-retail-verify": 676928,
+    "current-gold-verify": 676928
+  },
+  "tomb3.dll": {
+    "old": 981472,
+    "current-retail-verify": 989024,
+    "current-gold-verify": 989024
+  }
+}

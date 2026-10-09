@@ -1,0 +1,132 @@
+TombRaiderVR (Tomb Raider I-III Remastered): starting
+config: chest physics=on shader=1 apply=1 drive=1 strength=2.50
+config: mode=stereo tracking=rotation+position origin=seated units/m=423.0 ss=1.00 flipProjY=1 flipViewY=1 dup=1 flatHud=1
+config: culling=head frustum margin=8.0deg depth<=16 portals<=4096 far=0 widen=1 objects=1  sky=infinity
+config: startup camera=third person (always); Y+LT switches first/third person
+config: first person joint 14 offset (0,-32,144), interaction Z 16, stable VR heading, head translation ON, head hidden (mesh_bits bit 14)
+config: first person armed head aim=on
+config: first person body-follows-head=on (dead zone 0 deg, 4.0 deg/frame), move-with-head=on (camera-relative controls only)
+config: first person roomscale=on (dead zone 0.02 m, neck pivot 0.15 m, direct collision drag; turn 120 deg/sec)
+engine: build matched by PE timestamp 0x6AA156AA
+engine: bound to 00007FF6C17A0000 (reference base 0000000140000000, slide +140692415971328)
+engine: build identified as TR I-III Remastered (retail update, PE 0x6AA156AA, no PDB)
+hook[vid_setPass]: 00007FF6C17AABB0 -> 00007FFC42075C30 (stole 6, tramp 00007FF6CE12000E)
+hook[validate_draw]: 00007FF6C17AEFF0 -> 00007FFC42075CD0 (stole 5, tramp 00007FF6CE13000E)
+hook[ogl_draw]: 00007FF6C17AFBF0 -> 00007FFC42078380 (stole 5, tramp 00007FF6CE14000E)
+hook[ogl_present]: 00007FF6C17AF690 -> 00007FFC42078A80 (stole 5, tramp 00007FF6CE15000E)
+hook[fmvShow]: 00007FF6C17AE640 -> 00007FFC420787F0 (stole 5, tramp 00007FF6CE16000E)
+hook[ogl_setRenderTarget]: 00007FF6C17B03B0 -> 00007FFC42075C10 (stole 13, tramp 00007FF6CE17000E)
+hook[effect texture load]: 00007FF6C17A9BA0 -> 00007FFC42072820 (stole 11, tramp 00007FF6CE18000E)
+hook[effect upscale load]: 00007FF6C17AA010 -> 00007FFC420728D0 (stole 9, tramp 00007FF6CE19000E)
+hook[effect texture create]: 00007FF6C17B05A0 -> 00007FFC42072980 (stole 5, tramp 00007FF6CE1A000E)
+hook[effect texture update]: 00007FF6C17B0770 -> 00007FFC42072A70 (stole 5, tramp 00007FF6CE1B000E)
+effects: built-in enhancement enabled; no replacement DDS files required
+hook[shader_init]: 00007FF6C17AEC50 -> 00007FFC420664B0 (stole 5, tramp 00007FF6CE1C000E)
+hooks: all six installed
+TombRaiderVR: hooks installed; OpenVR will be brought up on the first frame
+gl: loader ready (shader api ready)
+boneskin: 26 skin program(s) matched, 26 patched, 0 fell back to the original
+engine: now running Tomb Raider III (gGame=2)
+pad: Touch controllers presented as an Xbox pad (_XInputGetState 00007FF6C1BB93B0 -> 00007FFC42074B20, real 00007FFC59E34EE0)
+pad: move=Lstick look=Rstick(yaw only; hold RT+RB for pitch) jump=A(R lower) roll=B(R upper) action=Y(L upper)/LB+RB(both grips) system=BACK(L lower) walk=LS+RB(R grip) duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=L3+R3 graphics=Y+RT view=Y+LT dpad=R3+Lstick
+gamedll: bound to tomb3.dll (Tomb Raider III, gGame=2) at 00007FFBF60C0000
+hook[DrawLaraHD]: 00007FFBF61AC990 -> 00007FFC42061690 (stole 6, tramp 00007FFBF698000E)
+dynbones: hooked tomb3.dll (Tomb Raider III) -- chest physics enabled; draws scoped to Lara
+hook[PrintRoomsList]: 00007FFBF61AD940 -> 00007FFC420905F0 (stole 5, tramp 00007FFBF699000E)
+hook[S_GetObjectBounds]: 00007FFBF61A21A0 -> 00007FFC42090CF0 (stole 5, tramp 00007FFBF69A000E)
+cull: hooked tomb3.dll (Tomb Raider III)
+hook[DrawSkyHD]: 00007FFBF61AD470 -> 00007FFC42091610 (stole 5, tramp 00007FFBF69B000E)
+sky: hooked tomb3.dll (Tomb Raider III) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
+gun calibration: Ctrl+F1..F6 position, Ctrl+Shift+F1..F6 angles, F7 save/restore
+firstperson: startup view is always third person; press Y+LT to switch views
+hook[LaraAboveWater]: 00007FFBF6118DC0 -> 00007FFC420884D0 (stole 5, tramp 00007FFBF69C000E)
+hook[DrawToShadow]: 00007FFBF61B2440 -> 00007FFC42080AA0 (stole 9, tramp 00007FFBF69D000E)
+hook[LaraGun]: 00007FFBF6129990 -> 00007FFC42088100 (stole 8, tramp 00007FFBF69E000E)
+hook[MovableBlockCollision]: 00007FFBF6151C30 -> 00007FFC4207F440 (stole 5, tramp 00007FFBF69F000E)
+hook[AnimateLara]: 00007FFBF6137420 -> 00007FFC42087B30 (stole 6, tramp 00007FFBF6A0000E)
+hook[CalculateLaraMatrices]: 00007FFBF60F1470 -> 00007FFC42080380 (stole 5, tramp 00007FFBF6A1000E)
+hook[DrawActionIndicators]: 00007FFBF61B20D0 -> 00007FFC420806A0 (stole 6, tramp 00007FFBF6A2000E)
+hook[phd_GenerateW2V]: 00007FFBF61B6A50 -> 00007FFC4208BB10 (stole 5, tramp 00007FFBF6A3000E)
+hook[DrawCreatureHD]: 00007FFBF61AA6B0 -> 00007FFC42081000 (stole 5, tramp 00007FFBF6A4000E)
+hook[GetJoints]: 00007FFBF61A9FC0 -> 00007FFC42084F30 (stole 7, tramp 00007FFBF6A5000E)
+hook[FireWeapon]: 00007FFBF612B3E0 -> 00007FFC42086CF0 (stole 5, tramp 00007FFBF6A6000E)
+hook[DrawGunFlash]: 00007FFBF60EBA80 -> 00007FFC42083F70 (stole 10, tramp 00007FFBF6A7000E)
+hook[shotgun effect wrist position]: 00007FFBF61904B0 -> 00007FFC42083D10 (stole 5, tramp 00007FFBF6A8000E)
+hook[GetTargetOnLOS]: 00007FFBF612B1C0 -> 00007FFC42086E50 (stole 5, tramp 00007FFBF6A9000E)
+hook[FireHarpoon]: relocated rip disp32 at +6 (3618405 -> -6329753)
+hook[FireHarpoon]: 00007FFBF6123410 -> 00007FFC42087510 (stole 11, tramp 00007FFBF6AA000E)
+hook[FireRocket]: 00007FFBF61240E0 -> 00007FFC42087560 (stole 10, tramp 00007FFBF6AB000E)
+hook[FireGrenade]: 00007FFBF6125230 -> 00007FFC42087580 (stole 10, tramp 00007FFBF6AC000E)
+hook[AnimatePistols]: 00007FFBF6127720 -> 00007FFC42086D20 (stole 5, tramp 00007FFBF6AD000E)
+hook[DrawHair]: relocated rip disp32 at +7 (854301 -> -8906113)
+hook[DrawHair]: 00007FFBF6191170 -> 00007FFC42081570 (stole 11, tramp 00007FFBF6AE000E)
+firstperson: hooked tomb3.dll (Tomb Raider III) -- runtime camera switch ready (Y+LT, startup third person, joint 14). Fixed and cinematic cameras keep their own framing.
+vr: initialisation attempt 1 at frame 1
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+vr: initialisation attempt 2 at frame 121
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+vr: initialisation attempt 3 at frame 241
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+vr: initialisation attempt 4 at frame 361
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+vr: initialisation attempt 5 at frame 481
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+vr: initialisation attempt 6 at frame 601
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+vr: initialisation attempt 7 at frame 721
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+vr: initialisation attempt 8 at frame 841
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: VR_InitInternal(Scene) failed -- VRInitError_Init_HmdNotFound (108): Hmd Not Found (108)
+effects: texture slot 3 layer 22 classified as 2
+effects: texture slot 3 layer 32 classified as 1
+hook[DrawLaraHD]: removed
+hook[shader_init]: removed
+hook[effect texture update]: removed
+hook[effect texture create]: removed
+hook[effect upscale load]: removed
+hook[effect texture load]: removed
+pad: _XInputGetState restored
+hook[LaraAboveWater]: removed
+hook[LaraGun]: removed
+hook[AnimateLara]: removed
+hook[MovableBlockCollision]: removed
+hook[CalculateLaraMatrices]: removed
+hook[DrawActionIndicators]: removed
+hook[DrawHair]: removed
+hook[DrawCreatureHD]: removed
+hook[GetJoints]: removed
+hook[GetTargetOnLOS]: removed
+hook[FireHarpoon]: removed
+hook[FireRocket]: removed
+hook[FireGrenade]: removed
+hook[AnimatePistols]: removed
+hook[FireWeapon]: removed
+hook[DrawGunFlash]: removed
+hook[shotgun effect wrist position]: removed
+hook[DrawToShadow]: removed
+hook[phd_GenerateW2V]: removed
+hook[DrawSkyHD]: removed
+hook[S_GetObjectBounds]: removed
+hook[PrintRoomsList]: removed
+hook[ogl_setRenderTarget]: removed
+hook[fmvShow]: removed
+hook[ogl_present]: removed
+hook[ogl_draw]: removed
+hook[validate_draw]: removed
+hook[vid_setPass]: removed

@@ -1,0 +1,40 @@
+﻿Fri Oct 09 2026 00:47:07.924 [Info] - vrclient type=VRApplication_Scene
+Fri Oct 09 2026 00:47:07.929 [Info] - Skipping external driver C:\Program Files (x86)\Steam\steamapps\common\LIV\resources\LIV Virtual Camera\00liv_virtualcamera because it is not a directory
+Fri Oct 09 2026 00:47:07.932 [Info] - [Settings] Load Json Settings from C:\Program Files (x86)\Steam\config\steamvr.vrsettings
+Fri Oct 09 2026 00:47:07.944 [Info] - Client (SteamVR_Namespace) app container state: 1
+Fri Oct 09 2026 00:47:07.947 [Info] - CSharedResourceNamespaceClient::Init(): received namespace data 27640
+Fri Oct 09 2026 00:47:07.947 [Info] - Client (VR_ServerPipe_27640) app container state: 1
+Fri Oct 09 2026 00:47:07.984 [Info] - Received connect response VRInitError_Init_HmdNotFound. Giving up.
+Fri Oct 09 2026 00:47:19.787 [Info] - //==============================================================================================
+Fri Oct 09 2026 00:47:19.787 [Info] - ================================================================================================
+Fri Oct 09 2026 00:47:19.787 [Info] - ================================================================================================
+Fri Oct 09 2026 00:47:19.787 [Info] - tomb123 2.17.10 startup with PID=28220, config=C:\Program Files (x86)\Steam\config, runtime=C:\Program Files (x86)\Steam\steamapps\common\SteamVR, arch=win64
+Fri Oct 09 2026 00:47:19.787 [Info] - vrclient type=VRApplication_Scene
+Fri Oct 09 2026 00:47:19.791 [Info] - Skipping external driver C:\Program Files (x86)\Steam\steamapps\common\LIV\resources\LIV Virtual Camera\00liv_virtualcamera because it is not a directory
+Fri Oct 09 2026 00:47:19.795 [Info] - [Settings] Load Json Settings from C:\Program Files (x86)\Steam\config\steamvr.vrsettings
+Fri Oct 09 2026 00:47:19.804 [Info] - Client (SteamVR_Namespace) app container state: 1
+Fri Oct 09 2026 00:47:19.809 [Info] - CSharedResourceNamespaceClient::Init(): received namespace data 27640
+Fri Oct 09 2026 00:47:19.810 [Info] - Client (VR_ServerPipe_27640) app container state: 1
+Fri Oct 09 2026 00:47:19.838 [Info] - Received connect response VRInitError_Init_HmdNotFound. Giving up.
+Fri Oct 09 2026 00:47:22.040 [Info] - //==============================================================================================
+Fri Oct 09 2026 00:47:22.040 [Info] - ================================================================================================
+Fri Oct 09 2026 00:47:22.040 [Info] - ================================================================================================
+Fri Oct 09 2026 00:47:22.040 [Info] - tomb123 2.17.10 startup with PID=28220, config=C:\Program Files (x86)\Steam\config, runtime=C:\Program Files (x86)\Steam\steamapps\common\SteamVR, arch=win64
+Fri Oct 09 2026 00:47:22.041 [Info] - vrclient type=VRApplication_Scene
+Fri Oct 09 2026 00:47:22.045 [Info] - Skipping external driver C:\Program Files (x86)\Steam\steamapps\common\LIV\resources\LIV Virtual Camera\00liv_virtualcamera because it is not a directory
+Fri Oct 09 2026 00:47:22.048 [Info] - [Settings] Load Json Settings from C:\Program Files (x86)\Steam\config\steamvr.vrsettings
+Fri Oct 09 2026 00:47:22.059 [Info] - Client (SteamVR_Namespace) app container state: 1
+Fri Oct 09 2026 00:47:22.060 [Info] - CSharedResourceNamespaceClient::Init(): received namespace data 27640
+Fri Oct 09 2026 00:47:22.060 [Info] - Client (VR_ServerPipe_27640) app container state: 1
+Fri Oct 09 2026 00:47:22.099 [Info] - Received connect response VRInitError_Init_HmdNotFound. Giving up.
+Fri Oct 09 2026 00:47:24.132 [Info] - //==============================================================================================
+Fri Oct 09 2026 00:47:24.132 [Info] - ================================================================================================
+Fri Oct 09 2026 00:47:24.132 [Info] - ================================================================================================
+Fri Oct 09 2026 00:47:24.132 [Info] - tomb123 2.17.10 startup with PID=28220, config=C:\Program Files (x86)\Steam\config, runtime=C:\Program Files (x86)\Steam\steamapps\common\SteamVR, arch=win64
+Fri Oct 09 2026 00:47:24.132 [Info] - vrclient type=VRApplication_Scene
+Fri Oct 09 2026 00:47:24.138 [Info] - Skipping external driver C:\Program Files (x86)\Steam\steamapps\common\LIV\resources\LIV Virtual Camera\00liv_virtualcamera because it is not a directory
+Fri Oct 09 2026 00:47:24.142 [Info] - [Settings] Load Json Settings from C:\Program Files (x86)\Steam\config\steamvr.vrsettings
+Fri Oct 09 2026 00:47:24.153 [Info] - Client (SteamVR_Namespace) app container state: 1
+Fri Oct 09 2026 00:47:24.160 [Info] - CSharedResourceNamespaceClient::Init(): received namespace data 27640
+Fri Oct 09 2026 00:47:24.160 [Info] - Client (VR_ServerPipe_27640) app container state: 1
+Fri Oct 09 2026 00:47:24.191 [Info] - Received connect response VRInitError_Init_HmdNotFound. Giving up.

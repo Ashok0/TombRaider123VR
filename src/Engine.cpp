@@ -10,7 +10,7 @@ uint64_t      g_base   = 0;
 const Layout* g_layout = nullptr;
 
 // Every build there is an address table for.
-const Layout* const kBuilds[] = { &kBuildStock, &kBuildAspyrRetail };
+const Layout* const kBuilds[] = { &kBuildStock, &kBuildAspyrRetail, &kBuildRetailOctober };
 
 // Set by the ogl_setRenderTarget hook. Starts true because the engine's very
 // first frames render to the backbuffer before it ever calls setRenderTarget,

@@ -540,6 +540,21 @@
     "old": 200080,
     "new": 200576,
     "how": "unique exact normalized function hash (all instructions)"
+   },
+   "gRenderPass": {
+    "old": 3390444,
+    "new": 3394348,
+    "how": "matched native rendering RIP-relative references"
+   },
+   "gLaraHand": {
+    "old": 3650368,
+    "new": 3654272,
+    "how": "verified all seven native image-base-indexed hand descriptor loads"
+   },
+   "DrawToShadow": {
+    "old": 470384,
+    "new": 471552,
+    "how": "native call immediately before verified S_InitialisePolyList"
    }
   }
  },
@@ -919,6 +934,21 @@
     "old": 388512,
     "new": 386720,
     "how": "unique exact normalized function hash (all instructions)"
+   },
+   "gRenderPass": {
+    "old": 3648812,
+    "new": 3648620,
+    "how": "matched native rendering RIP-relative references"
+   },
+   "gLaraHand": {
+    "old": 3897472,
+    "new": 3897280,
+    "how": "verified all seven native image-base-indexed hand descriptor loads"
+   },
+   "DrawToShadow": {
+    "old": 677120,
+    "new": 676928,
+    "how": "native call immediately before verified S_InitialisePolyList"
    }
   }
  },
@@ -1300,6 +1330,21 @@
     "old": 589568,
     "new": 595536,
     "how": "unique exact normalized function hash (all instructions)"
+   },
+   "gRenderPass": {
+    "old": 4004900,
+    "new": 4016996,
+    "how": "matched native rendering RIP-relative references"
+   },
+   "gLaraHand": {
+    "old": 4265856,
+    "new": 4277952,
+    "how": "verified all seven native image-base-indexed hand descriptor loads"
+   },
+   "DrawToShadow": {
+    "old": 981472,
+    "new": 989024,
+    "how": "native call immediately before verified S_InitialisePolyList"
    }
   }
  }

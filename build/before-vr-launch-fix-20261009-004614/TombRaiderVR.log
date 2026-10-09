@@ -1,0 +1,15 @@
+TombRaiderVR (Tomb Raider I-III Remastered): starting
+config: chest physics=on shader=1 apply=1 drive=1 strength=2.50
+config: mode=stereo tracking=rotation+position origin=seated units/m=423.0 ss=1.00 flipProjY=1 flipViewY=1 dup=1 flatHud=1
+config: culling=head frustum margin=8.0deg depth<=16 portals<=4096 far=0 widen=1 objects=1  sky=infinity
+config: startup camera=third person (always); Y+LT switches first/third person
+config: first person joint 14 offset (0,-32,144), interaction Z 16, stable VR heading, head translation ON, head hidden (mesh_bits bit 14)
+config: first person armed head aim=on
+config: first person body-follows-head=on (dead zone 0 deg, 4.0 deg/frame), move-with-head=on (camera-relative controls only)
+config: first person roomscale=on (dead zone 0.02 m, neck pivot 0.15 m, direct collision drag; turn 120 deg/sec)
+engine: unrecognised build (PE timestamp 0x6AA156AA, SizeOfImage 0x0C973000). Known builds:
+engine:   0x6A4B4928  TR I-III Remastered (retail, PE 0x6A4B4928)
+engine:   0x6A4B7C52  TR I-III Remastered (Aspyr retail or Tomb Raider Gold, PE 0x6A4B7C52, no PDB)
+engine: refusing to patch an executable no address table describes. To add this build, see Engine.h (tools\pdbdump.py if it ships a PDB, tools\port_build.py if it does not).
+engine: host module is not a supported build; refusing to patch
+TombRaiderVR: could not bind to tomb123.exe, aborting

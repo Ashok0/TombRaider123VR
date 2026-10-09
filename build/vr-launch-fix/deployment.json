@@ -1,0 +1,10 @@
+﻿{
+    "deployed_at":  "2026-10-09T00:46:15.6281882-04:00",
+    "game_directory":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered",
+    "backup_directory":  "C:\\dev\\TombRaider123VR\\build\\before-vr-launch-fix-20261009-004614",
+    "previous_dll_sha256":  "72D8D656A83CA828480BB4FD50D135D630F0FE06669332FA284B325A7ED02318",
+    "installed_dll_sha256":  "329A218957B45B2A2FD8936986B7D8A88CD019BDD9AE9C266020BA15C0EEC785",
+    "ini_sha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "exe_timestamp":  "0x6AA156AA",
+    "verified_modules":  "verified-installed-modules.json"
+}

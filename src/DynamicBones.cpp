@@ -1,3 +1,4 @@
+#include "FirstPerson.h"
 #include "DynamicBones.h"
 #include "BoneSkin.h"
 #include "GameDll.h"
@@ -730,7 +731,7 @@ void Report() {
 void DynamicBonesObserveDraw() {
     g_drawIsBody = false;
     g_drawRenderBody = false;
-    if (!g_inLara) return;
+    if (!g_inLara || FirstPersonShadowPass()) return;
 
     const RenderState& vs = VidState();
     if (!vs.joints || vs.shader < 0 || vs.shader >= kShaderCount
@@ -744,11 +745,14 @@ void DynamicBonesObserveDraw() {
         if (kLaraJoints > g_scopeJointsMax) g_scopeJointsMax = kLaraJoints;
     }
 
+    const float* nativePalette=FirstPersonNativeBodySkin();
+    if (!nativePalette) nativePalette=vs.joints;
+
     // Rank each draw within Lara's scope, ignoring the GPU palette padding.
     const int n = kLaraJoints;
     float extent = 0.0f;
     int   distinct = 0;
-    Summarise(vs.joints, n, extent, distinct);
+    Summarise(nativePalette, n, extent, distinct);
 
     if (g_candCount < kMaxCandidates) {
         g_cand[g_candCount++] = { n, distinct, extent, vs.shader };
@@ -780,7 +784,7 @@ void DynamicBonesObserveDraw() {
 
     if (!g_haveBest || score > g_bestScore) {
         g_bestScore = score;
-        std::memcpy(g_best.joints, vs.joints,
+        std::memcpy(g_best.joints, nativePalette,
                     sizeof(float) * 12 * static_cast<size_t>(n));
         g_best.count    = n;
         g_best.shader   = vs.shader;
@@ -801,7 +805,7 @@ void DynamicBonesObserveDraw() {
             }
             return;
         }
-        std::memcpy(g_torsoThis.m, vs.joints + idx * 12, sizeof(g_torsoThis.m));
+        std::memcpy(g_torsoThis.m, nativePalette + idx * 12, sizeof(g_torsoThis.m));
         g_haveThis = true;
     }
 }

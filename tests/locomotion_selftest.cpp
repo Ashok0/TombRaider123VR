@@ -2,6 +2,7 @@
 // Run tests\build_locomotion_selftest.cmd; no game or headset is required.
 #include <windows.h>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -18,6 +19,8 @@
 namespace tr {
 Config testConfig;
 VRSystem testVR;
+RenderState testRenderState{};
+RenderState& VidState() { return testRenderState; }
 int testWater=0;
 int testConfigFlags=0;
 bool testPoseAvailable=true;
@@ -37,7 +40,7 @@ float VRSystem::HeadPitchRadians() const { return testHeadPitch; }
 void VRSystem::RecenterHead() { std::abort(); }
 void VRSystem::FirstPersonViewOffset(float& x,float& z) const { x=testViewRight; z=testViewForward; }
 float VRSystem::HeadVerticalOffset() const { return testViewRise; }
-void VRSystem::ConsumeHeadFloorOffset(float,float) { std::abort(); }
+void VRSystem::ConsumeHeadFloorOffset(float x,float z) { if (x!=0 || z!=0) std::abort(); }
 bool VRSystem::ControllerPose(int,vr::HmdMatrix34_t& pose) const {
     pose={}; pose.m[0][0]=pose.m[1][1]=pose.m[2][2]=1; return testPoseAvailable;
 }
@@ -90,7 +93,7 @@ void __cdecl NativeAnimate(uint8_t* target) {
         // one-frame standing entry. Real PDP ranges are verified separately.
         if (animation==11 && floorAllowsEntry) {
             const int goal=Field<int16_t>(20);
-            const int destination=goal==16 ? 41 : goal==21 ? 67 : goal==22 ? 65 : -1;
+            const int destination=goal==16 ? 41 : goal==21 ? 67 : goal==22 ? 65 : goal==1 ? 0 : -1;
             if (destination>=0) { animation=int16_t(destination); frame=animationTable[destination].first; }
         }
         if (frame>animationTable[animation].last) {
@@ -119,7 +122,7 @@ void __cdecl NativeAboveWater(uint8_t* target,void*) {
     if (useAnimationTable && Field<int16_t>(18)==2) {
         const auto action=*Ptr<uint32_t>(dll.input)&Directions;
         if (floorAllowsEntry)
-            Field<int16_t>(20)=action==Back ? 16 : action==StepRight ? 21 : action==StepLeft ? 22 : 2;
+            Field<int16_t>(20)=action==Back ? 16 : action==StepRight ? 21 : action==StepLeft ? 22 : action==Forward ? 1 : 2;
     }
     Detour_AnimateLara(target);
     auto& pos=Field<PHD_3DPOS>(off::item_pos);
@@ -176,6 +179,7 @@ void EnableAnimations(int game) {
     };
     const int start=game==2 ? 597 : 598, loop=start-60;
     const int idleLoop=game==1 ? 1636 : game==2 ? 1608 : 1609;
+    set(0,1,0,21,47,0,0);
     set(11,2,185,game==3 ? 186 : 185,0,103,idleLoop);
     set(103,2,idleLoop,idleLoop+43,0,103,idleLoop);
     set(40,16,loop,loop+59,10,40,loop);
@@ -198,7 +202,7 @@ void TestResponsiveEntry() {
         {0,7},{0,9},{0,20},{0,21},{2,11},{2,103},{16,38},{16,39},
         {16,40},{16,41},{22,65},{22,66},{21,67},{21,68}};
     const struct { Vec stick; int state,animation,speed; } moves[]={
-        {{-1,0},22,65,9},{{1,0},21,67,9},{{0,-1},16,41,2}};
+        {{-1,0},22,65,9},{{1,0},21,67,9},{{0,-1},16,41,2},{{0,1},1,0,47}};
     for (int game:{1,2,3}) for (bool smooth:{false,true}) for (float heading:{0.f,.7f,2.8f}) {
         for (const auto& move:moves) for (const auto& from:ordinary) {
             Reset(from.state,move.stick,smooth,heading); EnableAnimations(game);
@@ -209,9 +213,9 @@ void TestResponsiveEntry() {
             g_rootMotion.valid=true; g_rootMotion.speed=141;
             Tick();
             Check(Field<int16_t>(18)==move.state && Field<int16_t>(24)==move.animation,
-                  "side/back changes enter their own gait on the first tick");
+                  "forward/side/back changes enter their own gait on the first tick");
             Check(Field<int16_t>(34)==move.speed &&
-                  std::fabs(Length(beforeCollision)-3*move.speed)<3,
+                  std::fabs(Length(beforeCollision)-(move.state==1 ? 1 : 3)*move.speed)<3,
                   "entry uses the destination gait speed without outgoing run momentum");
             Check(Field<int16_t>(26)==animationTable[move.animation].first,
                   "entry frame comes from the current level animation table");
@@ -227,7 +231,8 @@ void TestResponsiveEntry() {
         }
         // Standing control must still be allowed to refuse entry at a ledge.
         for (const auto& move:moves) {
-            Reset(1,move.stick,smooth,heading); EnableAnimations(game);
+            Reset(move.state==1 ? 16 : 1,move.stick,smooth,heading); EnableAnimations(game);
+            if (move.state==1) Field<int16_t>(24)=40;
             floorAllowsEntry=false; Tick();
             Check(Field<int16_t>(18)==2 && Length(beforeCollision)==0,
                   "native floor/ceiling checks can reject immediate gait entry");
@@ -302,6 +307,8 @@ void TestResponsiveEntry() {
 #include "camera_clearance_selftest.h"
 #include "jump_roll_selftest.h"
 #include "arm_visibility_selftest.h"
+#include "firstperson_ik_selftest.h"
+#include "monkey_shadow_selftest.h"
 #include "block_camera_selftest.h"
 
 int main() {
@@ -390,6 +397,9 @@ int main() {
     TestJumpRoll();
     TestArmVisibility();
     TestBlockCamera();
+    TestFirstPersonParity();
+    TestMonkeyControls();
+    TestShadowPlacement();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }

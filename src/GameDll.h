@@ -147,6 +147,9 @@ struct GameDllLayout {
     uint32_t shotgunSparkDirectionReturn;
     uint32_t anims; // ANIM_STRUCT*; 40-byte TR1/2/3 runtime animation records
     uint32_t movableBlockCollision; // void(int16 itemNumber, ITEM_INFO* Lara, coll_info*)
+    uint32_t renderPass; // gRenderPass: 4 is the native light/shadow pass.
+    uint32_t laraHands; // GEOM_INFO[41], native bare/gloved rest and run variants.
+    uint32_t drawToShadow; // void(int room); builds native shadow map before the scene.
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

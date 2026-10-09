@@ -32,10 +32,14 @@ void FirstPersonShutdown();
 // inventory, during death, fixed and cinematic cameras, and whenever the anchor could
 // not be resolved.
 bool FirstPersonActive();
+// Native light-camera rendering; bypass eye/HMD and orthographic-panel injection.
+bool FirstPersonShadowPass();
 bool FirstPersonCalibrationKeyReserved(int virtualKey);
 // Corrected, unmasked palette for a tracked hand draw; null outside that scope.
 const float* FirstPersonHandSkin(int& wristJoint);
 // Full native palette during a masked first-person body draw only.
+// Complete animation palette for jiggle sampling, before arm IK/visibility masking.
+const float* FirstPersonNativeBodySkin();
 const float* FirstPersonBodySkin(uint32_t& visibleJoints);
 bool FirstPersonWristCentre(float out[3]);
 // The last rendered scene eye, before stereo head translation. False when the

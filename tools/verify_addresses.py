@@ -168,7 +168,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
           'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
           'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
-          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision']
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision', 'gRenderPass', 'gLaraHand', 'DrawToShadow']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -438,6 +438,7 @@ try:
         check_prologues(dll, 'FirstPerson.cpp',
                         {'GenerateW2V': 'phd_GenerateW2V',
                          'DrawCreatureHD': 'DrawCreatureHD',
+                         'DrawToShadow': 'DrawToShadow',
                          'GetJoints': 'GetJoints',
                          ('DrawGunFlashTR1' if dll == 'tomb1.dll' else
                           'DrawGunFlashTR23'): 'DrawGunFlash',
@@ -480,6 +481,9 @@ try:
     # spelled with the rva::/drva:: names checked above.
     eh = open(os.path.join(ROOT, 'src', 'Engine.h'), encoding='utf-8').read()
     exe_rows = {}
+    engine_cpp = open(os.path.join(ROOT, 'src', 'Engine.cpp'), encoding='utf-8').read()
+    registry = re.search(r'kBuilds\[\]\s*=\s*\{(.*?)\}', engine_cpp, re.S).group(1)
+    registered_rows = re.findall(r'&\s*(\w+)', registry)
     for m in re.finditer(r'constexpr Layout (\w+) = \{(.*?)\};', eh, re.S):
         body = re.sub(r'/\*.*?\*/', '', m.group(2), flags=re.S)
         body = re.sub(r'"[^"]*"', '', body)
@@ -543,6 +547,7 @@ try:
             checks += 1
             continue
         row_name, vals = exe_rows[stamp]
+        check(tag + 'Engine.cpp registers ' + row_name, registered_rows.count(row_name), 1)
         check('%s%s field count' % (tag, row_name), len(vals), len(EXE_LAYOUT))
         R = dict(zip(EXE_LAYOUT, vals))
         for n in EXE_LAYOUT:
@@ -627,6 +632,7 @@ try:
             check_prologues(dll, 'FirstPerson.cpp',
                             {'GenerateW2V': 'phd_GenerateW2V',
                              'DrawCreatureHD': 'DrawCreatureHD',
+                             'DrawToShadow': 'DrawToShadow',
                              'GetJoints': 'GetJoints',
                              ('DrawGunFlashTR1' if dll == 'tomb1.dll' else
                               'DrawGunFlashTR23'): 'DrawGunFlash',

@@ -23,8 +23,9 @@ For the original build, every address, struct offset and function signature in
 `src/Engine.h` and `src/GameDll.cpp` was extracted from the shipped PDBs by the
 tools in `tools\`. The current Aspyr retail build shipped without PDBs, so its
 addresses were carried across by `tools\port_build.py`.
-`tools\verify_addresses.py` checks the PDB build and both PDB-less builds
-(Aspyr retail and Tomb Raider Gold), and fails if any disagrees. The locomotion
+`tools\verify_addresses.py` checks the PDB build, earlier Aspyr retail and
+Tomb Raider Gold, plus the retail update with PE timestamp `0x6AA156AA`, and
+fails if any disagrees. The locomotion
 rewrite also has independent maths tests and verifies its newly required
 `analogInput` address directly from the input-update instruction stream.
 
@@ -59,6 +60,102 @@ rewrite also has independent maths tests and verifies its newly required
 - First-person movement smoothing, wall/jump clearance, camera recentering on
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
+
+### VR launch compatibility fix (2026-10-09)
+
+The installed game updated to executable PE timestamp `0x6AA156AA`. The mod
+refused that unknown build before initializing OpenVR, leaving the game flat.
+Added independently mapped renderer and TR1/2/3 gameplay tables for that build
+and DLL timestamps `0x6AA1567E`, `0x6AA15696`, and `0x6AA1568D`. Older supported
+builds retain their existing tables. Unknown builds still fail safely.
+
+Validation now includes byte-for-byte copies of the actual installed executable
+and all three gameplay DLLs, with hashes recorded in
+`build/vr-launch-fix/verified-installed-modules.json`. The address audit also
+checks that each verified executable table is registered for runtime selection.
+Monkey-bar and shadow audits accept additional build directories so this update
+is covered alongside the older binaries. The recent camera, controls, arm IK,
+monkey-bar, shadow and jiggle fixes are retained; no INI changes are required.
+
+### Monkey-bar controls and shadow placement (2026-10-09)
+
+Ported the corresponding TR4/5 fixes:
+
+- **TR3 monkey bars:** first-person LS directions now follow the VR view instead
+  of the hidden chase-camera heading. Modern controls retain native swing and
+  turning; tank controls choose native forward, backward half-turn and side
+  traverse relative to Lara. All seven monkey states are covered. The game still
+  owns grip checks, ceiling collision, root position, facing, speed and animation.
+  Action/drop, deadzone, shifted controls and keyboard/D-pad input are preserved.
+  The override requires TR3's native monkey-swing permission flag; it does not
+  apply to TR1/2, ordinary ledges, ladders or mounts.
+- **TR1/2/3 shadow placement:** the native light-camera pass now stays independent
+  of headset, eye and orthographic-panel projection changes. After the scene
+  camera moves into first person, the shadow receiver matrix is adjusted for the
+  change of camera origin. A fixed world point keeps its native shadow position;
+  light angle and caster geometry stay native. The original matrix is restored
+  before the next shadow build and when returning to third person, including
+  temporary switch/menu camera handoffs. Repeated updates cannot accumulate drift.
+- **Jiggle and visibility isolation:** light-camera draws cannot feed the jiggle
+  solver or receive controller IK/body fitting. Shader cleanup still runs to clear
+  arm/body clipping and deformation uniforms left by an eye-view draw using the
+  same program. Normal first-person jiggle and controller arms remain enabled.
+
+The new monkey-bar regression fails on the preceding build. Production-hook
+coverage now includes all seven states, modern/tank controls, opposing headset,
+body and camera headings, all stick directions and guarded exits. Shadow tests
+check fixed-world-point projection for perspective and orthographic lights,
+repeated camera changes, native caster palettes and third-person restoration.
+Native binary audits verify the monkey state table in all three TR3 builds and
+shadow hook bytes/upload ordering in all nine game DLLs. No INI changes are needed.
+In-headset confirmation remains pending; see
+[validation and current limits](#validation-and-current-limits) for the installed
+build and final test results.
+
+### First-person animation, Action and arm IK parity (2026-10-09)
+
+Ported the corresponding logic from `C:\dev\TombRaider456VR` to TR1, TR2 and TR3:
+
+- Falling and landing hide alternate head-only geometry as well as the face and
+  hair. Landing cameras follow the interpolated native head on all three axes,
+  with floor clearance, instead of leaving the eye inside Lara's bent torso.
+  Landing poses do not overwrite the standing-eye calibration. TR1's animation
+  99 is a water-exit animation and is excluded from the landing rule.
+- Unarmed **Y / Action** yields to native interaction alignment. Head-following,
+  roomscale dragging and stick gait overrides cannot turn or move Lara out of
+  alignment while the game brings her to a switch. Switch animations temporarily
+  use third person, including TR3's special switch animation bank; first person
+  resumes when the current animation finishes. The selected view preference is
+  retained, and gun-trigger state is cleared during the camera handoff.
+- **Unarmed arm/hand IK** follows both tracked controllers in HD first person
+  during ordinary movement and free jumps/falls. Elbows use a two-bone solve;
+  wrist bend and twist limits match TR4/5. Running uses relaxed bare/gloved hand
+  meshes instead of fists. Climbing, grabbing, mounting, pickups and crate
+  interactions retain authored hand poses; existing weapon hands stay unchanged.
+- Tracked unarmed hands remain visible independently of head pitch. With
+  `FirstPersonUnarmedIK=0`, unavailable controller tracking or classic graphics,
+  the existing native arms and 15-degree show / 10-degree hide rule remain.
+  `FirstPersonUnarmedIK` defaults to **1** and uses the existing motion-controller
+  tracking and grip calibration (`FirstPersonMotionGuns=1`). Existing INIs need
+  no changes to enable the new default.
+- The full native body palette is retained before visibility masking, and IK
+  changes a separate rendering copy. This preserves torso/arm seams and the
+  existing body restoration after mounting crates, including stale native mesh
+  masks. Free jumps no longer switch between native unarmed arms and controller
+  arms. Jiggle physics samples the complete animation palette, never IK; shadow
+  rendering also bypasses first-person body fitting and IK.
+- Immediate gait handoffs now include returning **forward** from sideways or
+  backward movement. Side/back entry and faster backpedal startup were already
+  present. Native floor/ceiling checks still choose whether entry is allowed;
+  collision, vertical motion and stored native speed retain their existing rules.
+
+Validation includes production-hook tests for both native and mapped HD arm
+palettes, duplicate helper bones, failed solves, relaxed hands, shadow isolation,
+interaction alignment, switch exits, landing cameras and repeated crate-mount
+recovery. All **140** installed gameplay animation banks pass the landing and
+four-direction gait checks. Headset confirmation of this new port is pending.
+See [validation and current limits](#validation-and-current-limits) for the
+build, test results and installation backup.
 
 ### Push/pull camera clearance and torso motion (2026-10-05)
 
@@ -381,8 +478,9 @@ Supported builds:
 | build | exe PE timestamp | address table | in the headset |
 |---|---|---|---|
 | earlier build that shipped with PDBs | `0x6A4B4928` | `kBuildStock`, read from the PDBs | working |
-| current Aspyr retail (Steam) | `0x6A4B7C52` | `kBuildAspyrRetail`, carried across without PDBs | working (TR1 tested) |
+| earlier Aspyr retail (Steam) | `0x6A4B7C52` | `kBuildAspyrRetail`, carried across without PDBs | working (TR1 tested) |
 | Tomb Raider Gold (modders' patch of Aspyr retail) | `0x6A4B7C52` | the same row as Aspyr retail | working |
+| retail update installed 2026-10-09 | `0x6AA156AA` | `kBuildRetailOctober`, independently mapped without PDBs | live hooks and SteamVR startup verified; headset unavailable during test |
 
 The mod picks the address table for each module by its PE timestamp and refuses
 to patch anything it does not recognise. On Aspyr retail, a run of Tomb Raider I
@@ -1539,14 +1637,81 @@ needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump, wall-climb and pull-up changes have not yet been
 confirmed there.
 
-The latest `tools/verify_addresses.py` run passed all **2,106** PDB, retail and
-Gold address, layout and hook-window checks, including the new
-`MovableBlockCollision` observer in all three games. Existing weapon, effect,
+The latest `tools/verify_addresses.py` run passed all **2,837** PDB, earlier retail,
+Gold and current installed retail address, layout and hook-window checks, including the new
+`MovableBlockCollision` observer, native hand/shadow globals and `DrawToShadow`
+hook in all three games. Existing weapon, effect,
 shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-05 torso-following push/pull camera** Release/x64 DLL is
+The current **2026-10-09 VR launch compatibility fix** Release/x64 DLL is
+installed with verified SHA-256:
+`329A218957B45B2A2FD8936986B7D8A88CD019BDD9AE9C266020BA15C0EEC785`.
+The preceding DLL, INI and log are backed up under
+`build/before-vr-launch-fix-20261009-004614/`.
+The installed INI remains byte-for-byte unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/vr-launch-fix/deployment.json).
+
+This build passed **2,837** address/layout/hook checks against the PDB, earlier
+retail, Gold and newly installed retail binaries; **263,187** production
+movement/control/camera/IK/shadow checks; **66,150** tracking/eye/projection
+checks; all general self-tests; and **3,522** physics/shader checks. All four
+executables compiled **288** native hand shader pairs each. Native hand,
+locomotion, monkey-bar and shadow audits also pass for the new build. The
+Release/x64 build produced no compiler warnings.
+
+A live Steam launch recognized `0x6AA156AA`, installed all renderer/effect hooks
+and started SteamVR. SteamVR confirmed `tomb123.exe` connected as a scene
+application, then returned `VRInitError_Init_HmdNotFound`: no headset was
+available during this test. Headset display and gameplay confirmation remain
+pending; the unsupported-build startup failure is resolved.
+
+The preceding **2026-10-09 monkey-bar and shadow-placement port** Release/x64 DLL
+was installed with verified SHA-256:
+`72D8D656A83CA828480BB4FD50D135D630F0FE06669332FA284B325A7ED02318`.
+The previous DLL, INI and log are backed up under
+`build/before-monkey-shadow-port-20261009-003606/`.
+The installed INI remains byte-for-byte unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/monkey-shadow-port/deployment.json).
+
+This build passed **263,187** production movement/control/camera/IK/shadow checks,
+**66,150** real tracking/eye/projection checks, the general self-tests, and
+**2,912** native physics/shader checks across PDB, retail and Gold executables.
+The GPU checks include clearing preceding arm/body masks during light-camera
+rendering; each executable compiled **288** native hand shader pairs. All
+**2,178** address/layout/hook checks pass. `verify_monkey_controls.py` verifies
+all seven native monkey states in each TR3 DLL, and `verify_shadow_placement.py`
+verifies the production hook bytes, light-pass flag, receiver upload and
+shadow-before-scene ordering across all nine game DLLs. Release/x64 built without
+compiler warnings. In-headset confirmation of traversal and shadow placement
+remains pending.
+
+The preceding **2026-10-09 TR4/5 first-person parity port** Release/x64 DLL is
+installed with verified SHA-256:
+`150A91C69F17D3CDF895BC755AE77AEA9BF3D993BB2875F150F1E40B87D46A9B`.
+The previous DLL, INI and log are backed up under
+`build/before-tr45-parity-port-20261009-001541/`.
+The previous relaxed-running-hands DLL had SHA-256
+`A94B5C4C7152A8E06B89A58A28FCCCF73AA52E7F33194BAF593A1B161449F5DB`.
+The installed INI was preserved byte-for-byte (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/tr45-parity-port/deployment.json).
+
+This build passed **180,737** production movement/control/camera/IK checks,
+**66,150** real tracking/eye/projection checks, the general self-tests, and
+**2,908** native physics/shader checks. The latter compiled **288** native hand
+shader pairs per executable across PDB, retail and Gold and verified that IK
+cannot feed the jiggle solver. All **2,124** address/layout/hook checks pass;
+`verify_firstperson_render.py` independently checks hand/shadow globals in all
+nine supported game DLLs. `verify_landing_camera.py` and
+`verify_ground_gait_entry.py` pass all **140** installed gameplay animation
+banks. Release/x64 built without compiler warnings. In-headset confirmation of
+the new landing, switch and controller-arm behavior remains pending.
+
+The preceding **2026-10-05 torso-following push/pull camera** Release/x64 DLL is
 installed with verified SHA-256:
 `051CE65262B4114F282027F0B222A48345D895CA27D851F3196400A22CF9E285`.
 The previous DLL, INI and log are backed up under

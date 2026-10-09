@@ -209,6 +209,7 @@ struct Config {
     // mesh_bits bit -- the same mechanism the engine uses to hide a body part.
     // Her body stays drawn, so looking down still shows her.
     bool  firstPersonHideHead = true;
+    bool  firstPersonUnarmedIK = true; // Controller-driven render-only arm chains.
     // Keep armed arms in the headset's forward view by feeding its yaw/pitch
     // into the native weapon animation. Only active in first-person gameplay.
     bool  firstPersonHeadAim = true;

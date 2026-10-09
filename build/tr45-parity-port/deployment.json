@@ -1,0 +1,11 @@
+﻿{
+    "installedAt":  "2026-10-09T00:15:42.6570547-04:00",
+    "source":  "C:\\dev\\TombRaider123VR\\build\\x64\\Release\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\before-tr45-parity-port-20261009-001541",
+    "previousSha256":  "A94B5C4C7152A8E06B89A58A28FCCCF73AA52E7F33194BAF593A1B161449F5DB",
+    "installedSha256":  "150A91C69F17D3CDF895BC755AE77AEA9BF3D993BB2875F150F1E40B87D46A9B",
+    "iniSha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "iniUnchanged":  true,
+    "headsetValidation":  "pending"
+}

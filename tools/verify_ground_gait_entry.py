@@ -1,4 +1,4 @@
-"""Verify instant side/back entry against installed TR1/2/3 animation tables.
+"""Verify instant forward/side/back entry against installed TR1/2/3 animation tables.
 
 Usage: python tools/verify_ground_gait_entry.py <game-directory>
 Reads PDP files only. AnimateLara increments the standing frame before
@@ -31,7 +31,7 @@ def verify(path):
 
     state, first, last, _, _, count, change, commands, _ = anim(11)
     assert state == 2 and first <= last and commands == 0, (path, "standing entry")
-    for target in (16, 21, 22):
+    for target in (1, 16, 21, 22):
         found = False
         for index in range(change, change + count):
             goal, ranges, start = struct.unpack_from("<3h", tables["changes"], index * 6)
@@ -44,7 +44,7 @@ def verify(path):
                     velocity, acceleration = struct.unpack_from("<ii", tables["anims"], dest * 32 + 8)
                     speed = (velocity + acceleration * (frame - base)) >> 16
                     assert dest_state == target and base <= frame <= end, (path, target, "entry state")
-                    assert 0 < speed * 3 <= 64, (path, target, "bounded first-tick speed", speed)
+                    assert 0 < speed * (1 if target == 1 else 3) <= 64, (path, target, "bounded first-tick speed", speed)
                     found = True
                     break
         assert found, (path, target, "cannot enter on first tick")
@@ -78,4 +78,4 @@ if __name__ == "__main__":
         assert paths, (game, "no PDP files")
         count = sum(verify(path) for path in paths)
         assert count, (game, "no Lara animation tables")
-        print(f"TR{game}: {count} tables verified: immediate side/back entry and safe 4-tick backpedal startup")
+        print(f"TR{game}: {count} tables verified: immediate forward/side/back entry and safe 4-tick backpedal startup")
