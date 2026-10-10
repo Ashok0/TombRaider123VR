@@ -61,6 +61,35 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### First-person crouch/crawl parity with TR4/5 (2026-10-10)
+
+TR3 now keeps **floating weapon hands visible and usable while crouching or
+crawling** with HD graphics and tracked motion guns enabled. LT draws weapons,
+Y holsters, and the existing independent trigger firing, held-trigger fire,
+native ammunition/fire rate and per-hand shot rumble remain available.
+Crawl movement temporarily sees free hands; the real gun state and fire input
+are restored before the native weapon update. Interaction, crawl-to-hang,
+vehicle, death and airborne transitions retain native control.
+
+With movement stabilization enabled, the crouched eye follows Lara's
+interpolated root in the artificial-turn frame, without the animated head's
+sideways swing or bob. Entering/leaving crouch blends relative eye height;
+standing calibration and HMD tracking are preserved. LS travel follows the
+requested direction through forward, backward and turning crawl clips,
+including negative-speed stopping transitions. Native animation runs once and
+native collision still decides whether Lara can move.
+
+Crouch camera clearance uses TR3's 400-unit capsule and checks the final
+tracked eye against walls, floor and ceiling. Under low ceilings, vertical
+clearance is resolved before the horizontal sweep to avoid retracting and
+popping the camera as the player rises or leans. The render-only proximity
+bypass preserves native shadows and the separate chest-physics/IK palettes.
+TR1/2 have no native crouch states and do not receive TR3's crouch overrides.
+This does not add crouched roomscale body movement or unarmed floating hands.
+
+Automated crouch, camera, input, IK and shadow regressions pass. Headset
+confirmation of the crouching feel and clearance remains pending.
+
 ### Ledge catch impact rumble (2026-10-09)
 
 Catching a ledge after a substantial jump or fall now gives **both motion
@@ -519,7 +548,8 @@ Switching views recenters the tracking neutral. Swimming, death and
 cutscenes temporarily use the game's camera; first person resumes when a live
 Lara returns to an eligible gameplay state.
 Native Action prompts appear at their nearby world positions in VR. In TR3
-crouch/crawl states Lara's obstructing body is hidden. As in the updated TR4/5
+crouch/crawl states Lara's obstructing body is hidden while equipped tracked
+weapon hands remain visible and usable. As in the updated TR4/5
 implementation, hanging and normal/gymnast pull-ups use the arms-only mesh mask.
 Jumps and falls use normal first-person head hiding and native body animation.
 With movement stabilization enabled, the rendered eye uses raw headset displacement while
@@ -570,7 +600,8 @@ health before/after native damage for that check.
 The TR5 3x scope is fitted to an HK mesh absent from TR1-3, so it has no direct
 weapon/mesh equivalent here. TR1/2 have no crouch/prone states. The TR4-6
 crouch/prone roomscale extension was reverted there, so it is not ported as a
-working feature; TR3 crouch keeps native collision and movement.
+working feature. TR3 now has the crouch camera, tracked-gun and LS steering
+fixes described above, while retaining native body collision and animation.
 
 ### Recent first-person fixes (2026-10-01 to 2026-10-02)
 
@@ -1827,15 +1858,35 @@ needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump, wall-climb and pull-up changes have not yet been
 confirmed there.
 
-The latest `tools/verify_addresses.py` run passed all **2,837** PDB, earlier retail,
+The latest `tools/verify_addresses.py` run passed all **2,872** PDB, earlier retail,
 Gold and current installed retail address, layout and hook-window checks, including the new
 `MovableBlockCollision` observer, native hand/shadow globals and `DrawToShadow`
-hook in all three games. Existing weapon, effect,
+hook in all three games, plus TR3's outer `DrawLara` crouch visibility hook. Existing weapon, effect,
 shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-09 ledge catch impact rumble** Release/x64 DLL is
+The current **2026-10-10 TR3 first-person crouch/crawl parity** Release/x64
+DLL is installed with verified SHA-256:
+`8CAC52D5BAF04425D346C6C6628E9C347CD39DBC40863F73F9BA59E361B2C20D`.
+The previous DLL, INI and log are backed up under
+`build/before-crouch-parity-20261010-003308/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/crouch-parity/deployment.json).
+
+**750,544** production movement/control/camera/IK/shadow/gesture/haptic checks,
+**66,162** tracking/eye/projection checks, **3,522** physics/native shader checks
+and the general self-test pass. Crouch coverage includes all eight TR3 states,
+TR1/2 exclusions, backward stopping clips, native wall collision, equip/fire/
+holster, both floating hand passes, native shadow isolation, standing-eye
+preservation, stance blending and low-ceiling clearance with physical leaning.
+The new outer render hook is separate from the existing jiggle-physics
+`DrawLaraHD` hook; all four installed game-module hashes match the verified
+October fixtures. Release/x64 built without warnings. Headset confirmation
+remains pending.
+
+The preceding **2026-10-09 ledge catch impact rumble** Release/x64 DLL is
 installed with verified SHA-256:
 `C095E252403DBC0A3A3E4DC76969157099A4ED3016561B1F6C6E4EBA22E1548A`.
 The preceding DLL, INI and log are backed up under

@@ -150,6 +150,7 @@ struct GameDllLayout {
     uint32_t renderPass; // gRenderPass: 4 is the native light/shadow pass.
     uint32_t laraHands; // GEOM_INFO[41], native bare/gloved rest and run variants.
     uint32_t drawToShadow; // void(int room); builds native shadow map before the scene.
+    uint32_t drawLara; // outer renderer; TR3 crouch proximity gate before hand passes
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once

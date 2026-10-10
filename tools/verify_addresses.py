@@ -168,7 +168,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
           'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
           'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
-          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision', 'gRenderPass', 'gLaraHand', 'DrawToShadow']
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision', 'gRenderPass', 'gLaraHand', 'DrawToShadow', 'DrawLara']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to
@@ -238,6 +238,7 @@ for dll, stamp, vals in rows:
     check('%s lara_info::gun_status' % dll, 2, f.get('gun_status'))
     check('%s lara_info::target' % dll, 240, f.get('target'))
     check('%s lara_info::water_status' % dll, 12, f.get('water_status'))
+    check('%s lara_info::skidoo' % dll, 40, f.get('skidoo'))
     check('%s lara_info::turn_rate' % dll, 252, f.get('turn_rate'))
     check('%s lara_info::move_angle' % dll, 254, f.get('move_angle'))
     check('%s lara_info::left_arm' % dll, 272, f.get('left_arm'))
@@ -430,6 +431,8 @@ try:
     check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, 'EffectLoadStock': 'vidLoadTexture'})
     for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
         check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'})
+        if dll=='tomb3.dll':
+            check_prologues(dll,'FirstPerson.cpp',{'CrouchDraw':'DrawLara'})
         check_prologues(dll, 'PortalCull.cpp',
                         {'PrintRoomsList': 'PrintRoomsList',
                          'ObjectBounds': 'S_GetObjectBounds'})
@@ -537,6 +540,8 @@ try:
         check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, 'EffectLoadRetail': 'vidLoadTexture'}, d, P['tomb123.exe'], tag)
         for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
             check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'}, d, P[dll], tag)
+            if dll=='tomb3.dll':
+                check_prologues(dll,'FirstPerson.cpp',{'CrouchDraw':'DrawLara'},d,P[dll],tag)
 
         # 1. The Engine.h row matches port_build.json.
         stamp = pe_stamp(os.path.join(d, 'tomb123.exe'))

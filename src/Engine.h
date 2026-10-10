@@ -519,6 +519,7 @@ int32_t&         TargetHeight();
 // APP flags. Cheap, exact answers to "what is the game doing right now",
 // straight out of the struct rather than inferred from the draw stream.
 int32_t          AppFlag(uint32_t byteOffset);
+void             SetAppFlagBits(uint32_t byteOffset,uint32_t mask,uint32_t value);
 inline bool InInventory() { return AppFlag(drva::app_off::InInv)   != 0; }
 inline bool InCutscene()  { return AppFlag(drva::app_off::InCut)   != 0; }
 inline bool InTitle()     { return AppFlag(drva::app_off::InTitle) != 0; }

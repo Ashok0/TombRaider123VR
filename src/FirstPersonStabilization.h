@@ -107,6 +107,25 @@ struct MountRootHeight {
         Reset();return interpolated;
     }
 };
+// Smooth stance height relative to the body, leaving native vertical travel intact.
+struct StanceEye {
+    bool valid=false,transition=false;
+    float height=0;
+    double time=0;
+    void Reset() { *this={}; }
+    float Apply(float target,bool crouched,double now) {
+        if(!valid || !std::isfinite(now) || now<time) {
+            valid=true;height=target;time=now;transition=crouched;return height;
+        }
+        if(crouched || transition) {
+            const float step=float(std::clamp(now-time,0.0,.05))*3000.f;
+            height+=std::clamp(target-height,-step,step);
+            transition=crouched || height!=target;
+        } else height=target;
+        time=now;return height;
+    }
+};
+
 // Keep a standing eye reference across grounded animation frames. Physical
 // body turns do not rotate this offset a second time; artificial turns do.
 struct GroundEye {

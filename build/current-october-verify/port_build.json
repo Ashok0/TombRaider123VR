@@ -555,6 +555,11 @@
     "old": 160021,
     "new": 161001,
     "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "DrawLara": {
+    "old": 64720,
+    "new": 65376,
+    "how": "unique exact normalized instruction match"
    }
   }
  },
@@ -949,6 +954,11 @@
     "old": 289685,
     "new": 288745,
     "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "DrawLara": {
+    "old": 96992,
+    "new": 95776,
+    "how": "unique exact normalized instruction match"
    }
   }
  },
@@ -1345,6 +1355,11 @@
     "old": 403925,
     "new": 405646,
     "how": "return address of the GetJointAbsPosition call in FireShotgun"
+   },
+   "DrawLara": {
+    "old": 175424,
+    "new": 175888,
+    "how": "unique exact normalized instruction match"
    }
   }
  }

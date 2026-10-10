@@ -117,7 +117,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* MovableBlockCollision */ 0x00030D90,
           /* gRenderPass */ 0x0033BBEC,
           /* gLaraHand */ 0x0037B340,
-          /* DrawToShadow */ 0x00072D70 },
+          /* DrawToShadow */ 0x00072D70,
+          /* DrawLara */ 0x0000FCD0 },
 
         { L"tomb2.dll", "Tomb Raider II",  0x6A4B4915,
           /* lara            */ 0x0037AD40,
@@ -194,7 +195,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* MovableBlockCollision */ 0x0005EDA0,
           /* gRenderPass */ 0x0037AD2C,
           /* gLaraHand */ 0x003B7880,
-          /* DrawToShadow */ 0x000A5500 },
+          /* DrawToShadow */ 0x000A5500,
+          /* DrawLara */ 0x00017AE0 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B490D,
           /* lara            */ 0x003D1C40,
@@ -271,7 +273,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* MovableBlockCollision */ 0x0008FF00,
           /* gRenderPass */ 0x003D1C24,
           /* gLaraHand */ 0x00411780,
-          /* DrawToShadow */ 0x000EF9E0 },
+          /* DrawToShadow */ 0x000EF9E0,
+          /* DrawLara */ 0x0002AD40 },
     },
 
     // Aspyr retail build, shipped without PDBs (exe row: kBuildAspyrRetail in
@@ -356,7 +359,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* MovableBlockCollision */ 0x00030F80,
           /* gRenderPass */ 0x0033CB2C,
           /* gLaraHand */ 0x0037C280,
-          /* DrawToShadow */ 0x00073200 },
+          /* DrawToShadow */ 0x00073200,
+          /* DrawLara */ 0x0000FD00 },
 
         { L"tomb2.dll", "Tomb Raider II", 0x6A4B7C3F,
           /* lara            */ 0x0037AC80,
@@ -433,7 +437,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* MovableBlockCollision */ 0x0005E6A0,
           /* gRenderPass */ 0x0037AC6C,
           /* gLaraHand */ 0x003B77C0,
-          /* DrawToShadow */ 0x000A5440 },
+          /* DrawToShadow */ 0x000A5440,
+          /* DrawLara */ 0x00017B00 },
 
         { L"tomb3.dll", "Tomb Raider III", 0x6A4B7C37,
           /* lara            */ 0x003D4B80,
@@ -510,7 +515,8 @@ constexpr GameDllLayout kDlls[][3] = {
           /* MovableBlockCollision */ 0x00091650,
           /* gRenderPass */ 0x003D4B64,
           /* gLaraHand */ 0x004146C0,
-          /* DrawToShadow */ 0x000F1760 },
+          /* DrawToShadow */ 0x000F1760,
+          /* DrawLara */ 0x0002AE00 },
     },
     // Retail update installed on 2026-10-09 (kBuildRetailOctober). Verified
     // against all three installed DLLs, independently of the exe timestamp.
@@ -593,6 +599,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* gRenderPass                    */ 0x0033E8CC,
           /* gLaraHand                      */ 0x0037E020,
           /* DrawToShadow                   */ 0x00073C10,
+          /* DrawLara */ 0x0000FF60,
         },
         { L"tomb2.dll", "Tomb Raider II", 0x6AA15696,
           /* lara                           */ 0x0037CA00,
@@ -672,6 +679,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* gRenderPass                    */ 0x0037C9EC,
           /* gLaraHand                      */ 0x003B9540,
           /* DrawToShadow                   */ 0x000A52A0,
+          /* DrawLara */ 0x00017620,
         },
         { L"tomb3.dll", "Tomb Raider III", 0x6AA1568D,
           /* lara                           */ 0x003D6920,
@@ -751,6 +759,7 @@ constexpr GameDllLayout kDlls[][3] = {
           /* gRenderPass                    */ 0x003D6904,
           /* gLaraHand                      */ 0x00416460,
           /* DrawToShadow                   */ 0x000F2440,
+          /* DrawLara */ 0x0002AF10,
         },
     },
 };

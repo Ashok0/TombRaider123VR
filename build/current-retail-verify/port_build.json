@@ -555,6 +555,11 @@
     "old": 470384,
     "new": 471552,
     "how": "native call immediately before verified S_InitialisePolyList"
+   },
+   "DrawLara": {
+    "old": 64720,
+    "new": 64768,
+    "how": "unique exact normalized instruction match"
    }
   }
  },
@@ -949,6 +954,11 @@
     "old": 677120,
     "new": 676928,
     "how": "native call immediately before verified S_InitialisePolyList"
+   },
+   "DrawLara": {
+    "old": 96992,
+    "new": 97024,
+    "how": "unique exact normalized instruction match"
    }
   }
  },
@@ -1345,6 +1355,11 @@
     "old": 981472,
     "new": 989024,
     "how": "native call immediately before verified S_InitialisePolyList"
+   },
+   "DrawLara": {
+    "old": 175424,
+    "new": 175616,
+    "how": "unique exact normalized instruction match"
    }
   }
  }

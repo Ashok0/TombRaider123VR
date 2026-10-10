@@ -18,13 +18,13 @@ inline double RollEyeAboveFloor(double anchorY,double trackedRise,int32_t bodyY,
 // An eye may look over a drop even while Lara's feet are
 // grounded, but cannot enter a raised floor or ceiling at its own height.
 inline bool EyeBlocked(const int32_t samples[18], int sampleCount, int32_t bodyY,
-                               double eyeY, bool hitStatic) {
+                               double eyeY, bool hitStatic, int capsuleHeight=762) {
     if (hitStatic) return true;
     for (int i = 0; i < sampleCount * 3; i += 3) {
         const int32_t floor = samples[i], ceiling = samples[i + 1];
         if (floor == -32512 || ceiling == -32512 ||
             double(bodyY) + floor <= eyeY + 64 ||
-            double(bodyY) - 762 + ceiling >= eyeY - 64)
+            double(bodyY) - capsuleHeight + ceiling >= eyeY - 64)
             return true;
     }
     return false;

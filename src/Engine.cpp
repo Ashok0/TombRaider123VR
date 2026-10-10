@@ -178,6 +178,12 @@ int32_t AppFlag(uint32_t byteOffset) {
     return *reinterpret_cast<int32_t*>(Var(L().app + byteOffset));
 }
 
+void SetAppFlagBits(uint32_t byteOffset,uint32_t mask,uint32_t value) {
+    if (!g_base) return;
+    auto& flags=*reinterpret_cast<uint32_t*>(Var(L().app+byteOffset));
+    flags=(flags&~mask)|(value&mask);
+}
+
 bool IsWorldPass() {
     return VidState().proj == &Proj()[1];
 }

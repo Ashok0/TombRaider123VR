@@ -66,7 +66,7 @@ DLL_LAYOUT = ['lara', 'camera', 'room', 'number_rooms', 'draw_rooms',
               'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
           'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
           'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
-          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision', 'gRenderPass', 'gLaraHand', 'DrawToShadow']
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision', 'gRenderPass', 'gLaraHand', 'DrawToShadow', 'DrawLara']
 # Not a symbol: the return address of the ONE phd_GenerateW2V call that builds
 # the main scene view, inside S_InitialisePolyList. FirstPerson.cpp gates on it
 # so it rewrites the scene camera and nothing else (inventory, shadows, pickup

@@ -42,6 +42,9 @@ VRSystem& VR() { return testVR; }
 int LaraWaterStatus() { return testWater; }
 int32_t AppFlag(uint32_t offset) { return offset==drva::app_off::cfg_flags ? testConfigFlags :
     offset==drva::app_off::level_type ? testLevelType : 0; }
+void SetAppFlagBits(uint32_t offset,uint32_t mask,uint32_t value) {
+    if (offset==drva::app_off::cfg_flags) testConfigFlags=int((uint32_t(testConfigFlags)&~mask)|(value&mask));
+}
 float LiveWorldUnitsPerMetre() { return 1000; }
 float VRSystem::HeadYawRadians() const { return 0; }
 void VRSystem::PivotHeadFloorOffset(float turn) { ++testPivotCount; testPivotTurn=turn; }
@@ -172,7 +175,8 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     g_manualLocal=stick; g_manualWorld=MovementWorld(stick,heading);
     g_shifted=g_jumpPressed=false;
     g_groundMoveAction=0; g_stabilizeRoot=g_hardStopRoot=false;
-    g_rootMotion.Reset();
+    g_rootMotion.Reset();g_stanceEye.Reset();g_crouchDrive=false;g_crouchWeaponScope=nullptr;
+    *Ptr<int16_t>(dll.lara+40)=-1;
     g_hAnimateLara.m_trampoline=reinterpret_cast<void*>(&NativeAnimate);
     g_hLaraAboveWater.m_trampoline=reinterpret_cast<void*>(&NativeAboveWater);
     ticks=collisions=0; nextState=nextGoal=nextAnimation=-1;
@@ -328,6 +332,7 @@ void TestResponsiveEntry() {
 #include "ledge_pull_selftest.h"
 #include "jump_priority_selftest.h"
 #include "ledge_catch_selftest.h"
+#include "crouch_selftest.h"
 
 int main() {
     const struct { Vec stick; int gait; } directions[]={
@@ -409,6 +414,7 @@ int main() {
             }
         }
     }
+    TestCrouchParity();
     TestLedgePullGesture();
     TestJumpPriority();
     TestResponsiveEntry();
