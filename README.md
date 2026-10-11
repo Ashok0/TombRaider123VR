@@ -62,6 +62,49 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### TR4/5 IK and body fixes ported to TR1-3 (2026-10-11)
+
+The October 11 TR4/5 fixes now apply to HD first person in TR1-3:
+
+- Ready tracked weapons retain Lara's body and connecting IK arms. Separate
+  weapon meshes draw their forearms with the articulated palette, followed by
+  the existing rigid gun hands. Holstered hands retain controller tracking with
+  `FirstPersonUnarmedIK=1` (also the default when the setting is absent).
+- Armed and holstered forearms follow unrestricted wrist rotation using each
+  mesh's rest-pose wrist/forearm relationship. The calibrated gun-hand position,
+  orientation and grip pivot are preserved. Sparse attachment palettes and
+  duplicate HD helper bones are supported; a single gun keeps its right arm
+  tracked if the left controller becomes unavailable.
+- Looking nearly straight down or up holds the last reliable torso heading,
+  with hysteresis as the view levels out. Camera pitch and roll remain tracked.
+- A runtime recenter from holding right System recalibrates shared headset and
+  controller height, compensates tracking-origin yaw and preserves the standing
+  body anchor. Merely opening the dashboard does not recalibrate height.
+- The rendered body accompanies camera retreat at walls, including its chest
+  physics and attached arms. Standing calibration stays separate from wall
+  clearance; tracked hands subtract the body shift to retain their exact targets.
+  Wall-impact animation keeps the horizontal standing anchor and native neck
+  height. All three games bypass native first-person body-proximity hiding.
+- TR2/3 ladders use **80 units** of torso clearance in Lara's facing frame.
+  Shoulder movement is limited by native arm reach, preserving rung grips,
+  wrist rotations and leg animation without stretching. TR1 has no ladders;
+  its reused state numbers are explicitly excluded.
+
+Native shadow rendering remains separate, and jiggle physics reads the complete
+body skeleton before controller-arm IK. No INI changes or new settings are needed.
+These changes port the listed arm/body corrections; they do not introduce TR4/5's
+separate optional full-body IK mode.
+
+Validation passed: Release/x64, **783,611** production hook checks, **66,179**
+tracking checks, general self-tests, **1,692** native shader/jiggle checks on
+each of the PDB and installed EGS executable fixtures, and **3,587** address
+checks across all five supported builds. Deployment details and the DLL backup
+are recorded in [the deployment manifest](build/ik-collection-parity/deployment.json).
+In-headset checks
+remain necessary for natural wrist motion with guns drawn and holstered, looking
+straight down, System recenter, wall retreat and ladder climbing. Earlier entries
+below describe their historical behavior and are superseded by this section.
+
 ### Epic Games Store executable support (2026-10-11)
 
 The EGS `tomb123.exe` with PE timestamp **`0x6AA156D9`** is now supported,

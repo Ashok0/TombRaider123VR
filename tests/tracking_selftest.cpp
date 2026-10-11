@@ -15,6 +15,11 @@ Config testConfig;
 bool testFirstPerson=false;
 const Config& Cfg() { return testConfig; }
 bool FirstPersonActive() { return testFirstPerson; }
+float testOriginYaw=0;
+int testOriginChanges=0;
+void FirstPersonTrackingOriginChanged(float yaw) {
+    testOriginYaw=yaw;++testOriginChanges;VR().RecenterHead();
+}
 bool CameraHeadroom(float&) { return false; }
 float LiveWorldUnitsPerMetre() { return 423; }
 float LiveIpdScale() { return 1; }
@@ -103,5 +108,36 @@ int main() {
         vr.m_controllerPoseValid[hand]=true; vr.m_poseValid=false;
         Near(vr.ControllerHeightBelowHead(hand,down),false,"missing head disables gesture");
     }
+    vr.m_poseValid=true;testFirstPerson=true;
+    const auto setHeading=[&](float yaw,float horizontal) {
+        vr.m_headFromTracking=Affine::Identity();
+        vr.m_headFromTracking.r[2][0]=-std::sin(yaw)*horizontal;
+        vr.m_headFromTracking.r[2][2]=std::cos(yaw)*horizontal;
+    };
+    vr.m_headingYawValid=vr.m_headingYawVertical=false;
+    setHeading(.7f,1);Near(vr.HeadYawRadians(),.7,"reliable heading tracked");
+    for(float projected:{.34f,.01f,0.f,.4f}) {
+        setHeading(-2.f,projected);Near(vr.HeadYawRadians(),.7,"vertical gaze holds torso heading with hysteresis");
+    }
+    setHeading(-.8f,.46f);Near(vr.HeadYawRadians(),-.8,"looking up releases vertical heading hold");
+    for(auto type:{vr::VREvent_SeatedZeroPoseReset,vr::VREvent_StandingZeroPoseReset}) {
+        setHeading(.6f,1);vr.HeadYawRadians();
+        vr::VREvent_t event{};event.eventType=type;vr.HandleRuntimeEvent(event);
+        vr.HandleRuntimeEvent(event); // Coalesced reset notifications.
+        vr.m_poseValid=false;vr.ApplyRuntimeRecenter();
+        Near(vr.m_runtimeRecenterPending,true,"origin reset waits for valid new pose");
+        vr.m_poseValid=true;setHeading(-.4f,1);
+        vr.m_headPosRaw[0]=.2f;vr.m_headPosRaw[1]=1.23f;vr.m_headPosRaw[2]=.5f;
+        vr.m_controllerPoseValid[0]=true;vr.m_controllerPose[0].m[1][3]=.93f;
+        vr.ApplyRuntimeRecenter();
+        Near(testOriginYaw,1,"origin reset compensates changed tracking yaw");
+        Near(vr.HeadVerticalOffset(),0,"System reset recalibrates headset height");
+        float right,down,forward;vr.FirstPersonControllerOffset(0,right,down,forward);
+        Near(down,.3,"controller uses same recalibrated neutral as headset");
+        const int count=testOriginChanges;vr.ApplyRuntimeRecenter();
+        Near(testOriginChanges,count,"runtime reset applies once");
+    }
+    vr::VREvent_t dashboard{};dashboard.eventType=vr::VREvent_DashboardActivated;
+    vr.HandleRuntimeEvent(dashboard);Near(vr.m_runtimeRecenterPending,false,"dashboard alone does not recalibrate height");
     std::printf("PASS: %d real tracking/eye/projection checks\n",checks);
 }

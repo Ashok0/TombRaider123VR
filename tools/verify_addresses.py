@@ -431,8 +431,8 @@ try:
     check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, 'EffectLoadStock': 'vidLoadTexture'})
     for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
         check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'})
-        if dll=='tomb3.dll':
-            check_prologues(dll,'FirstPerson.cpp',{'CrouchDraw':'DrawLara'})
+        body_draw = 'CrouchDraw' if dll=='tomb3.dll' else 'BodyDrawTR'+dll[4]
+        check_prologues(dll,'FirstPerson.cpp',{body_draw:'DrawLara'})
         check_prologues(dll, 'PortalCull.cpp',
                         {'PrintRoomsList': 'PrintRoomsList',
                          'ObjectBounds': 'S_GetObjectBounds'})
@@ -541,8 +541,8 @@ try:
         check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, load_hook: 'vidLoadTexture'}, d, P['tomb123.exe'], tag)
         for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
             check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'}, d, P[dll], tag)
-            if dll=='tomb3.dll':
-                check_prologues(dll,'FirstPerson.cpp',{'CrouchDraw':'DrawLara'},d,P[dll],tag)
+            body_draw = 'CrouchDraw' if dll=='tomb3.dll' else 'BodyDrawTR'+dll[4]
+            check_prologues(dll,'FirstPerson.cpp',{body_draw:'DrawLara'},d,P[dll],tag)
 
         # 1. The Engine.h row matches port_build.json.
         stamp = pe_stamp(os.path.join(d, 'tomb123.exe'))

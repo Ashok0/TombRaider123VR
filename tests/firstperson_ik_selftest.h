@@ -11,6 +11,7 @@ void IKSetup(int game=1) {
     dll.laraHands=4500;
     testConfig.firstPersonMotionGuns=true; testConfigFlags=1;
     g_scenePoseValid=true; g_scenePose={0,-650,80}; g_bodyVisualOffset={};
+    g_bodyWallOffset={};g_ladderTorsoOffset={};
     g_unarmedTwist[0]={};g_unarmedTwist[1]={};
     g_bodySkinScope=true;
     g_hGetJoints.m_trampoline=reinterpret_cast<void*>(&NativeIKJoints);

@@ -148,6 +148,13 @@ private:
     Affine m_eyeFromHead[2]   = { Affine::Identity(), Affine::Identity() };
     float  m_rawProj[2][4]    = {};                  // l, r, t, b per eye
     bool   m_poseValid        = false;
+    mutable float m_headingYaw = 0;
+    mutable bool m_headingYawValid = false, m_headingYawVertical = false;
+    bool m_runtimeRecenterPending = false, m_runtimeRecenterHadYaw = false;
+    float m_runtimeRecenterYaw = 0;
+    void HandleRuntimeEvent(const vr::VREvent_t& event);
+    void ApplyRuntimeRecenter();
+
     vr::HmdMatrix34_t m_controllerPose[2]{};
     bool   m_controllerPoseValid[2]{};
     unsigned m_poseLogTick    = 0;

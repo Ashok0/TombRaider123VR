@@ -23,6 +23,8 @@ void FirstPersonUpdate();
 // anchor, stable heading, roomscale drag and directional gait handling as one
 // unit. Called by the merged-pad Y+LT chord.
 void FirstPersonToggle();
+// Preserve world/body heading when the runtime resets its tracking origin.
+void FirstPersonTrackingOriginChanged(float yawCorrection);
 
 // Drop the hook. Called from RemoveHooks.
 void FirstPersonShutdown();

@@ -123,20 +123,20 @@ void TestCrouchParity() {
         Check(*Ptr<int16_t>(dll.lara+2)==3 && Field<int16_t>(18)==71,"Y holsters without leaving crouch");
     }
     CrouchSetup(80);SetMeshVisibility(true,false,true);
-    Check(Field<uint32_t>(off::item_mesh_bits)==0x2400u,"crouch retains both floating hand bits at outer visibility gate");
+    Check(Field<uint32_t>(off::item_mesh_bits)==0x3fffu,"armed crouch retains body and arms at outer visibility gate");
     dll.objects=600;g_hCrouchDraw.m_trampoline=reinterpret_cast<void*>(&NativeCrouchDraw);
     g_hDrawCreatureHD.m_trampoline=reinterpret_cast<void*>(&NativeCrouchHands);
     crouchDrawCalls=crouchHandMask=0;expectCrouchModern=false;
     Detour_CrouchDraw(item);
-    Check(crouchDrawCalls==2 && crouchHandMask==0x2400 && (testConfigFlags&0x83)==0x83,
-          "both floating hands draw and modern controls plus unrelated native flag changes survive");
+    Check(crouchDrawCalls==3 && crouchHandMask==0x3600 && (testConfigFlags&0x83)==0x83,
+          "forearms and both tracked hands draw and native flag changes survive");
     dll.renderPass=212;*Ptr<int32_t>(dll.renderPass)=4;expectCrouchModern=true;
-    Detour_CrouchDraw(item);Check(crouchDrawCalls==3,"native shadow pass bypasses hand splitting and proximity override");
+    Detour_CrouchDraw(item);Check(crouchDrawCalls==4,"native shadow pass bypasses hand splitting and proximity override");
     *Ptr<int32_t>(dll.renderPass)=0;
     *Ptr<int16_t>(dll.lara+2)=0;SetMeshVisibility(true,false,true);
     Check(Field<uint32_t>(off::item_mesh_bits)==0,"unarmed crouch retains existing body hiding");
     *Ptr<int16_t>(dll.lara+2)=4;SetMeshVisibility(true,false,true);
-    Check(Field<uint32_t>(off::item_mesh_bits)==0x2400u,"equipping again restores both hands from full saved mesh mask");
+    Check(Field<uint32_t>(off::item_mesh_bits)==0x3fffu,"equipping again restores body and arms from full saved mesh mask");
     SetMeshVisibility(false,false);
     Check(Field<uint32_t>(off::item_mesh_bits)==0x7fffu,"view toggle restores full mesh after crouch equip changes");
     g_hCrouchDraw.m_installed=false;g_hLaraGun.m_installed=false;

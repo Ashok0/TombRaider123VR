@@ -133,6 +133,10 @@ inline bool IsClimbingCameraState(int state) {
     // place the camera behind her arms and torso.
     return state >= 56 && state <= 61;
 }
+inline bool IsLadderState(int game,int state) {
+    // TR1 has no ladders: these IDs include its twist and water-exit states.
+    return (game==2 || game==3) && state>=56 && state<=61;
+}
 // These animations keep Lara tight against geometry. The normal first-person
 // avatar-fit offset deliberately moves the eye forward so her torso sits below
 // the player, but here that same offset can cross the ledge wall or enter the

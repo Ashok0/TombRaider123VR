@@ -185,8 +185,9 @@ struct GroundEye {
         // Fit her rendered body beneath it, without changing camera/world or
         // collision positions. Subtract floor motion so genuine leaning and
         // roomscale steps are not mistaken for a rotation correction.
-        // Fit this frame's final collision-resolved scene eye. Never save a
-        // wall/ledge retraction into the standing calibration or tracking neutral.
+        // Fit the scene eye before wall clearance. The caller separately
+        // carries the rendered body with the retracted eye; standing and
+        // tracking calibration never absorb that temporary retraction.
         return eyeFromRoot-Rotate(bodyLocal,bodyYaw)
              + Rotate(view-floor,artificialYaw)*units;
     }

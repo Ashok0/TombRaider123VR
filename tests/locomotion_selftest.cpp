@@ -25,6 +25,7 @@ int testWater=0;
 int testConfigFlags=0;
 int testLevelType=0;
 bool testPoseAvailable=true;
+int testMissingHand=-1;
 vr::HmdMatrix34_t testControllerPose[2]{};
 float testHandDown[2]{};
 bool VRSystem::ControllerHeightBelowHead(int hand,float& down) const {
@@ -46,20 +47,23 @@ void SetAppFlagBits(uint32_t offset,uint32_t mask,uint32_t value) {
     if (offset==drva::app_off::cfg_flags) testConfigFlags=int((uint32_t(testConfigFlags)&~mask)|(value&mask));
 }
 float LiveWorldUnitsPerMetre() { return 1000; }
-float VRSystem::HeadYawRadians() const { return 0; }
+float testHeadYaw=0;
+bool testAllowRecenter=false;
+int testRecenterCalls=0;
+float VRSystem::HeadYawRadians() const { return testHeadYaw; }
 void VRSystem::PivotHeadFloorOffset(float turn) { ++testPivotCount; testPivotTurn=turn; }
 void VRSystem::HeadFloorOffset(float& x,float& z) const { x=z=0; }
 // Unrelated first-person entry points must never be reached by these tests.
 float VRSystem::HeadPitchRadians() const { return testHeadPitch; }
-void VRSystem::RecenterHead() { std::abort(); }
+void VRSystem::RecenterHead() { if (!testAllowRecenter) std::abort(); ++testRecenterCalls; }
 void VRSystem::FirstPersonViewOffset(float& x,float& z) const { x=testViewRight; z=testViewForward; }
 float VRSystem::HeadVerticalOffset() const { return testViewRise; }
 void VRSystem::ConsumeHeadFloorOffset(float x,float z) { if (x!=0 || z!=0) std::abort(); }
 bool VRSystem::ControllerPose(int hand,vr::HmdMatrix34_t& pose) const {
-    pose=testControllerPose[hand]; return testPoseAvailable;
+    pose=testControllerPose[hand]; return testPoseAvailable && testMissingHand!=hand;
 }
-bool VRSystem::FirstPersonControllerOffset(int,float& x,float& y,float& z) const {
-    x=y=z=0; return testPoseAvailable;
+bool VRSystem::FirstPersonControllerOffset(int hand,float& x,float& y,float& z) const {
+    x=y=z=0; return testPoseAvailable && testMissingHand!=hand;
 }
 const GameDllLayout* GameDllBound() { return g_boundDll; }
 uint64_t GameDllBase() { return g_boundBase; }
@@ -167,7 +171,7 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     testConfig.firstPersonDriftLog=false;
     testVR.m_system=reinterpret_cast<vr::IVRSystem*>(1);
     testVR.m_poseValid=true;
-    testWater=0; testConfigFlags=0; testLevelType=0; testPoseAvailable=true;
+    testWater=0; testConfigFlags=0; testLevelType=0; testPoseAvailable=true;testMissingHand=-1;
     g_runtimeEnabled=g_active=g_haveHeading=g_haveManualInput=true;
     g_headingItem=item; g_heading.base=heading; g_headingLevel=0;
     g_ledgeCatch.Reset(); testLedgeCatches=0; g_ledgePull.Reset(); g_groundJump.Reset(); g_groundJump.Bind(item,0); testHandDown[0]=testHandDown[1]=0;
@@ -326,6 +330,7 @@ void TestResponsiveEntry() {
 #include "jump_roll_selftest.h"
 #include "arm_visibility_selftest.h"
 #include "firstperson_ik_selftest.h"
+#include "ik_collection_parity_selftest.h"
 #include "monkey_shadow_selftest.h"
 #include "block_camera_selftest.h"
 
@@ -429,6 +434,7 @@ int main() {
     TestWristTwistRecovery();
     TestMountCameraHandoff();
     TestFirstPersonParity();
+    TestCollectionIKParity();
     TestMonkeyControls();
     TestShadowPlacement();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
