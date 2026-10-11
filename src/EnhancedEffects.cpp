@@ -12,10 +12,12 @@ bool ready = false;
 using Load = void (__fastcall*)(char*, int, int);
 using Create = void (__fastcall*)(int);
 using Update = void (__fastcall*)(int, int, int, void*);
-// Complete, position-independent instructions, checked against both supported
-// EXEs by verify_addresses.py and again by InlineHook before installation.
+// Complete, position-independent instructions, checked against supported
+// builds by verify_addresses.py and again by InlineHook before installation.
 const uint8_t kEffectLoadStockPrologue[] = { 0x40, 0x55, 0x57, 0x41, 0x54 };
 const uint8_t kEffectLoadRetailPrologue[] = { 0x40, 0x56, 0x41, 0x57, 0x48, 0x81, 0xEC, 0xC8, 0x00, 0x00, 0x00 };
+// EGS uses three complete pushes (rdi, r12, r13), unlike the Steam build.
+const uint8_t kEffectLoadEpicPrologue[] = { 0x40, 0x57, 0x41, 0x54, 0x41, 0x55 };
 const uint8_t kEffectUpscalePrologue[] = { 0x40, 0x56, 0x48, 0x81, 0xEC, 0xD0, 0x00, 0x00, 0x00 };
 const uint8_t kEffectCreatePrologue[] = { 0x48, 0x89, 0x5C, 0x24, 0x08 };
 const uint8_t kEffectUpdatePrologue[] = { 0x48, 0x89, 0x5C, 0x24, 0x08 };
@@ -75,7 +77,10 @@ void EnhancedEffectsInstall() {
     using namespace effectruntime;
     if (!Cfg().enabled || !Cfg().enhancedEffects || ready) return;
     const auto& l = L();
-    const bool loadOk = l.vidLoadTexture == rva::vidLoadTexture
+    const bool loadOk = l.timestamp == kBuildEpicOctober.timestamp
+        ? load.Install(Fn(l.vidLoadTexture), reinterpret_cast<void*>(&DetourLoad),
+                       6, kEffectLoadEpicPrologue, sizeof(kEffectLoadEpicPrologue), "effect texture load")
+        : l.vidLoadTexture == rva::vidLoadTexture
         ? load.Install(Fn(l.vidLoadTexture), reinterpret_cast<void*>(&DetourLoad),
                        5, kEffectLoadStockPrologue, sizeof(kEffectLoadStockPrologue), "effect texture load")
         : load.Install(Fn(l.vidLoadTexture), reinterpret_cast<void*>(&DetourLoad),

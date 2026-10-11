@@ -375,6 +375,39 @@ constexpr Layout kBuildRetailOctober = {
     /* ogl_texUpdate          */ 0x00010770,
 };
 
+// Epic Games Store executable copied into the Steam installation, verified
+// 2026-10-11. Independently mapped from the PDB build; SizeOfImage 0x0C971000.
+// Data and code offsets differ from the October Steam executable.
+constexpr Layout kBuildEpicOctober = {
+    "TR I-III Remastered (Epic Games Store, PE 0x6AA156D9, no PDB)", 0x6AA156D9,
+    /* vid_setPass            */ 0x0000ABF0,
+    /* validate_draw          */ 0x0000F000,
+    /* ogl_draw               */ 0x0000FD80,
+    /* ogl_present            */ 0x0000F820,
+    /* fmvShow                */ 0x0000E670,
+    /* ogl_setRenderTarget    */ 0x00010520,
+    /* gGame                  */ 0x000EE428,
+    /* XInputGetState         */ 0x00417460,
+    /* vid_state              */ 0x0C6A1570,
+    /* vid_state_prev         */ 0x0C6A1610,
+    /* mProj                  */ 0x0C6A1320,
+    /* mView_packed           */ 0x0C6A1700,
+    /* shaders                */ 0x0C94CAC0,
+    /* ogl_textures           */ 0x0C94CA50,
+    /* FBO_custom             */ 0x0C6A9A48,
+    /* FBO_default            */ 0x0C94CA9C,
+    /* app                    */ 0x0038D4B0,
+    /* gWidth                 */ 0x0041D280,
+    /* gHeight                */ 0x0041D27C,
+    /* gTargetWidth           */ 0x0269D2D0,
+    /* gTargetHeight          */ 0x0041D29C,
+    /* shader_init            */ 0x0000EC60,
+    /* vidLoadTexture         */ 0x00009BE0,
+    /* vidLoadTextureUpscaled */ 0x0000A040,
+    /* ogl_texCreate          */ 0x00010710,
+    /* ogl_texUpdate          */ 0x000108E0,
+};
+
 // ---------------------------------------------------------------------------
 // Structures  -- all three taken verbatim from the PDB's own type information
 // ---------------------------------------------------------------------------

@@ -1,0 +1,47 @@
+﻿Sun Oct 11 2026 04:16:29.220 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:29.232 [Info] - Creating Builtin AppInfo for C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene). steam.app.2478970, , 20136
+Sun Oct 11 2026 04:16:29.232 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:29.232 [Info] - Refusing connect from 20136: tomb123 because app start error VRInitError_Init_Retry
+Sun Oct 11 2026 04:16:29.233 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0128 seconds
+Sun Oct 11 2026 04:16:29.733 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:29.746 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:29.746 [Info] - Refusing connect from 20136: tomb123 because app start error VRInitError_Init_Retry
+Sun Oct 11 2026 04:16:29.746 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0129 seconds
+Sun Oct 11 2026 04:16:30.247 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:30.259 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:30.259 [Info] - Refusing connect from 20136: tomb123 because app start error VRInitError_Init_Retry
+Sun Oct 11 2026 04:16:30.259 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0122 seconds
+Sun Oct 11 2026 04:16:30.759 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:30.772 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:30.772 [Info] - Refusing connect from 20136: tomb123 because app start error VRInitError_Init_Retry
+Sun Oct 11 2026 04:16:30.772 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0131 seconds
+Sun Oct 11 2026 04:16:31.273 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:31.286 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:31.286 [Info] - Refusing connect from 20136: tomb123 because app start error VRInitError_Init_Retry
+Sun Oct 11 2026 04:16:31.286 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0133 seconds
+Sun Oct 11 2026 04:16:31.786 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:31.811 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:31.811 [Info] - Refusing connect from 20136: tomb123 because app start error VRInitError_Init_Retry
+Sun Oct 11 2026 04:16:31.811 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0249 seconds
+Sun Oct 11 2026 04:16:32.313 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:32.331 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:32.331 [Info] - Refusing connect from 20136: tomb123 because app start error VRInitError_Init_Retry
+Sun Oct 11 2026 04:16:32.331 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0186 seconds
+Sun Oct 11 2026 04:16:32.832 [Info] - New Connect message from C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe (VRApplication_Scene) (Args: ) 20136 
+Sun Oct 11 2026 04:16:32.845 [Info] - StartSceneApplicationTransitionFromProcess( 20136, C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe, steam.app.2478970)
+Sun Oct 11 2026 04:16:32.845 [Info] - ClearAppTransition: Reason: StartSceneApplicationTransitionFromProcess/NewAppLaunched. Was LaunchingApp_Process for 'steam.app.2478970'
+Sun Oct 11 2026 04:16:32.845 [Info] - AppInfoManager.ProcessConnected BEGIN 20136 C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\tomb123.exe 1 steam.app.2478970
+Sun Oct 11 2026 04:16:32.857 [Info] - SetApplicationPid appkey=steam.app.2478970 pid=20136, external transition
+Sun Oct 11 2026 04:16:32.857 [Info] - SetApplicationPid: Setting app steam.app.2478970 PID to 20136
+Sun Oct 11 2026 04:16:32.857 [Info] - AppInfoManager.ProcessConnected END
+Sun Oct 11 2026 04:16:32.857 [Info] - We don't yet have an input context. This should be okay, but noted.
+Sun Oct 11 2026 04:16:32.857 [Info] - [Input] Enabling legacy input for steam.app.2478970
+Sun Oct 11 2026 04:16:32.860 [Info] - [Input] steam.app.2478970 (oculus_touch) attempting to load default config from file:///C:/Program%20Files%20%28x86%29/Steam/steamapps/common/SteamVR/drivers/oculus/resources/input/legacy_bindings_touch.json
+Sun Oct 11 2026 04:16:32.860 [Info] - [Input] steam.app.2478970 (rift) attempting to load default config from file:///C:/Program%20Files%20%28x86%29/Steam/steamapps/common/SteamVR/drivers/oculus/resources/input/legacy_bindings_rift.json
+Sun Oct 11 2026 04:16:32.860 [Info] - Using existing HMD oculus.1PASH5D1P17365
+Sun Oct 11 2026 04:16:32.860 [Info] - Processing message VRMsg_Connect from 20136: tomb123 took 0.0289 seconds
+Sun Oct 11 2026 04:17:27.619 [Info] - Closing pipe 20136: tomb123 because it was broken from the other end
+Sun Oct 11 2026 04:17:27.619 [Info] - Process 20136: tomb123 disconnected (Thread(0x0000026B02093950/0x000)
+Sun Oct 11 2026 04:17:27.619 [Info] - AppInfoManager.ProcessDisconnected processid=20136 eLaunchingApp=LaunchingApp_None
+Sun Oct 11 2026 04:17:27.619 [Info] - AppInfoManager.ProcessDisconnected: Clearing application steam.app.2478970 PID was 20136
+Sun Oct 11 2026 04:17:27.619 [Info] - AppInfoManager.ProcessDisconnected: Clearing application steam.app.2478970 PID because 20136 has exited

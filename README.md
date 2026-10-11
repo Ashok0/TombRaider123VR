@@ -24,7 +24,8 @@ For the original build, every address, struct offset and function signature in
 tools in `tools\`. The current Aspyr retail build shipped without PDBs, so its
 addresses were carried across by `tools\port_build.py`.
 `tools\verify_addresses.py` checks the PDB build, earlier Aspyr retail and
-Tomb Raider Gold, plus the retail update with PE timestamp `0x6AA156AA`, and
+Tomb Raider Gold, plus the retail update with PE timestamp `0x6AA156AA` and EGS executable
+`0x6AA156D9`, and
 fails if any disagrees. The locomotion
 rewrite also has independent maths tests and verifies its newly required
 `analogInput` address directly from the input-update instruction stream.
@@ -60,6 +61,25 @@ rewrite also has independent maths tests and verifies its newly required
 - First-person movement smoothing, wall/jump clearance, camera recentering on
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
+
+### Epic Games Store executable support (2026-10-11)
+
+The EGS `tomb123.exe` with PE timestamp **`0x6AA156D9`** is now supported,
+including when copied into the Steam game folder. Previously, the loader
+started but the mod rejected this unknown executable before installing VR
+hooks, so the game stayed flat. EGS now has its own verified engine address
+table and texture-load hook signature. Steam and Gold support remain enabled;
+unknown builds still fail safely without patching guessed addresses.
+
+The three game DLLs in the tested installation are byte-identical to the
+supported October Steam DLLs. The executable and INI are preserved; only
+`TombRaiderVR.dll` is replaced. All **3,537** address/layout/hook checks across
+PDB, earlier Steam, Gold, October Steam and EGS fixtures pass. The EGS native
+shader/physics test passes **1,692** checks, including tracked-hand shaders.
+A live launch recognized the EGS executable, installed all six renderer hooks
+and the effect hooks, patched 26 skin programs without fallback, acquired the
+headset pose and submitted stereo frames to SteamVR. The test session was
+closed normally; in-headset gameplay was not assessed.
 
 ### First-person crouch/crawl parity with TR4/5 (2026-10-10)
 
@@ -702,6 +722,7 @@ Supported builds:
 | earlier Aspyr retail (Steam) | `0x6A4B7C52` | `kBuildAspyrRetail`, carried across without PDBs | working (TR1 tested) |
 | Tomb Raider Gold (modders' patch of Aspyr retail) | `0x6A4B7C52` | the same row as Aspyr retail | working |
 | retail update installed 2026-10-09 | `0x6AA156AA` | `kBuildRetailOctober`, independently mapped without PDBs | live hooks and SteamVR startup verified; headset unavailable during test |
+| Epic Games Store executable tested 2026-10-11 | `0x6AA156D9` | `kBuildEpicOctober`, independently mapped without PDBs | live hooks, OpenVR, headset pose and first stereo submission verified |
 
 The mod picks the address table for each module by its PE timestamp and refuses
 to patch anything it does not recognise. On Aspyr retail, a run of Tomb Raider I
@@ -1858,15 +1879,28 @@ needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump, wall-climb and pull-up changes have not yet been
 confirmed there.
 
-The latest `tools/verify_addresses.py` run passed all **2,872** PDB, earlier retail,
-Gold and current installed retail address, layout and hook-window checks, including the new
+The latest `tools/verify_addresses.py` run passed all **3,537** PDB, earlier retail,
+Gold, October retail and EGS address, layout and hook-window checks, including the new
 `MovableBlockCollision` observer, native hand/shadow globals and `DrawToShadow`
 hook in all three games, plus TR3's outer `DrawLara` crouch visibility hook. Existing weapon, effect,
 shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.
 
-The current **2026-10-10 TR3 first-person crouch/crawl parity** Release/x64
+The current **2026-10-11 EGS executable compatibility** Release/x64 DLL is
+installed with verified SHA-256:
+`C4A9D8DD2B53E7E9D75B1D4B65D995706691E146B2EB94C3C193F2CDDC58C311`.
+The previous DLL, INI and log are backed up under
+`build/before-egs-support-20261011-041620/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`). The user's EGS executable and native game DLLs
+were not modified. [Deployment record](build/current-egs-verify/deployment.json).
+The Release/x64 build passed without warnings.
+[Live launch log](build/current-egs-verify/live-launch.log) confirms EGS build
+recognition, all six renderer hooks, OpenVR Scene initialization, headset pose
+acquisition and the first submitted stereo frame. The test game exited normally.
+
+The preceding **2026-10-10 TR3 first-person crouch/crawl parity** Release/x64
 DLL is installed with verified SHA-256:
 `8CAC52D5BAF04425D346C6C6628E9C347CD39DBC40863F73F9BA59E361B2C20D`.
 The previous DLL, INI and log are backed up under

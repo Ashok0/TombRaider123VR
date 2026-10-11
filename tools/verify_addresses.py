@@ -537,7 +537,8 @@ try:
         P = {img: {n: e['new'] for n, e in pj[img]['symbols'].items()} for img in pj}
 
         check_prologues('tomb123.exe', 'BoneSkin.cpp', {'ShaderInit': 'shader_init'}, d, P['tomb123.exe'], tag)
-        check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, 'EffectLoadRetail': 'vidLoadTexture'}, d, P['tomb123.exe'], tag)
+        load_hook = 'EffectLoadEpic' if pj['tomb123.exe']['timestamp'] == 0x6AA156D9 else 'EffectLoadRetail'
+        check_prologues('tomb123.exe', 'EnhancedEffects.cpp', {**effect_hooks, load_hook: 'vidLoadTexture'}, d, P['tomb123.exe'], tag)
         for dll in ('tomb1.dll', 'tomb2.dll', 'tomb3.dll'):
             check_prologues(dll, 'DynamicBones.cpp', {'DrawLaraHD': 'DrawLaraHD'}, d, P[dll], tag)
             if dll=='tomb3.dll':
