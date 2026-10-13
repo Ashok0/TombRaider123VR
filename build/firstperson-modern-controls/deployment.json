@@ -1,0 +1,13 @@
+﻿{
+    "timestamp":  "2026-10-11T17:21:12.0818929-04:00",
+    "deployed_path":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup_directory":  "C:\\dev\\TombRaider123VR\\build\\firstperson-modern-controls\\before-20261011-172111",
+    "old_dll_sha256":  "CA0234FEF028FAA438B9E410EB69D1A8C60050D44133F017C4C0365C0CDE37E2",
+    "deployed_dll_sha256":  "5E0FBAF472D86C7F93EECF61853472B225D12E448A0D6DBD02BE9C190977831E",
+    "ini_sha256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "ini_unchanged":  true,
+    "release_build":  "passed",
+    "production_checks":  783684,
+    "scope":  "Modern Controls forced only during active first person; prior third-person mode restored on exit",
+    "headset_confirmation":  "pending"
+}

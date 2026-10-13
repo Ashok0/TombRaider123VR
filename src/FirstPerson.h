@@ -17,6 +17,8 @@ namespace tr {
 // Install or drop the hook to match the bound game DLL and the config. Cheap
 // and idempotent; call once per frame beside SkyUpdate().
 void FirstPersonUpdate();
+// Force Modern Controls only in active first person; restore the entry mode on exit.
+void FirstPersonControlModeUpdate();
 
 // Toggle the complete first-person package at runtime. Third person remains
 // the engine's original camera/input path; first person enables the head

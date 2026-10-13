@@ -190,4 +190,30 @@ void TestCollectionIKParity() {
         }
     }
 }
+void TestFirstPersonControlMode() {
+    using namespace tr;
+    for(int game:{1,2,3}) for(int original:{0,2}) for(int graphics:{0,1}) {
+        IKSetup(game);g_active=false;
+        testConfigFlags=0x80|original|graphics;
+        FirstPersonControlModeUpdate();
+        Check(testConfigFlags==(0x80|original|graphics),"third-person control preference remains untouched");
+        g_active=true;FirstPersonControlModeUpdate();
+        Check(testConfigFlags==(0x82|graphics),"first person forces Modern Controls without changing graphics");
+        // A settings write while active must not replace the saved third-person mode.
+        testConfigFlags=0x40|graphics;FirstPersonControlModeUpdate();
+        Check(testConfigFlags==(0x42|graphics),"Tank selection cannot remain active in first person");
+        g_active=false;FirstPersonControlModeUpdate();
+        Check(testConfigFlags==(0x40|original|graphics),"third person restores saved mode and preserves unrelated settings changes");
+        testConfigFlags^=2;const int changed=testConfigFlags;
+        FirstPersonControlModeUpdate();
+        Check(testConfigFlags==changed,"later third-person preference changes are not overwritten");
+        g_active=true;FirstPersonControlModeUpdate();
+        testConfig.enabled=false;FirstPersonControlModeUpdate();
+        Check(testConfigFlags==changed && !g_controlModeOwned,"disabling the mod releases the control-mode override");
+    }
+    IKSetup();testConfigFlags=1;g_runtimeInitialized=g_runtimeEnabled=true;
+    FirstPersonControlModeUpdate();testAllowRecenter=true;
+    FirstPersonToggle();testAllowRecenter=false;
+    Check(testConfigFlags==1 && !g_controlModeOwned,"view chord restores Tank Controls immediately");
+}
 }

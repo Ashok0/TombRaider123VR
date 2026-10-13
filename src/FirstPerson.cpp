@@ -283,6 +283,22 @@ struct BlockCamera {
 } g_blockCamera;
 locomotion::Vec g_bodyVisualOffset;
 locomotion::Vec g_bodyWallOffset{}, g_ladderTorsoOffset{};
+bool g_controlModeOwned=false;
+uint32_t g_savedControlMode=0;
+
+void UpdateControlMode(bool active) {
+    constexpr uint32_t modernControls=2u;
+    if (active) {
+        if (!g_controlModeOwned) {
+            g_savedControlMode=uint32_t(AppFlag(drva::app_off::cfg_flags))&modernControls;
+            g_controlModeOwned=true;
+        }
+        SetAppFlagBits(drva::app_off::cfg_flags,modernControls,modernControls);
+    } else if (g_controlModeOwned) {
+        SetAppFlagBits(drva::app_off::cfg_flags,modernControls,g_savedControlMode);
+        g_controlModeOwned=false;
+    }
+}
 int g_lastClimbCameraState = -1;
 bool g_haveHeading = false;
 uint8_t* g_headingItem = nullptr;
@@ -2996,6 +3012,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             g_active = false;
             ++g_skipped;
         }
+        FirstPersonControlModeUpdate();
         if (wasActive && !g_active) VR().RecenterHead();
         // Roll visibility belongs only to the active first-person gameplay
         // scene. The title, inventory and other UI scenes reuse this camera
@@ -3336,6 +3353,7 @@ bool Install(const GameDllLayout& d, uint64_t base) {
 }
 
 void Remove() {
+    UpdateControlMode(false);
     SetMeshVisibility(false, false); // give her complete mesh back before letting go
     g_calibrationActive=false;
     g_hLaraAboveWater.Remove();
@@ -3398,7 +3416,15 @@ void Remove() {
 
 } // namespace
 
+void FirstPersonControlModeUpdate() {
+    // Frame/input boundaries only. DrawLara temporarily clears this same bit
+    // to bypass proximity hiding; never enforce it from a render-state getter.
+    UpdateControlMode(g_active && g_runtimeEnabled && g_boundDll && g_boundBase &&
+        Cfg().enabled && VR().active());
+}
+
 void FirstPersonUpdate() {
+    FirstPersonControlModeUpdate();
     PollMotionGunCalibration();
     if (!g_runtimeInitialized) {
         g_runtimeEnabled = false;
@@ -3479,6 +3505,7 @@ void FirstPersonToggle() {
     // and the next camera draw can inherit first-person steering.
     SetMeshVisibility(false, false);
     g_active = false;
+    UpdateControlMode(false);
     g_scenePoseValid=false;
     g_renderArm=g_firingHand=-1;
     g_gunTriggers.Reset();

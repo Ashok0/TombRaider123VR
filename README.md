@@ -62,6 +62,15 @@ rewrite also has independent maths tests and verifies its newly required
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
 
+### First-person Modern Controls enforcement (2026-10-11)
+
+Active first person forces **Modern Controls** in all three games, including
+when the saved preference is Tank Controls. The mode is enforced at camera,
+frame and controller-input boundaries. Returning to third person restores the
+control mode selected before entering first person, including Tank Controls.
+Changing the third-person preference is still supported. HD/classic graphics
+and the other settings are preserved; no INI change is required.
+
 ### TR4/5 IK and body fixes ported to TR1-3 (2026-10-11)
 
 The October 11 TR4/5 fixes now apply to HD first person in TR1-3:

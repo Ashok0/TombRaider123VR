@@ -435,6 +435,7 @@ int main() {
     TestMountCameraHandoff();
     TestFirstPersonParity();
     TestCollectionIKParity();
+    TestFirstPersonControlMode();
     TestMonkeyControls();
     TestShadowPlacement();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
