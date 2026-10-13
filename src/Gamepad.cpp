@@ -124,6 +124,9 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
     // A plain R3 click -- held with the stick centred -- still emits
     // RIGHT_THUMB exactly as before, so whatever the game binds it to survives.
     const bool photoChord = L.stickClick && R.stickClick;
+    const bool switchGrip = FirstPersonSwitchGrip(R.grip > 0.5f,
+        gameplay && !gripAction && !photoChord && !L.btnUpper && !L.btnLower &&
+        L.trigger <= 0.12f && R.trigger <= 0.12f);
     uint16_t dpad = 0;
     if (Cfg().dpadShift && R.stickClick && !photoChord) {
         const float dz = Cfg().dpadShiftDeadzone;
@@ -150,7 +153,7 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
 
     // Walk modifier. X is what the game binds Walk to; RIGHT_SHOULDER also
     // keeps the optional RT+RB pitch chord reachable.
-    if (!gripAction && R.grip > 0.5f)
+    if (!gripAction && !switchGrip && R.grip > 0.5f)
         b |= static_cast<uint16_t>(XB_X | XB_RIGHT_SHOULDER);
 
     out.Gamepad.wButtons      = b;

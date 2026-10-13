@@ -1281,6 +1281,39 @@ individual Duck and Walk inputs; the normal Y button still works. The synthesize
 Y is applied after the Y+trigger view/graphics chords, so gripping while using
 a trigger does not switch modes.
 
+In first person, holster weapons, stand within grabbing reach of an
+ordinary wall lever, and hold **Right Grip** with the right hand near it. Move
+your hand through the lever's travel: the lever and Lara's IK hand follow the
+native animation path, including pauses and reversals. Releasing before the end
+stop cancels the pull; reaching the end activates the native switch once without
+moving Lara or switching the camera to third person. Release before grabbing
+again. Away from a lever, Right Grip still means Walk. Both-grip Action, menus,
+Photo Mode and Y/trigger chords take priority.
+
+Grab reach matches TR4/5 ordinary levers: Lara's allowed position extends 256
+game units sideways and 200 units in depth beyond the lever's mesh bounds.
+Native height limits, backside rejection and tracked-hand proximity still
+apply (18 cm to grab, 40 cm while holding). Native Y/Action bounds are unchanged.
+Input priority remains as ported: either trigger, System, Photo Mode or Action
+cancels a grab so equipping weapons and changing modes take precedence.
+
+This interaction is ported from TR4/5 for TR1, TR2 and TR3 ordinary wall levers.
+Underwater switches, small switches, pushbuttons, airlocks and other special
+mechanisms retain native **Y / Action**, including its temporary third-person
+animation. Tracking loss, stale tracking, recentering and leaving first person
+cancel unfinished pulls. No INI changes are required. The existing motion-gun
+and unarmed-IK settings control whether the attached hand is visible.
+TR5's type-4 subtype does not exist in TR1–3's native switch handlers; these
+games select switch mechanisms by object ID. Small switches, push switches
+and airlocks would require separate interaction support.
+
+Validation: the production hook regression covers pulling both directions in
+all three games, stationary/reversed/aborted pulls, input priority, native
+completion, timer initialization and preserving Lara's pose. The installed
+assets pass all 204 ordinary lever pose paths. Binary checks verify the hook
+entries, activation calls, animation tables and ordinary lever object slots
+across supported builds. In-headset reach and hand alignment still need testing.
+
 Pressing B still starts Lara's native roll. During the roll states, her body,
 separate HD face/sunglasses geometry and braid are temporarily suppressed. Her
 saved mesh mask is restored as soon as the roll finishes, including if the view

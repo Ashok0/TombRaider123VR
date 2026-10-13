@@ -15,6 +15,7 @@
 #include "../src/InlineHook.h"
 #undef private
 #include "../src/FirstPerson.cpp"
+#include "../src/Gamepad.cpp"
 
 namespace tr {
 Config testConfig;
@@ -28,6 +29,10 @@ bool testPoseAvailable=true;
 int testMissingHand=-1;
 vr::HmdMatrix34_t testControllerPose[2]{};
 float testHandDown[2]{};
+motiongun::Vec testControllerOffset[2]{};
+VRSystem::HandState testHands[2]{};
+void VRSystem::ReadControllers(HandState hands[2]) const { std::memcpy(hands,testHands,sizeof(testHands)); }
+void* XInputGetStateSlot() { return nullptr; }
 bool VRSystem::ControllerHeightBelowHead(int hand,float& down) const {
     down=testHandDown[hand]; return testPoseAvailable;
 }
@@ -63,7 +68,8 @@ bool VRSystem::ControllerPose(int hand,vr::HmdMatrix34_t& pose) const {
     pose=testControllerPose[hand]; return testPoseAvailable && testMissingHand!=hand;
 }
 bool VRSystem::FirstPersonControllerOffset(int hand,float& x,float& y,float& z) const {
-    x=y=z=0; return testPoseAvailable && testMissingHand!=hand;
+    x=testControllerOffset[hand].x;y=testControllerOffset[hand].y;z=testControllerOffset[hand].z;
+    return testPoseAvailable && testMissingHand!=hand;
 }
 const GameDllLayout* GameDllBound() { return g_boundDll; }
 uint64_t GameDllBase() { return g_boundBase; }
@@ -324,6 +330,7 @@ void TestResponsiveEntry() {
     }
 }
 
+#include "physical_switch_selftest.h"
 #include "gun_input_selftest.h"
 #include "gun_haptics_selftest.h"
 #include "camera_clearance_selftest.h"
@@ -438,6 +445,7 @@ int main() {
     TestFirstPersonControlMode();
     TestMonkeyControls();
     TestShadowPlacement();
+    TestPhysicalSwitch();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }

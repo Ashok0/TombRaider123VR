@@ -560,6 +560,66 @@
     "old": 64720,
     "new": 64768,
     "how": "unique exact normalized instruction match"
+   },
+   "SwitchCollision": {
+    "old": 236080,
+    "new": 236688,
+    "how": "function match"
+   },
+   "TestLaraPosition": {
+    "old": 33168,
+    "new": 33136,
+    "how": "function match"
+   },
+   "MoveLaraPosition": {
+    "old": 33840,
+    "new": 33808,
+    "how": "function match"
+   },
+   "Switch1Bounds": {
+    "old": 1166264,
+    "new": 1170360,
+    "how": "4/4 votes"
+   },
+   "GetBoundsAccurate": {
+    "old": 347008,
+    "new": 346928,
+    "how": "function match"
+   },
+   "level_items": {
+    "old": 4119016,
+    "new": 4122920,
+    "how": "24/24 votes"
+   },
+   "AnimateItem": {
+    "old": 37504,
+    "new": 37536,
+    "how": "function match"
+   },
+   "CalcItemMatrices": {
+    "old": 66944,
+    "new": 66992,
+    "how": "function match"
+   },
+   "changes": {
+    "old": 4314792,
+    "new": 4318696,
+    "how": "2/2 votes"
+   },
+   "ranges": {
+    "old": 4314824,
+    "new": 4318728,
+    "how": "4/4 votes"
+   },
+   "commands": {
+    "old": 4314808,
+    "new": 4318712,
+    "how": "4/4 votes"
+   },
+   "SwitchControl": {
+    "old": 239616,
+    "new": 240224,
+    "how": "fuzzy 0.98"
    }
   }
  },
@@ -959,6 +1019,66 @@
     "old": 96992,
     "new": 97024,
     "how": "unique exact normalized instruction match"
+   },
+   "SwitchCollision": {
+    "old": 421232,
+    "new": 419488,
+    "how": "fuzzy 0.98"
+   },
+   "TestLaraPosition": {
+    "old": 48752,
+    "new": 48704,
+    "how": "function match"
+   },
+   "MoveLaraPosition": {
+    "old": 49552,
+    "new": 49504,
+    "how": "function match"
+   },
+   "Switch1Bounds": {
+    "old": 1425576,
+    "new": 1425576,
+    "how": "3/3 votes"
+   },
+   "GetBoundsAccurate": {
+    "old": 553360,
+    "new": 551952,
+    "how": "function match"
+   },
+   "level_items": {
+    "old": 4403316,
+    "new": 4403124,
+    "how": "29/29 votes"
+   },
+   "AnimateItem": {
+    "old": 54960,
+    "new": 54928,
+    "how": "function match"
+   },
+   "CalcItemMatrices": {
+    "old": 100560,
+    "new": 100608,
+    "how": "function match"
+   },
+   "changes": {
+    "old": 4401048,
+    "new": 4400856,
+    "how": "3/3 votes"
+   },
+   "ranges": {
+    "old": 4401128,
+    "new": 4400936,
+    "how": "2/2 votes"
+   },
+   "commands": {
+    "old": 4401064,
+    "new": 4400872,
+    "how": "5/5 votes"
+   },
+   "SwitchControl": {
+    "old": 425472,
+    "new": 423728,
+    "how": "function match"
    }
   }
  },
@@ -1360,6 +1480,66 @@
     "old": 175424,
     "new": 175616,
     "how": "unique exact normalized instruction match"
+   },
+   "SwitchCollision": {
+    "old": 624976,
+    "new": 630960,
+    "how": "fuzzy 0.98"
+   },
+   "TestLaraPosition": {
+    "old": 101728,
+    "new": 102256,
+    "how": "function match"
+   },
+   "MoveLaraPosition": {
+    "old": 102544,
+    "new": 103072,
+    "how": "function match"
+   },
+   "Switch1Bounds": {
+    "old": 1778984,
+    "new": 1791272,
+    "how": "3/3 votes"
+   },
+   "GetBoundsAccurate": {
+    "old": 844112,
+    "new": 850576,
+    "how": "function match"
+   },
+   "level_items": {
+    "old": 4788692,
+    "new": 4800788,
+    "how": "49/49 votes"
+   },
+   "AnimateItem": {
+    "old": 139232,
+    "new": 139488,
+    "how": "function match"
+   },
+   "CalcItemMatrices": {
+    "old": 179776,
+    "new": 179984,
+    "how": "function match"
+   },
+   "changes": {
+    "old": 4786136,
+    "new": 4798232,
+    "how": "3/3 votes"
+   },
+   "ranges": {
+    "old": 4786376,
+    "new": 4798472,
+    "how": "2/2 votes"
+   },
+   "commands": {
+    "old": 4786152,
+    "new": 4798248,
+    "how": "5/5 votes"
+   },
+   "SwitchControl": {
+    "old": 629296,
+    "new": 635248,
+    "how": "function match"
    }
   }
  }

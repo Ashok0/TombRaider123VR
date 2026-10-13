@@ -1,4 +1,5 @@
 #include "FirstPerson.h"
+#include "SwitchPosePath.h"
 #include "GameDll.h"
 #include "Engine.h"
 #include "Config.h"
@@ -1383,6 +1384,8 @@ motiongun::Vec NativeJointPoint(const uint8_t* item, int joint) {
     };
 }
 
+#include "PhysicalSwitch.inl"
+
 struct GunPose {
     motiongun::Basis basis{};
     motiongun::Vec hand{}, nativeHand{}, muzzle{}, direction{};
@@ -1412,6 +1415,7 @@ bool BuildControllerWrist(int hand, motiongun::Frame& out, motiongun::Basis& con
         calibration.gripForwardMetres*scale,
         calibration.raiseMetres*scale,
         calibration.rightMetres*scale).origin;
+    AttachPhysicalSwitchHand(hand,out,physical);
     motiongun::Frame inverse{};
     return motiongun::Inverse(out,inverse);
 }
@@ -2664,7 +2668,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         g_dragPrevious = g_dragCurrent = g_dragShown = {};
         g_renderTurn.Reset();
         g_bodyTime = {};
-        VR().RecenterHead();
+        ResetPhysicalSwitch(); VR().RecenterHead();
         LogF("locomotion: aligned base=%.1f body=%.1f controls=%s",
              g_heading.base * 180 / Pi, Radians(pos.y_rot) * 180 / Pi,
              NewControls() ? "modern" : "tank");
@@ -3013,7 +3017,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             ++g_skipped;
         }
         FirstPersonControlModeUpdate();
-        if (wasActive && !g_active) VR().RecenterHead();
+        if (wasActive && !g_active) { ResetPhysicalSwitch(); VR().RecenterHead(); }
         // Roll visibility belongs only to the active first-person gameplay
         // scene. The title, inventory and other UI scenes reuse this camera
         // path and Lara's last animation state, so evaluating the state before
@@ -3028,7 +3032,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         // game. The recenter key re-takes it whenever they like.
         if (g_active && !g_neutralTaken) {
             g_neutralTaken = true;
-            VR().RecenterHead();
+            ResetPhysicalSwitch(); VR().RecenterHead();
             Log("firstperson: taking the neutral head position now that first "
                 "person is live -- press the recenter key to set it again");
         }
@@ -3349,10 +3353,12 @@ bool Install(const GameDllLayout& d, uint64_t base) {
             sizeof(kDrawHairRipFixups) / sizeof(kDrawHairRipFixups[0])))
         Log("firstperson: DrawHair could not be hooked -- the braid will still "
             "sweep through the view.");
+    InstallPhysicalSwitches(d,base);
     return true;
 }
 
 void Remove() {
+    RemovePhysicalSwitches();
     UpdateControlMode(false);
     SetMeshVisibility(false, false); // give her complete mesh back before letting go
     g_calibrationActive=false;
@@ -3438,7 +3444,7 @@ void FirstPersonUpdate() {
         static bool held = false;
         const bool down = (GetAsyncKeyState(Cfg().firstPersonRecenterKey) & 0x8000) != 0;
         if (down && !held) {
-            VR().RecenterHead();
+            ResetPhysicalSwitch(); VR().RecenterHead();
             g_dragPrevious = g_dragCurrent = g_dragShown = {};
             Log("firstperson: head position recentered; world heading preserved");
         }
@@ -3480,6 +3486,7 @@ void FirstPersonUpdate() {
 }
 
 void FirstPersonTrackingOriginChanged(float yawCorrection) {
+    ResetPhysicalSwitch();
     const float oldBase=g_heading.base;
     g_heading.base=locomotion::Wrap(oldBase+yawCorrection);
     g_groundEye.Resume(true,oldBase,g_heading.base,0);
@@ -3490,7 +3497,12 @@ void FirstPersonTrackingOriginChanged(float yawCorrection) {
     g_lastHeadWorld=g_heading.World(VR().HeadYawRadians());
 }
 
+bool FirstPersonSwitchGrip(bool down,bool allowed) {
+    return UpdatePhysicalSwitchGrip(down,allowed,GetTickCount64());
+}
+
 void FirstPersonToggle() {
+    ResetPhysicalSwitch();
     RestoreShadowReceiver();
     g_calibrationActive=false;
     if (!g_runtimeInitialized) {

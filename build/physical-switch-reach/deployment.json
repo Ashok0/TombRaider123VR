@@ -1,0 +1,14 @@
+{
+    "task":  "TR1-3 ordinary lever grab reach parity with TR4/5",
+    "deployedAt":  "2026-10-13T16:30:20.3848948-04:00",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\physical-switch-reach\\before-20261013-163019",
+    "previousDllSHA256":  "B54494F91750A5B525841D4D699AE9A4931A40151D08F4FBDA28276BE7125C7E",
+    "deployedDllSHA256":  "F1C40A60D8B97D07406FF6902F7CC8983BEE12BCCB726DA2F36A98604ED0FCEB",
+    "iniSHA256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "iniUnchanged":  true,
+    "hookChecks":  784188,
+    "regressionReproducedBeforeFix":  true,
+    "inputPriority":  "unchanged",
+    "headsetVerification":  "pending"
+}

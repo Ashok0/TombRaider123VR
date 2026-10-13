@@ -1,0 +1,17 @@
+{
+    "task":  "TR1-3 interactive wall lever port",
+    "deployedAt":  "2026-10-13T16:21:29.3378859-04:00",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\physical-switch-port\\before-20261013-162128",
+    "previousDllSHA256":  "5E0FBAF472D86C7F93EECF61853472B225D12E448A0D6DBD02BE9C190977831E",
+    "deployedDllSHA256":  "B54494F91750A5B525841D4D699AE9A4931A40151D08F4FBDA28276BE7125C7E",
+    "iniSHA256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "iniUnchanged":  true,
+    "hookChecks":  784020,
+    "trackingChecks":  66179,
+    "physicsChecks":  1692,
+    "assetPaths":  204,
+    "binaryImages":  15,
+    "addressChecks":  3587,
+    "headsetVerification":  "pending"
+}

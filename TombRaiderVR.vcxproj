@@ -164,6 +164,9 @@
     <ClInclude Include="src\FirstPerson.h" />
     <ClInclude Include="src\FirstPersonVisibility.h" />
     <ClInclude Include="src\FirstPersonIK.h" />
+    <ClInclude Include="src\PhysicalSwitch.inl" />
+    <ClInclude Include="src\SwitchAddresses.inl" />
+    <ClInclude Include="src\SwitchPosePath.h" />
     <ClInclude Include="src\LocomotionMath.h" />
     <ClInclude Include="src\LedgePullGesture.h" />
     <ClInclude Include="src\LedgeCatchHaptics.h" />
