@@ -83,8 +83,8 @@ void __cdecl NativeShadow(int32_t room) {
     ++shadowCalls;
     *Ptr<int32_t>(dll.renderPass)=4;
     Detour_GetJoints(item);
-    Check(!std::memcmp(Ptr<float>(dll.joints),ikNative,sizeof(ikNative)),
-          "shadow caster retains native skeleton despite active controller IK and body fit");
+    Check(!std::memcmp(Ptr<float>(dll.joints),ikNative,8*12*sizeof(float)),
+          "shadow caster retains native torso placement despite active controller IK and body fit");
     Check(!FirstPersonNativeBodySkin(),"native shadow cannot feed the jiggle sampling palette");
     *Ptr<int32_t>(dll.renderPass)=0;
     testRenderState.shadow=&liveShadow;

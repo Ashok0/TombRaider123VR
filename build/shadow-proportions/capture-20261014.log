@@ -1,0 +1,461 @@
+TombRaiderVR (Tomb Raider I-III Remastered): starting
+config: chest physics=on shader=1 apply=1 drive=1 strength=2.50
+config: mode=stereo tracking=rotation+position origin=seated units/m=423.0 ss=1.00 flipProjY=1 flipViewY=1 dup=1 flatHud=1
+config: culling=head frustum margin=8.0deg depth<=16 portals<=4096 far=0 widen=1 objects=1  sky=infinity
+config: startup camera=third person (always); Y+LT switches first/third person
+config: first person joint 14 offset (0,-32,144), interaction Z 16, stable VR heading, head translation ON, head hidden (mesh_bits bit 14)
+config: first person armed head aim=on
+config: first person body-follows-head=on (dead zone 0 deg, 4.0 deg/frame), move-with-head=on (camera-relative controls only)
+config: first person roomscale=on (dead zone 0.02 m, neck pivot 0.15 m, direct collision drag; turn 120 deg/sec)
+engine: build matched by PE timestamp 0x6AA156D9
+engine: bound to 00007FF7BA090000 (reference base 0000000140000000, slide +140696586092544)
+engine: build identified as TR I-III Remastered (Epic Games Store, PE 0x6AA156D9, no PDB)
+hook[vid_setPass]: 00007FF7BA09ABF0 -> 00007FFC4A305F70 (stole 6, tramp 00007FF7C6A1000E)
+hook[validate_draw]: 00007FF7BA09F000 -> 00007FFC4A306010 (stole 5, tramp 00007FF7C6A2000E)
+hook[ogl_draw]: 00007FF7BA09FD80 -> 00007FFC4A3086C0 (stole 5, tramp 00007FF7C6A3000E)
+hook[ogl_present]: 00007FF7BA09F820 -> 00007FFC4A308DC0 (stole 5, tramp 00007FF7C6A4000E)
+hook[fmvShow]: 00007FF7BA09E670 -> 00007FFC4A308B30 (stole 5, tramp 00007FF7C6A5000E)
+hook[ogl_setRenderTarget]: 00007FF7BA0A0520 -> 00007FFC4A305F50 (stole 13, tramp 00007FF7C6A6000E)
+hook[effect texture load]: 00007FF7BA099BE0 -> 00007FFC4A302A20 (stole 6, tramp 00007FF7C6A7000E)
+hook[effect upscale load]: 00007FF7BA09A040 -> 00007FFC4A302AD0 (stole 9, tramp 00007FF7C6A8000E)
+hook[effect texture create]: 00007FF7BA0A0710 -> 00007FFC4A302B80 (stole 5, tramp 00007FF7C6A9000E)
+hook[effect texture update]: 00007FF7BA0A08E0 -> 00007FFC4A302C70 (stole 5, tramp 00007FF7C6AA000E)
+effects: built-in enhancement enabled; no replacement DDS files required
+hook[shader_init]: 00007FF7BA09EC60 -> 00007FFC4A2F6500 (stole 5, tramp 00007FF7C6AB000E)
+hooks: all six installed
+TombRaiderVR: hooks installed; OpenVR will be brought up on the first frame
+gl: loader ready (shader api ready)
+boneskin: 26 skin program(s) matched, 26 patched, 0 fell back to the original
+engine: now running Tomb Raider I (gGame=0)
+pad: Touch controllers presented as an Xbox pad (_XInputGetState 00007FF7BA4A7460 -> 00007FFC4A304E10, real 00007FFC657D4EE0)
+pad: move=Lstick look=Rstick(yaw only; hold RT+RB for pitch) jump=A(R lower) roll=B(R upper) action=Y(L upper)/LB+RB(both grips) system=BACK(L lower) walk=LS+RB(R grip) duck=LB(L grip) equip=LT shoot=RT sprint=L3 photo=L3+R3 graphics=Y+RT view=Y+LT dpad=R3+Lstick
+gamedll: bound to tomb1.dll (Tomb Raider I, gGame=0) at 00007FFBD21D0000
+hook[DrawLaraHD]: 00007FFBD223E7C0 -> 00007FFC4A2F16E0 (stole 6, tramp 00007FFBD26E000E)
+dynbones: hooked tomb1.dll (Tomb Raider I) -- chest physics enabled; draws scoped to Lara
+hook[PrintRoomsList]: 00007FFBD223F770 -> 00007FFC4A3280B0 (stole 5, tramp 00007FFBD26F000E)
+hook[S_GetObjectBounds]: 00007FFBD2234840 -> 00007FFC4A3287B0 (stole 5, tramp 00007FFBD270000E)
+cull: hooked tomb1.dll (Tomb Raider I)
+hook[DrawSkyHD]: 00007FFBD223F2A0 -> 00007FFC4A3290D0 (stole 5, tramp 00007FFBD271000E)
+sky: hooked tomb1.dll (Tomb Raider I) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
+gun calibration: Ctrl+F1..F6 position, Ctrl+Shift+F1..F6 angles, F7 save/restore
+firstperson: startup view is always third person; press Y+LT to switch views
+hook[LaraAboveWater]: 00007FFBD21F1250 -> 00007FFC4A31E640 (stole 5, tramp 00007FFBD272000E)
+hook[DrawToShadow]: 00007FFBD2243C10 -> 00007FFC4A311B10 (stole 9, tramp 00007FFBD273000E)
+hook[LaraGun]: 00007FFBD21F8160 -> 00007FFC4A31DAE0 (stole 6, tramp 00007FFBD274000E)
+hook[FirstPersonBodyDraw]: 00007FFBD21DFF60 -> 00007FFC4A3135D0 (stole 8, tramp 00007FFBD275000E)
+hook[MovableBlockCollision]: 00007FFBD2201220 -> 00007FFC4A310070 (stole 5, tramp 00007FFBD276000E)
+hook[AnimateLara]: 00007FFBD21FA2A0 -> 00007FFC4A31D3E0 (stole 5, tramp 00007FFBD277000E)
+hook[CalculateLaraMatrices]: 00007FFBD21E35A0 -> 00007FFC4A311430 (stole 5, tramp 00007FFBD278000E)
+hook[DrawActionIndicators]: 00007FFBD22436F0 -> 00007FFC4A311710 (stole 6, tramp 00007FFBD279000E)
+hook[phd_GenerateW2V]: 00007FFBD2244450 -> 00007FFC4A322C70 (stole 5, tramp 00007FFBD27A000E)
+hook[DrawCreatureHD]: 00007FFBD223C880 -> 00007FFC4A312070 (stole 5, tramp 00007FFBD27B000E)
+hook[GetJoints]: 00007FFBD223C190 -> 00007FFC4A31A6D0 (stole 7, tramp 00007FFBD27C000E)
+hook[FireWeapon]: 00007FFBD21F9440 -> 00007FFC4A31C580 (stole 6, tramp 00007FFBD27D000E)
+hook[DrawGunFlash]: relocated rip disp32 at +6 (4645147 -> -1645603)
+hook[DrawGunFlash]: 00007FFBD21E02D0 -> 00007FFC4A317AF0 (stole 11, tramp 00007FFBD27E000E)
+hook[shotgun effect wrist position]: 00007FFBD2225160 -> 00007FFC4A317890 (stole 5, tramp 00007FFBD27F000E)
+hook[GetTargetOnLOS]: 00007FFBD21F92F0 -> 00007FFC4A31C6E0 (stole 5, tramp 00007FFBD280000E)
+hook[AnimatePistols]: 00007FFBD21F7C90 -> 00007FFC4A31C5B0 (stole 5, tramp 00007FFBD281000E)
+hook[DrawHair]: relocated rip disp32 at +7 (765069 -> -5502705)
+hook[DrawHair]: 00007FFBD2225C90 -> 00007FFC4A312680 (stole 11, tramp 00007FFBD282000E)
+hook[VRSwitchTestPosition]: 00007FFBD21D8370 -> 00007FFC4A315B50 (stole 5, tramp 00007FFBD283000E)
+hook[VRSwitchMovePosition]: 00007FFBD21D8610 -> 00007FFC4A315B90 (stole 5, tramp 00007FFBD284000E)
+hook[VRWallSwitch]: 00007FFBD2209F60 -> 00007FFC4A315E70 (stole 5, tramp 00007FFBD285000E)
+vr-switch: hand-attached wall levers enabled; pose follows grip, native completion at end stop
+firstperson: hooked tomb1.dll (Tomb Raider I) -- runtime camera switch ready (Y+LT, startup third person, joint 14). Fixed and cinematic cameras keep their own framing.
+vr: initialisation attempt 1 at frame 1
+vr: using C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider I-III Remastered\openvr_api.dll
+vr: runtime installed=yes, IsHmdPresent=yes
+vr: initialised as a Scene app
+vr: eye 0 raw tangents l=-1.3764 r=0.8391 t=-1.4281 b=0.9657
+vr: eye 0 eyeToHead offset = (-0.0311, +0.0000, +0.0000) m
+vr: eye 1 raw tangents l=-0.8391 r=1.3764 t=-1.4281 b=0.9657
+vr: eye 1 eyeToHead offset = (+0.0311, +0.0000, +0.0000) m
+vr: ready, per-eye target 1728x1824
+vr: up and running
+stereo: created 3456x1824 double-wide target (fbo 2, tex 17)
+present: redirected FBO_default 0 -> 2
+video: offscreen panel ready (2560x1440, fbo 3, tex 18, prog 225)
+vr: head neutral set at (+0.11, +1.22, -0.09) m -- tracked translation is measured from here
+gamedll: no level loaded yet -- ceiling clamp stands down until there is one (this is normal at the title screen)
+vr: head pose ACQUIRED
+present: first stereo frame submitted
+pad: water_status=0 (above water) -- stick pitch decoupled
+effects: texture slot 3 layer 2 classified as 3
+inject: eye=0 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=-0.2425 proj[9]=-0.1932
+inject: eye=0 eyeView translation = (+75.0, +23.7, -40.6) world units
+inject: eye=0 final view translation = (204.3, -1437.1, 559.8)
+inject: eye=0 packed view translation IN MEMORY = (0.0, -1447.0, 646.0) [floats 3,7,11 at 00007FF7C6731700]
+inject: eye=0 uid[1] (uViewMatrix location) = 132, shader=11
+inject: eye=1 proj[0]=0.9027 proj[5]=-0.8355 proj[8]=0.2425 proj[9]=-0.1932
+inject: eye=1 eyeView translation = (+48.7, +23.7, -40.6) world units
+inject: eye=1 final view translation = (178.0, -1437.1, 559.8)
+inject: eye=1 packed view translation IN MEMORY = (0.0, -1447.0, 646.0) [floats 3,7,11 at 00007FF7C6731700]
+inject: eye=1 uid[1] (uViewMatrix location) = 132, shader=11
+inject: SEPARATION between eyes = 26.28 world units (dx=26.28 dy=0.00 dz=0.00)
+effects: texture slot 3 layer 94 classified as 3
+effects: texture slot 3 layer 108 classified as 2
+effects: texture slot 3 layer 109 classified as 1
+cull: head-frustum portal traversal live on Tomb Raider I -- frustum 124.0 x 126.0 degrees, depth<=16, 4096 portals/frame budget
+sky: first DrawSkyHD draw (shader 1) -- rotation-only eye transform, far-plane depth
+dynbones: TR1-3 Lara: 15 skeleton joints, 32-slot GPU upload
+dynbones: locked to shader 16 (15 joints) -- the latch stays here so the drive stays continuous
+vr: ceiling clamp paused for jump state=15 first=0
+boneskin: measured buffer 11 -- 8382 vertices, 1966 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+boneskin: front of the torso is local +Z (30 samples, mean alignment 1.00 with Lara's facing)
+boneskin: torso shape, side view -- BACK on the left, FRONT on the right, top row is the neck end. x -63..63  y -244..-71  depth -81..75
+boneskin:   |         :....          |
+boneskin:   |        ...:...         |
+boneskin:   |   . .:.-:.:-:-.        |
+boneskin:   |.-. . :.......:-.       |
+boneskin:   |:.     ........:..      |
+boneskin:   |:.-:.:-..............   |
+boneskin:   |@.     .... ..... ..... |
+boneskin:   |%:     ........ . . ...:|
+boneskin:   |-:............ . . . ..:|
+boneskin:   |.:.. . .:.  . . . ......|
+boneskin:   |  .. . .... .  .. ....  |
+boneskin:   |         ... . . . ..   |
+boneskin:   |          .... . ...    |
+boneskin:   |            .. .....    |
+boneskin: front profile, neck to waist: -3 13 13 15 22 26 35 43 60 69 75 75 75 72 68 56 51 47 47 46
+boneskin: chest region (measured bust) -- height -180..-109 of -244..-71, depth from 28 forward (front 75, belly line 49), within 43 of centre. Selects 109 torso vertices at full weight (y -170..-118) and 62 partly.
+boneskin: live -- Lara's body (shader 16) now deforms per vertex, and the whole-torso view has stood down
+firstperson: jump view level=1 first=0 frames=101 repeatedY=3 lateFrames=8 maxStepY=61
+firstperson: Y+LT switched to FIRST PERSON
+firstperson: anchored to joint 14 at (75256,2415,3813) -- Lara at (75264,3072,3656), frac 76/256, yaw 0 from the game camera (room 0)
+firstperson: taking the neutral head position now that first person is live -- press the recenter key to set it again
+locomotion: aligned base=-3.0 body=0.0 controls=modern
+firstperson: camera handoff resumed type=0 level=1 standing-eye=0 offset=(0.0,0.0,0.0)
+firstperson shadow: receiver origin native=(75264,2218,3106) FP=(75256,2415,3813); light camera isolated
+cull: first-person eye in room 0; game camera seeded room 0
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-57.0,57.5,-140.9) elbow=(-115.6,136.2,-146.8) wrist=(-178.3,210.4,-128.7) lengths=98.3/98.8 wristScale=0.999/0.999/0.999 target=(-19.1,196.2,-24.1) worldWrist=(75077.7,2625.4,3684.3)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(59.0,58.9,-142.5) elbow=(122.0,129.0,-130.3) wrist=(186.9,197.8,-96.5) lengths=95.0/100.5 wristScale=0.999/0.999/0.999 target=(52.2,178.2,-8.4) worldWrist=(75442.9,2612.8,3716.5)
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(446.0,7413.2,-6060.1) elbow=(389.5,7492.8,-6069.4) wrist=(327.7,7568.4,-6054.8) lengths=98.1/98.7 wristScale=0.999/0.999/1.000 target=(485.2,7559.4,-5939.1) worldWrist=(75079.7,2620.4,3673.2)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(562.0,7414.7,-6061.5) elbow=(623.1,7486.6,-6055.3) wrist=(687.0,7558.4,-6027.5) lengths=94.6/100.0 wristScale=0.999/0.999/0.999 target=(556.3,7541.2,-5923.4) worldWrist=(75439.0,2610.4,3700.5)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+firstperson: motion state enabled=0 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=30 failed=0 unarmed-enabled=1
+locomotion: state=2 head=-0.0 body=-0.0 cam=-0.0 manual=(+0.00,+0.00) pending=(+0.000,-0.000)m drag=(+0.000,+0.000)m input=00000000
+firstperson: LaraGun status 0 -> 0 input=00000000 applied=00000000 LT=0 hp=1000 state=2
+firstperson: resolved body fit yaw=-0.6 base=-3.0 offset=(-0.6,0.0) pending=(0.002,-0.001)m
+locomotion: state=2 head=-1.1 body=-1.0 cam=-1.1 manual=(+0.00,+0.00) pending=(+0.002,-0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=1 head=-2.0 body=-2.0 cam=-2.0 manual=(-0.19,+0.98) pending=(+0.009,-0.004)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-1.6 body=-1.6 cam=-1.6 manual=(-0.18,+0.98) pending=(+0.008,-0.001)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-16.2 body=-16.2 cam=-16.2 manual=(-0.40,+0.92) pending=(+0.009,+0.000)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-2.1 body=-2.1 cam=-2.1 manual=(-0.16,+0.99) pending=(+0.016,+0.012)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-1.7 body=-1.7 cam=-1.7 manual=(-0.13,+0.99) pending=(+0.013,+0.013)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-1.6 body=-1.6 cam=-1.6 manual=(-0.03,+1.00) pending=(+0.015,+0.016)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=-2.1 body=-2.1 cam=-2.1 manual=(+0.00,+0.00) pending=(+0.022,+0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-2.5 body=-2.5 cam=-2.5 manual=(+0.00,+0.00) pending=(+0.022,+0.004)m drag=(+0.002,+0.000)m input=00000000
+boneskin: measured buffer 53 -- 1172 vertices, 1172 mainly on joint 7 (coord 0x1406 x3, joints 0x1401 x4 norm 0, weights 0x1401 x4 norm 1, stride 28)
+boneskin: torso shape, side view -- BACK on the left, FRONT on the right, top row is the neck end. x -63..66  y -252..-40  depth -110..75
+boneskin:   |........   ...          |
+boneskin:   |.... ..:.  .....        |
+boneskin:   |  ..::-.::.-:-:-..      |
+boneskin:   |    --...:......-:.     |
+boneskin:   |   .-.-.:-......:.:.    |
+boneskin:   |    *.- :.......... ... |
+boneskin:   |    @ :=:-........ ....:|
+boneskin:   |   .=....::..... ......:|
+boneskin:   |    ..:.:..:... ........|
+boneskin:   |      ....  ... . . ..  |
+boneskin:   |      ....  ....... .   |
+boneskin:   |      .....   .......   |
+boneskin:   |       ..::.            |
+boneskin:   |        ::::            |
+boneskin: front profile, neck to waist: -10 8 13 15 22 27 43 60 69 75 75 73 68 56 51 47 47 46 -18 -18
+boneskin: chest region (measured bust) -- height -195..-55 of -252..-40, depth from 27 forward (front 75, belly line 20), within 44 of centre. Selects 131 torso vertices at full weight (y -174..-87) and 70 partly.
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-29.5,75.9,-136.3) elbow=(-67.6,165.5,-150.8) wrist=(-101.0,258.7,-149.8) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(-72.6,120.2,77.3) worldWrist=(74889.3,2626.7,7682.4)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(86.4,75.6,-132.8) elbow=(127.3,161.4,-142.3) wrist=(165.5,254.8,-137.8) lengths=95.5/101.0 wristScale=0.999/0.999/1.000 target=(50.9,116.3,105.9) worldWrist=(75155.7,2622.8,7694.5)
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(208.8,7391.8,-2031.8) elbow=(170.7,7481.4,-2046.6) wrist=(137.5,7574.6,-2045.5) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(164.6,7436.5,-1821.1) worldWrist=(74889.5,2626.6,7682.5)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(324.7,7391.5,-2028.4) elbow=(365.5,7477.3,-2038.3) wrist=(403.6,7570.7,-2033.7) lengths=95.5/101.0 wristScale=0.999/0.999/1.000 target=(282.6,7433.5,-1793.6) worldWrist=(75155.6,2622.7,7694.3)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=4470 failed=0 unarmed-enabled=1
+locomotion: state=2 head=-1.3 body=-1.3 cam=-1.3 manual=(+0.00,+0.00) pending=(-0.003,+0.022)m drag=(+0.000,+0.002)m input=00000000
+firstperson: resolved body fit yaw=-1.3 base=-7.7 offset=(-4.5,-2.4) pending=(-0.007,0.019)m
+locomotion: state=2 head=-1.4 body=-1.4 cam=-1.4 manual=(+0.00,+0.00) pending=(-0.005,+0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-0.8 body=-1.0 cam=-0.8 manual=(+0.00,+0.00) pending=(+0.000,+0.003)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=0.0 body=0.2 cam=0.0 manual=(+0.00,+0.00) pending=(+0.009,-0.018)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-1.2 body=-1.0 cam=-1.2 manual=(+0.00,+0.00) pending=(+0.008,-0.009)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=-0.7 body=-0.8 cam=-0.7 manual=(+0.00,+0.00) pending=(+0.006,+0.012)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=16 head=0.5 body=0.5 cam=0.5 manual=(+0.25,-0.97) pending=(+0.001,+0.005)m drag=(+0.000,+0.000)m input=00004082
+locomotion: state=16 head=1.0 body=1.0 cam=1.0 manual=(-0.25,+0.65) pending=(-0.001,+0.001)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=2.1 body=2.1 cam=2.1 manual=(-0.15,+0.41) pending=(-0.003,+0.002)m drag=(+0.000,+0.000)m input=00002001
+locomotion: state=1 head=47.2 body=46.9 cam=47.2 manual=(+0.00,+0.00) pending=(-0.003,+0.016)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(298.3,7391.4,-1755.7) elbow=(290.2,7482.0,-1718.1) wrist=(299.4,7576.4,-1689.9) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(439.4,7451.5,-1725.9) worldWrist=(75051.4,2628.4,8038.1)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(274.4,7391.1,-1869.0) elbow=(254.7,7478.1,-1903.1) wrist=(251.7,7572.8,-1938.1) lengths=95.5/101.0 wristScale=0.999/0.999/1.000 target=(460.3,7453.6,-1846.5) worldWrist=(75003.7,2624.8,7789.9)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-126.7,75.4,40.0) elbow=(-134.8,166.0,77.6) wrist=(-125.7,260.4,105.8) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(35.5,135.5,33.7) worldWrist=(75051.4,2628.4,8038.1)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-150.6,75.1,-73.3) elbow=(-170.3,162.1,-107.4) wrist=(-173.3,256.8,-142.4) lengths=95.5/101.0 wristScale=0.999/0.999/1.000 target=(52.3,137.6,-87.6) worldWrist=(75003.7,2624.8,7789.9)
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=4515 failed=0 unarmed-enabled=1
+locomotion: state=2 head=125.9 body=125.3 cam=125.9 manual=(+0.00,-0.00) pending=(-0.001,+0.026)m drag=(+0.007,+0.000)m input=00000000
+firstperson: resolved body fit yaw=149.5 base=102.6 offset=(10.1,50.8) pending=(0.011,0.019)m
+locomotion: state=2 head=158.3 body=158.0 cam=158.3 manual=(+0.00,-0.00) pending=(+0.020,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=153.7 body=153.8 cam=153.7 manual=(+0.00,-0.00) pending=(+0.022,-0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=158.2 body=158.1 cam=158.2 manual=(+0.00,-0.00) pending=(+0.009,-0.003)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=151.5 body=151.8 cam=151.5 manual=(+0.00,-0.00) pending=(+0.005,-0.006)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=149.7 body=149.7 cam=149.7 manual=(+0.00,-0.00) pending=(-0.010,-0.006)m drag=(+0.000,+0.000)m input=00000000
+dynbones: joints=15 shader=16 lock=16  frames=900 dup=0% snaps=0  drive_peak=745.7 accel_raw=2691678 drive_used=0  disp_peak=28.00  L=(-0.09,8.57,-0.21) R=(-0.09,8.57,-0.21)
+dynbones: engine drive -- jumps=1 lands=1  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=2 head=149.3 body=149.4 cam=149.3 manual=(+0.00,-0.00) pending=(-0.011,-0.003)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=148.0 body=148.1 cam=148.0 manual=(+0.00,-0.00) pending=(-0.013,-0.002)m drag=(+0.000,+0.000)m input=00000000
+stereo health @frame 1800 [Tomb Raider I]: world draws=71806  duplicated=38753  injected eye0=35903 eye1=35903  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=1906  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(77.6, -12.0, -23.4) prog=34 loc=129  eye1=(34.2, -12.0, -23.4) prog=34 loc=129  separation=43.40
+halves: 23 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF7C6731320  mProj[1](persp)=00007FF7C6731360
+  proj=00007FF7C6731320  draws=5701     ortho/2D
+  proj=00007FF7C6731360  draws=71806    perspective/world
+cull: 3.9 rooms/frame from the engine + 0.0 added by the head frustum, 1.9 items rescued/frame
+locomotion: state=2 head=146.6 body=146.7 cam=146.6 manual=(+0.00,-0.00) pending=(-0.016,-0.006)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=147.0 body=147.1 cam=147.0 manual=(+0.00,-0.00) pending=(-0.012,+0.001)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(363.8,7392.2,-1788.5) elbow=(389.3,7481.9,-1757.2) wrist=(418.3,7575.1,-1740.3) lengths=98.4/99.0 wristScale=0.999/0.999/0.999 target=(473.8,7444.6,-1840.7) worldWrist=(75170.2,2627.1,7987.7)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(266.8,7391.9,-1852.1) elbow=(227.7,7477.9,-1866.3) wrist=(197.6,7571.4,-1889.7) lengths=95.5/101.0 wristScale=0.999/0.999/0.999 target=(369.6,7443.0,-1949.2) worldWrist=(74949.6,2623.4,7838.3)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-70.2,76.2,97.6) elbow=(-44.7,165.9,129.0) wrist=(-15.8,259.1,145.9) lengths=98.4/99.0 wristScale=0.999/0.999/0.999 target=(30.8,128.6,-2.7) worldWrist=(75170.2,2627.1,7987.7)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-167.2,75.9,34.0) elbow=(-206.3,161.9,19.9) wrist=(-236.5,255.4,-3.6) lengths=95.5/101.0 wristScale=0.999/0.999/0.999 target=(-73.4,127.0,-111.2) worldWrist=(74949.6,2623.4,7838.3)
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=4515 failed=0 unarmed-enabled=1
+locomotion: state=2 head=151.1 body=149.9 cam=151.1 manual=(+0.00,-0.00) pending=(+0.006,+0.026)m drag=(+0.005,-0.002)m input=00000000
+firstperson: resolved body fit yaw=167.6 base=102.6 offset=(24.4,66.8) pending=(0.010,0.022)m
+locomotion: state=2 head=-178.4 body=-178.3 cam=-178.4 manual=(-0.00,+0.00) pending=(+0.017,+0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=164.2 body=164.2 cam=164.2 manual=(+0.00,-0.00) pending=(+0.016,-0.013)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=160.6 body=160.5 cam=160.6 manual=(+0.00,-0.00) pending=(-0.013,-0.022)m drag=(-0.005,+0.005)m input=00000000
+locomotion: state=2 head=157.3 body=157.5 cam=157.3 manual=(+0.00,-0.00) pending=(-0.012,-0.020)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=155.8 body=155.5 cam=155.8 manual=(+0.00,-0.00) pending=(-0.013,-0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=155.0 body=155.6 cam=155.0 manual=(+0.00,-0.00) pending=(-0.007,-0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=153.4 body=153.6 cam=153.4 manual=(+0.00,-0.00) pending=(-0.004,-0.008)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=153.0 body=153.2 cam=153.0 manual=(+0.00,-0.00) pending=(-0.007,+0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=156.0 body=155.8 cam=156.0 manual=(+0.00,-0.00) pending=(+0.000,+0.004)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(374.5,7390.8,-1801.3) elbow=(400.0,7480.7,-1770.4) wrist=(429.5,7574.9,-1763.1) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(472.5,7433.8,-1872.4) worldWrist=(75181.5,2626.9,7964.9)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(268.5,7390.5,-1848.4) elbow=(227.8,7476.9,-1850.6) wrist=(197.4,7571.2,-1869.9) lengths=95.5/101.0 wristScale=0.999/0.999/0.999 target=(336.7,7443.6,-1982.2) worldWrist=(74949.4,2623.2,7858.1)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-55.8,74.8,96.5) elbow=(-30.2,164.7,127.3) wrist=(-0.7,258.9,134.7) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(26.5,117.8,-32.4) worldWrist=(75181.5,2626.9,7964.9)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-161.7,74.5,49.4) elbow=(-202.5,160.9,47.2) wrist=(-232.9,255.2,27.9) lengths=95.5/101.0 wristScale=0.999/0.999/0.999 target=(-109.3,127.6,-142.2) worldWrist=(74949.4,2623.2,7858.1)
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=4500 failed=0 unarmed-enabled=1
+locomotion: state=2 head=155.2 body=155.3 cam=155.2 manual=(+0.00,-0.00) pending=(+0.009,+0.004)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=154.1 base=102.6 offset=(14.2,55.7) pending=(0.012,0.005)m
+locomotion: state=2 head=129.5 body=130.9 cam=129.5 manual=(+0.00,-0.00) pending=(+0.024,-0.000)m drag=(+0.000,-0.005)m input=00000000
+locomotion: state=2 head=172.9 body=172.0 cam=172.9 manual=(+0.00,-0.00) pending=(-0.005,+0.022)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=148.5 body=148.8 cam=148.5 manual=(+0.00,-0.00) pending=(-0.002,-0.021)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=155.1 body=155.0 cam=155.1 manual=(+0.00,-0.00) pending=(-0.008,-0.012)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.0 body=154.0 cam=154.0 manual=(+0.00,-0.00) pending=(-0.008,-0.014)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.0 body=154.3 cam=154.0 manual=(+0.00,-0.00) pending=(-0.010,-0.018)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=152.3 body=152.2 cam=152.3 manual=(+0.00,-0.00) pending=(-0.002,-0.008)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=155.5 body=155.4 cam=155.5 manual=(+0.00,-0.00) pending=(-0.016,-0.009)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.7 body=154.9 cam=154.7 manual=(+0.00,-0.00) pending=(-0.012,-0.012)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(381.8,7392.0,-1801.4) elbow=(408.5,7482.5,-1773.5) wrist=(437.4,7576.5,-1762.2) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(485.5,7462.2,-1870.6) worldWrist=(75189.4,2628.5,7965.8)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(277.6,7391.7,-1852.5) elbow=(238.6,7478.5,-1860.1) wrist=(207.7,7572.9,-1878.5) lengths=95.5/101.0 wristScale=0.999/0.999/0.999 target=(345.6,7447.9,-1957.5) worldWrist=(74959.7,2624.9,7849.5)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-60.3,76.0,99.0) elbow=(-33.6,166.5,126.9) wrist=(-4.7,260.5,138.2) lengths=98.4/99.0 wristScale=0.999/0.999/1.000 target=(29.5,146.2,-25.6) worldWrist=(75189.4,2628.5,7965.8)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-164.5,75.7,47.9) elbow=(-203.5,162.5,40.3) wrist=(-234.4,256.9,21.9) lengths=95.5/101.0 wristScale=0.999/0.999/0.999 target=(-110.4,131.9,-112.5) worldWrist=(74959.7,2624.9,7849.5)
+firstperson: motion state enabled=1 blocked=guns-not-ready status=0 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00000000 passes=0/0 joints=0/0 corrected=0/0 reason=not-built/not-built
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=4440 failed=0 unarmed-enabled=1
+locomotion: state=2 head=153.3 body=153.4 cam=153.3 manual=(+0.00,-0.00) pending=(-0.007,-0.014)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=151.6 base=102.6 offset=(12.3,53.3) pending=(-0.006,-0.016)m
+locomotion: state=2 head=144.0 body=144.0 cam=144.0 manual=(+0.00,-0.00) pending=(+0.002,-0.020)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=158.2 body=157.1 cam=158.2 manual=(+0.00,-0.00) pending=(+0.002,-0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=157.1 body=157.2 cam=157.1 manual=(+0.00,-0.00) pending=(+0.009,-0.010)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.4 body=154.5 cam=154.4 manual=(+0.00,-0.00) pending=(+0.014,-0.016)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=151.9 body=152.2 cam=151.9 manual=(+0.00,-0.00) pending=(+0.014,-0.017)m drag=(+0.000,+0.000)m input=00000000
+dynbones: joints=15 shader=16 lock=16  frames=1800 dup=0% snaps=0  drive_peak=5.4 accel_raw=40366 drive_used=0  disp_peak=8.57  L=(-0.09,8.57,-0.21) R=(-0.09,8.57,-0.21)
+dynbones: engine drive -- jumps=1 lands=1  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=2 head=151.2 body=151.1 cam=151.2 manual=(+0.00,-0.00) pending=(+0.011,-0.018)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=148.2 body=148.3 cam=148.2 manual=(+0.00,-0.00) pending=(+0.006,-0.020)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=148.7 body=148.7 cam=148.7 manual=(+0.00,-0.00) pending=(+0.002,-0.020)m drag=(+0.000,+0.000)m input=00000000
+firstperson: LaraGun status 0 -> 2 input=00000000 applied=00000020 LT=43 hp=1000 state=2
+firstperson: LaraGun status 2 -> 4 input=00000000 applied=00000020 LT=255 hp=1000 state=2
+firstperson: no-target gun pose follows HMD; native auto-aim preserved
+firstperson: HD gun hand follows tracked controller
+handskin: rigid wrist and 50-percent seam active (shader=16 joint=10)
+handskin: surface boundary joint=10 vao=17 triangles=7246 hand=3622 crossings=0 closed-loops=5
+handskin: opaque wrist cap draw active joint=10 boundary-vertices=16 wrist-distance=3.66
+handskin: rigid wrist and 50-percent seam active (shader=14 joint=10)
+handskin: surface boundary joint=13 vao=17 triangles=7246 hand=3624 crossings=0 closed-loops=5
+handskin: opaque wrist cap draw active joint=13 boundary-vertices=16 wrist-distance=2.96
+locomotion: state=2 head=149.5 body=149.5 cam=149.5 manual=(+0.00,-0.00) pending=(+0.004,-0.020)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(378.4,7392.1,-1798.5) elbow=(393.0,7478.2,-1753.4) wrist=(459.4,7443.2,-1817.8) lengths=98.3/98.9 wristScale=0.998/0.999/0.999 target=(456.3,7470.4,-1853.9) worldWrist=(75211.4,2495.2,7910.2)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(277.7,7391.8,-1856.0) elbow=(231.6,7474.7,-1845.6) wrist=(252.5,7438.6,-1937.5) lengths=95.5/100.9 wristScale=0.998/0.998/0.999 target=(350.4,7479.4,-1937.2) worldWrist=(75004.5,2490.6,7790.5)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-65.1,76.1,98.7) elbow=(-50.6,162.2,143.8) wrist=(15.8,127.2,79.4) lengths=98.3/98.9 wristScale=0.998/0.999/0.999 target=(1.3,154.4,-8.9) worldWrist=(75211.4,2495.2,7910.2)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-165.8,75.7,41.2) elbow=(-212.0,158.7,51.6) wrist=(-191.1,122.6,-40.3) lengths=95.5/100.9 wristScale=0.998/0.998/0.999 target=(-104.6,163.4,-92.2) worldWrist=(75004.5,2490.6,7790.5)
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=84/84 joints=84/84 corrected=84/84 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=4116 failed=0 unarmed-enabled=1
+locomotion: state=2 head=153.2 body=152.8 cam=153.2 manual=(+0.00,-0.00) pending=(-0.005,-0.022)m drag=(-0.002,+0.002)m input=00000000
+firstperson: resolved body fit yaw=152.8 base=102.6 offset=(13.1,54.4) pending=(-0.005,-0.020)m
+locomotion: state=2 head=152.8 body=152.9 cam=152.8 manual=(+0.00,-0.00) pending=(-0.004,-0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=152.6 body=152.7 cam=152.6 manual=(+0.00,-0.00) pending=(+0.007,-0.006)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=151.8 body=151.9 cam=151.8 manual=(+0.00,-0.00) pending=(+0.005,-0.006)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=153.4 body=153.2 cam=153.4 manual=(+0.00,-0.00) pending=(+0.006,-0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.2 body=154.2 cam=154.2 manual=(+0.00,-0.00) pending=(+0.009,-0.003)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.0 body=153.9 cam=154.0 manual=(+0.00,-0.00) pending=(+0.008,-0.005)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=153.3 body=153.2 cam=153.2 manual=(+0.00,-0.00) pending=(+0.003,-0.004)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=153.3 body=153.5 cam=153.3 manual=(+0.00,-0.00) pending=(-0.001,-0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=150.7 body=150.6 cam=150.7 manual=(+0.00,-0.00) pending=(+0.000,-0.004)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(376.1,7390.9,-1797.9) elbow=(388.3,7475.6,-1749.5) wrist=(456.2,7444.3,-1814.2) lengths=98.3/98.9 wristScale=0.998/0.999/0.999 target=(490.6,7418.7,-1843.7) worldWrist=(75208.2,2496.3,7913.8)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(276.1,7390.5,-1856.6) elbow=(228.1,7472.1,-1843.8) wrist=(250.9,7439.8,-1936.6) lengths=95.5/100.9 wristScale=0.998/0.998/0.999 target=(338.1,7423.7,-1955.8) worldWrist=(75002.9,2491.8,7791.4)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-65.2,74.9,96.4) elbow=(-53.0,159.6,144.8) wrist=(14.9,128.3,80.1) lengths=98.3/98.9 wristScale=0.998/0.999/0.999 target=(38.6,102.7,-0.7) worldWrist=(75208.2,2496.3,7913.8)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-165.2,74.5,37.7) elbow=(-213.2,156.1,50.5) wrist=(-190.4,123.8,-42.3) lengths=95.5/100.9 wristScale=0.998/0.998/0.999 target=(-113.9,107.7,-112.8) worldWrist=(75002.9,2491.8,7791.4)
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=903/903 joints=903/903 corrected=903/903 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=3612 failed=0 unarmed-enabled=1
+locomotion: state=2 head=160.4 body=159.8 cam=160.4 manual=(+0.00,-0.00) pending=(-0.009,-0.009)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=168.9 base=102.6 offset=(26.5,68.0) pending=(-0.014,-0.014)m
+locomotion: state=2 head=161.5 body=162.3 cam=161.5 manual=(+0.00,-0.00) pending=(-0.006,-0.021)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=145.7 body=145.4 cam=145.7 manual=(+0.00,-0.00) pending=(+0.016,-0.009)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=136.9 body=139.1 cam=136.9 manual=(+0.00,-0.00) pending=(+0.025,-0.002)m drag=(+0.000,-0.005)m input=00000000
+locomotion: state=2 head=151.1 body=149.9 cam=151.1 manual=(+0.00,-0.00) pending=(-0.003,+0.018)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=159.3 body=159.3 cam=159.3 manual=(+0.00,-0.00) pending=(-0.005,+0.014)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=162.7 body=162.7 cam=162.7 manual=(+0.00,-0.00) pending=(-0.010,+0.019)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=162.1 body=162.3 cam=162.1 manual=(+0.00,-0.00) pending=(-0.015,+0.013)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.4 body=154.4 cam=154.4 manual=(+0.00,-0.00) pending=(+0.000,+0.012)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=157.7 body=157.9 cam=157.7 manual=(+0.00,-0.00) pending=(+0.013,+0.018)m drag=(+0.002,-0.002)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(379.0,7391.9,-1805.4) elbow=(390.4,7473.4,-1751.6) wrist=(456.1,7449.6,-1821.6) lengths=98.3/98.9 wristScale=0.999/0.999/0.999 target=(485.6,7427.3,-1860.9) worldWrist=(75208.1,2501.6,7906.4)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(276.0,7391.6,-1858.6) elbow=(225.6,7469.9,-1837.7) wrist=(244.9,7445.3,-1933.6) lengths=95.5/100.9 wristScale=0.999/0.999/1.000 target=(329.8,7454.5,-1967.2) worldWrist=(74996.9,2497.3,7794.4)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-62.3,75.9,98.4) elbow=(-50.9,157.4,152.2) wrist=(14.8,133.6,82.2) lengths=98.3/98.9 wristScale=0.999/0.999/0.999 target=(31.6,111.3,-10.9) worldWrist=(75208.1,2501.6,7906.4)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-165.3,75.6,45.2) elbow=(-215.7,153.9,66.2) wrist=(-196.3,129.3,-29.8) lengths=95.5/100.9 wristScale=0.999/0.999/1.000 target=(-124.2,138.5,-117.2) worldWrist=(74996.9,2497.3,7794.4)
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=900/900 joints=900/900 corrected=900/900 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=3600 failed=0 unarmed-enabled=1
+locomotion: state=2 head=153.5 body=153.2 cam=153.5 manual=(+0.00,-0.00) pending=(+0.015,+0.011)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=155.6 base=102.6 offset=(15.0,56.9) pending=(0.012,0.013)m
+locomotion: state=2 head=158.6 body=158.6 cam=158.6 manual=(+0.00,-0.00) pending=(+0.005,+0.014)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=163.1 body=162.9 cam=163.1 manual=(+0.00,-0.00) pending=(-0.011,+0.008)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=160.4 body=160.6 cam=160.4 manual=(+0.00,-0.00) pending=(-0.017,-0.013)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=162.5 body=162.1 cam=162.5 manual=(+0.00,-0.00) pending=(-0.022,-0.008)m drag=(+0.000,+0.002)m input=00000000
+locomotion: state=2 head=157.3 body=157.4 cam=157.3 manual=(+0.00,-0.00) pending=(-0.007,-0.006)m drag=(+0.000,+0.000)m input=00000000
+dynbones: joints=15 shader=16 lock=16  frames=2700 dup=0% snaps=0  drive_peak=2.4 accel_raw=29972 drive_used=0  disp_peak=8.57  L=(-0.09,8.56,-0.38) R=(-0.09,8.56,-0.38)
+dynbones: engine drive -- jumps=1 lands=1  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=2 head=155.1 body=155.4 cam=155.1 manual=(+0.00,-0.00) pending=(+0.008,-0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=149.7 body=150.3 cam=149.7 manual=(+0.00,-0.00) pending=(+0.023,-0.001)m drag=(+0.000,+0.000)m input=00000000
+perf: 59.7 fps rendered
+stereo health @frame 3600 [Tomb Raider I]: world draws=59120  duplicated=30430  injected eye0=29560 eye1=29560  (100% of world draws got per-eye matrices)  offscreen-skipped=0  classify-mismatch=0  ortho3D=0  sky=3600  projoffset=0
+verify: uProjMatrix translation column ON GPU  eye0=(-30.0, 20.0, -113.1) prog=106 loc=45  eye1=(-30.0, 20.0, -113.1) prog=106 loc=45  separation=0.04
+halves: 22 of 25 sampled pixels differ (image shift indicator only -- not a depth measure)
+proj pointers: mProj[0](ortho)=00007FF7C6731320  mProj[1](persp)=00007FF7C6731360
+  proj=00007FF7C6731320  draws=7441     ortho/2D
+  proj=00007FF7C6731360  draws=130926   perspective/world
+cull: 1.0 rooms/frame from the engine + 0.0 added by the head frustum, 0.0 items rescued/frame
+locomotion: state=2 head=145.5 body=145.0 cam=145.5 manual=(+0.00,-0.00) pending=(+0.018,+0.011)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=171.8 body=172.0 cam=171.8 manual=(+0.00,-0.00) pending=(-0.001,+0.013)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(398.5,7391.8,-1830.7) elbow=(426.5,7477.8,-1792.1) wrist=(469.2,7443.2,-1874.3) lengths=98.4/98.9 wristScale=0.999/0.999/0.999 target=(462.8,7468.3,-1866.7) worldWrist=(75221.2,2495.2,7853.7)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(284.7,7391.4,-1852.8) elbow=(244.1,7474.2,-1828.0) wrist=(234.9,7438.6,-1922.0) lengths=95.5/100.9 wristScale=0.998/0.999/0.999 target=(322.6,7477.4,-1950.9) worldWrist=(74986.9,2490.6,7806.0)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-38.8,75.8,94.2) elbow=(-10.8,161.8,132.8) wrist=(31.9,127.2,50.5) lengths=98.4/98.9 wristScale=0.999/0.999/0.999 target=(-1.2,152.3,-9.7) worldWrist=(75221.2,2495.2,7853.7)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-152.6,75.4,72.0) elbow=(-193.2,158.2,96.8) wrist=(-202.4,122.6,2.9) lengths=95.5/100.9 wristScale=0.998/0.999/0.999 target=(-141.4,161.4,-93.9) worldWrist=(74986.9,2490.6,7806.0)
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=897/897 joints=897/897 corrected=897/897 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=3588 failed=0 unarmed-enabled=1
+locomotion: state=2 head=164.9 body=165.0 cam=164.9 manual=(+0.00,-0.00) pending=(-0.007,-0.004)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=163.2 base=102.6 offset=(21.8,63.7) pending=(-0.010,-0.009)m
+locomotion: state=2 head=154.1 body=154.4 cam=154.1 manual=(+0.00,-0.00) pending=(-0.013,-0.022)m drag=(-0.002,+0.002)m input=00000000
+locomotion: state=2 head=154.1 body=153.3 cam=154.1 manual=(+0.00,-0.00) pending=(-0.014,+0.010)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=160.7 body=160.8 cam=160.7 manual=(+0.00,-0.00) pending=(+0.011,+0.017)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=160.7 body=160.6 cam=160.7 manual=(+0.00,-0.00) pending=(+0.020,+0.005)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=161.0 body=161.2 cam=161.0 manual=(+0.00,-0.00) pending=(+0.021,-0.005)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=154.1 body=154.3 cam=154.1 manual=(+0.00,-0.00) pending=(+0.023,-0.003)m drag=(+0.000,-0.002)m input=00000000
+locomotion: state=2 head=155.1 body=155.0 cam=155.1 manual=(+0.00,-0.00) pending=(+0.017,+0.005)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=167.7 body=167.9 cam=167.7 manual=(+0.00,-0.00) pending=(-0.012,-0.015)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=162.9 body=162.4 cam=162.9 manual=(+0.00,-0.00) pending=(-0.003,+0.002)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(397.5,7390.9,-1837.3) elbow=(422.8,7475.6,-1794.2) wrist=(469.8,7444.4,-1875.4) lengths=98.3/98.9 wristScale=0.999/0.999/0.999 target=(527.3,7492.2,-1966.1) worldWrist=(75221.8,2496.4,7852.6)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(285.0,7390.5,-1865.4) elbow=(242.5,7472.0,-1839.6) wrist=(238.3,7439.8,-1935.2) lengths=95.5/100.9 wristScale=0.998/0.999/0.999 target=(455.1,7489.6,-2027.4) worldWrist=(74990.3,2491.8,7792.8)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-43.1,74.9,94.0) elbow=(-17.9,159.6,137.0) wrist=(29.2,128.4,55.8) lengths=98.4/98.9 wristScale=0.999/0.999/0.999 target=(63.3,176.2,-100.1) worldWrist=(75221.8,2496.4,7852.6)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-155.6,74.5,65.8) elbow=(-198.2,156.0,91.6) wrist=(-202.3,123.8,-3.9) lengths=95.5/100.9 wristScale=0.998/0.999/0.999 target=(-8.9,173.6,-161.4) worldWrist=(74990.3,2491.8,7792.8)
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=897/897 joints=897/897 corrected=897/897 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=3588 failed=0 unarmed-enabled=1
+locomotion: state=2 head=148.9 body=149.8 cam=148.8 manual=(+0.00,-0.00) pending=(+0.000,+0.002)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=144.9 base=102.6 offset=(8.0,46.5) pending=(-0.002,0.000)m
+locomotion: state=2 head=155.7 body=153.5 cam=155.7 manual=(+0.00,-0.00) pending=(-0.018,+0.014)m drag=(+0.002,+0.002)m input=00000000
+locomotion: state=2 head=163.2 body=163.9 cam=163.2 manual=(+0.00,-0.00) pending=(-0.009,+0.006)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=153.6 body=153.8 cam=153.6 manual=(+0.00,-0.00) pending=(+0.006,-0.009)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=148.3 body=146.9 cam=148.3 manual=(+0.00,-0.00) pending=(+0.013,+0.002)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=169.3 body=169.4 cam=169.3 manual=(+0.00,-0.00) pending=(+0.012,-0.001)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=148.5 body=149.2 cam=148.5 manual=(+0.00,-0.00) pending=(+0.019,-0.010)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=143.1 body=144.0 cam=143.1 manual=(+0.00,-0.00) pending=(+0.025,-0.008)m drag=(-0.002,-0.005)m input=00000000
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+shadow-sizing: pass=light hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(380.4,7392.3,-1821.0) elbow=(421.5,7481.6,-1817.0) wrist=(475.0,7402.6,-1843.2) lengths=98.4/98.9 wristScale=1.000/0.999/0.999 target=(527.0,7491.9,-1965.8) worldWrist=(75227.0,2454.6,7884.8)
+shadow-sizing: pass=light hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(289.2,7391.9,-1892.5) elbow=(274.1,7478.4,-1930.2) wrist=(286.1,7397.7,-1989.6) lengths=95.5/100.9 wristScale=1.000/0.999/0.999 target=(454.5,7488.9,-2027.9) worldWrist=(75038.1,2449.7,7738.4)
+shadow-sizing: upload shader=10 program=31 shadowUniform=115 paletteUniform=17 visibleUniform=120 visible=00007FFF wrists=00002400
+shadow-sizing: pass=eye hand=0 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-77.2,76.3,97.5) elbow=(-36.2,165.6,101.5) wrist=(17.4,86.6,75.3) lengths=98.4/98.9 wristScale=1.000/0.999/0.999 target=(63.0,175.9,-90.8) worldWrist=(75227.0,2454.6,7884.8)
+shadow-sizing: pass=eye hand=1 bones=0 geom=00007FFBD25F0DF8 units=423.0 shoulder=(-168.5,75.9,26.0) elbow=(-183.6,162.4,-11.7) wrist=(-171.5,81.7,-71.1) lengths=95.5/100.9 wristScale=1.000/0.999/0.999 target=(-9.5,172.9,-152.9) worldWrist=(75038.1,2449.7,7738.4)
+firstperson: motion state enabled=1 blocked=none status=4 gun=1 last=0 HD=1 controllers=1/1 foreground=1 LT=0 RT=0
+firstperson: tracked hands mask=00003000 passes=888/888 joints=888/888 corrected=888/888 reason=corrected/corrected
+firstperson: trigger state pending=0/0 press=0/0 held=0/0
+firstperson: arm IK palettes solved=3552 failed=0 unarmed-enabled=1
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+firstperson: resolved body fit yaw=142.1 base=102.6 offset=(6.4,43.5) pending=(0.019,0.007)m
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+dynbones: joints=15 shader=16 lock=16  frames=3600 dup=0% snaps=0  drive_peak=6.7 accel_raw=533842 drive_used=0  disp_peak=8.57  L=(-0.09,8.55,-0.55) R=(-0.09,8.55,-0.55)
+dynbones: engine drive -- jumps=1 lands=1  last landing fallspeed=100 (grounded now)
+dynbones: this frame ran 4 DrawLaraHD scope(s), joints [0,15,0,0]
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+locomotion: state=2 head=142.1 body=142.1 cam=142.1 manual=(+0.00,-0.00) pending=(+0.019,+0.007)m drag=(+0.000,+0.000)m input=00000000
+hook[DrawLaraHD]: removed
+hook[shader_init]: removed
+hook[effect texture update]: removed
+hook[effect texture create]: removed
+hook[effect upscale load]: removed
+hook[effect texture load]: removed
+pad: _XInputGetState restored
+hook[VRWallSwitch]: removed
+hook[VRSwitchMovePosition]: removed
+hook[VRSwitchTestPosition]: removed
+hook[LaraAboveWater]: removed
+hook[LaraGun]: removed
+hook[AnimateLara]: removed
+hook[MovableBlockCollision]: removed
+hook[CalculateLaraMatrices]: removed
+hook[DrawActionIndicators]: removed
+hook[DrawHair]: removed
+hook[DrawCreatureHD]: removed
+hook[FirstPersonBodyDraw]: removed
+hook[GetJoints]: removed
+hook[GetTargetOnLOS]: removed
+hook[AnimatePistols]: removed
+hook[FireWeapon]: removed
+hook[DrawGunFlash]: removed
+hook[shotgun effect wrist position]: removed
+hook[DrawToShadow]: removed
+hook[phd_GenerateW2V]: removed
+hook[DrawSkyHD]: removed
+hook[S_GetObjectBounds]: removed
+hook[PrintRoomsList]: removed
+hook[ogl_setRenderTarget]: removed
+hook[fmvShow]: removed
+hook[ogl_present]: removed
+hook[ogl_draw]: removed
+hook[validate_draw]: removed
+hook[vid_setPass]: removed

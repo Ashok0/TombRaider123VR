@@ -367,6 +367,36 @@ Monkey-bar and shadow audits accept additional build directories so this update
 is covered alongside the older binaries. The recent camera, controls, arm IK,
 monkey-bar, shadow and jiggle fixes are retained; no INI changes are required.
 
+### Tracked first-person arm and pistol shadows (2026-10-13)
+
+In TR1–3 HD first person, Lara's shadow arms and hands now follow the tracked
+controllers, including drawn pistols and holstered hands. The shadow pass uses
+the same calibrated wrist targets and arm solve as the visible body, applied
+directly to the native shadow bone palette. Hand motion and wrist rotation
+therefore change the cast silhouette.
+
+The follow-up fixes shrunken arm and pistol shadows: native attachment masking
+was zeroing bones used by blended vertices, while the shadow path lacked the
+visible hands' rigid-wrist repair. Shadow draws now retain the complete solved
+palette, apply the native mesh mask without shrinking vertices, and skin hand
+and pistol vertices rigidly with their tracked wrist. This preserves mesh size
+without a shadow scale multiplier.
+
+The shadow retains its complete native head, torso, legs, light camera and world
+placement. Eye-only body offsets and visibility masks are excluded. Third person,
+classic graphics, native switch/climbing poses and unavailable tracking retain
+native shadows. Shadow draws still cannot advance or feed jiggle physics.
+Existing motion-gun and unarmed-IK settings apply; no INI changes are needed.
+
+Validation covers both hands, all three games, armed/unarmed poses, legacy and
+remapped HD palettes, duplicate wrist helpers, different shadow origins,
+repeated draws, tracking loss and native fallbacks. The controller-shadow
+regression reproduced the old static wrists before the fix. The sizing GPU
+regression fails on the preceding build and verifies masked seams, full forearm
+size, opposing forearm/wrist rotations and cleanup between draws. The follow-up
+passes **786,270** movement/control/camera checks and **1,697** GPU/physics checks;
+Release/x64 builds successfully. In-headset sizing confirmation remains pending.
+
 ### Monkey-bar controls and shadow placement (2026-10-09)
 
 Ported the corresponding TR4/5 fixes:
@@ -387,7 +417,8 @@ Ported the corresponding TR4/5 fixes:
   before the next shadow build and when returning to third person, including
   temporary switch/menu camera handoffs. Repeated updates cannot accumulate drift.
 - **Jiggle and visibility isolation:** light-camera draws cannot feed the jiggle
-  solver or receive controller IK/body fitting. Shader cleanup still runs to clear
+  solver or receive eye-only body fitting. The October 13 update adds tracked arm
+  IK directly to shadow palettes. Shader cleanup still runs to clear
   arm/body clipping and deformation uniforms left by an eye-view draw using the
   same program. Normal first-person jiggle and controller arms remain enabled.
 
@@ -434,7 +465,8 @@ Ported the corresponding logic from `C:\dev\TombRaider456VR` to TR1, TR2 and TR3
   existing body restoration after mounting crates, including stale native mesh
   masks. Free jumps no longer switch between native unarmed arms and controller
   arms. Jiggle physics samples the complete animation palette, never IK; shadow
-  rendering also bypasses first-person body fitting and IK.
+  rendering bypasses first-person body fitting and now applies its own tracked
+  arm IK without changing the simulation skeleton.
 - Immediate gait handoffs now include returning **forward** from sideways or
   backward movement. Side/back entry and faster backpedal startup were already
   present. Native floor/ceiling checks still choose whether entry is allowed;

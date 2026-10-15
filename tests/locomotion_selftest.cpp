@@ -338,6 +338,7 @@ void TestResponsiveEntry() {
 #include "arm_visibility_selftest.h"
 #include "firstperson_ik_selftest.h"
 #include "ik_collection_parity_selftest.h"
+#include "tracked_shadow_selftest.h"
 #include "monkey_shadow_selftest.h"
 #include "block_camera_selftest.h"
 
@@ -445,6 +446,7 @@ int main() {
     TestFirstPersonControlMode();
     TestMonkeyControls();
     TestShadowPlacement();
+    TestTrackedShadows();
     TestPhysicalSwitch();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;

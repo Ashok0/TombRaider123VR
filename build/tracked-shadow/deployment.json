@@ -1,0 +1,15 @@
+{
+    "task":  "TR1-3 tracked first-person arm and weapon shadows",
+    "deployedAt":  "2026-10-13T19:13:35.6508842-04:00",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\tracked-shadow\\before-20261013-191334",
+    "previousDllSHA256":  "F1C40A60D8B97D07406FF6902F7CC8983BEE12BCCB726DA2F36A98604ED0FCEB",
+    "deployedDllSHA256":  "9AFB4C184DCAC39474B39DBB34A1BB9D38DC8A3CC13C7E9BB8D1FBA01017A4A7",
+    "iniSHA256":  "55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842",
+    "iniUnchanged":  true,
+    "hookChecks":  786102,
+    "shadowBinaryImages":  15,
+    "physicsChecks":  1692,
+    "regressionReproducedBeforeFix":  true,
+    "headsetVerification":  "pending"
+}

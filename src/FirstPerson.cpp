@@ -343,6 +343,9 @@ int g_renderArm = -1;
 int g_renderWrist = -1;
 float g_handSkinPalette[32*12]{};
 bool g_bodySkinScope=false, g_bodySkinReady=false;
+bool g_shadowSkinScope=false,g_shadowSkinReady=false;
+uint32_t g_shadowMeshBits=0,g_shadowSkinMask=0,g_shadowWristMask=0;
+float g_shadowSkinPalette[32*12]{};
 unsigned g_armIKSolved=0, g_armIKFailed=0;
 uint32_t g_bodySkinMask=0;
 float g_bodySkinPalette[32*12]{}; // Complete native animation for physics.
@@ -1026,7 +1029,11 @@ public:
 
 void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
     if (DrawingNativeShadow()) {
+        g_shadowSkinScope=true;g_shadowSkinReady=false;
+        g_shadowMeshBits=useMeshBits && item ?
+            *reinterpret_cast<const uint32_t*>(static_cast<const uint8_t*>(item)+off::item_mesh_bits) : UINT32_MAX;
         g_hDrawCreatureHD.Original<Fn_DrawCreatureHD>()(item,useMeshBits);
+        g_shadowSkinScope=g_shadowSkinReady=false;
         return;
     }
     const bool lara=g_active && g_boundDll && g_boundBase &&
@@ -1420,11 +1427,11 @@ bool BuildControllerWrist(int hand, motiongun::Frame& out, motiongun::Basis& con
     return motiongun::Inverse(out,inverse);
 }
 
-bool UnarmedIKReady() {
+bool UnarmedIKReadyForPass(bool shadow) {
     if (!Cfg().firstPersonUnarmedIK || !Cfg().firstPersonMotionGuns ||
         !g_active || !g_scenePoseValid || !g_haveHeading || !Gate() ||
         GameDllBound()!=g_boundDll || GameDllBase()!=g_boundBase ||
-        DrawingNativeShadow() || InteractionAligning() ||
+        (!shadow && DrawingNativeShadow()) || InteractionAligning() ||
         !Cfg().positionalTracking || !Cfg().firstPersonHeadTranslation ||
         !(AppFlag(drva::app_off::cfg_flags)&1)) return false;
     const auto* item=*Ptr<uint8_t*>(g_boundDll->laraItem);
@@ -1439,6 +1446,8 @@ bool UnarmedIKReady() {
     motiongun::Frame wrist{}; motiongun::Basis controller{};
     return BuildControllerWrist(0,wrist,controller) && BuildControllerWrist(1,wrist,controller);
 }
+
+bool UnarmedIKReady() { return UnarmedIKReadyForPass(false); }
 
 bool BuildGunPose(int hand, GunPose& out) {
     if (hand < 0 || hand > 1 || !MotionReady()) return false;
@@ -1555,9 +1564,9 @@ bool ReadIKJoint(const uint8_t* obj,const float* joints,int count,int bones,
     return motiongun::Inverse(frame,inverse);
 }
 
-bool ApplyArmIK(uint8_t* item, float* joints, int count) {
+bool ApplyArmIK(uint8_t* item, float* joints, int count, bool shadow=false) {
     const bool armed=MotionReady();
-    if ((!armed && !UnarmedIKReady()) || count<15 || count>32) return false;
+    if ((!armed && !UnarmedIKReadyForPass(shadow)) || count<15 || count>32) return false;
     const int object=*reinterpret_cast<const int16_t*>(item+off::item_object_number);
     if (object<0) return false;
     const auto* obj=Ptr<uint8_t>(g_boundDll->objects)+object*off::object_stride;
@@ -1604,7 +1613,7 @@ bool ApplyArmIK(uint8_t* item, float* joints, int count) {
             std::fabs(nativeWrist.y-body.y_pos)>4096 ||
             std::fabs(nativeWrist.z-body.z_pos)>4096) return false;
         target.origin=motiongun::Add(native[2].origin,motiongun::Sub(target.origin,nativeWrist));
-        if (BodyVisualOffsetApplies(item)) {
+        if (!shadow && BodyVisualOffsetApplies(item)) {
             const auto offset=BodyRenderOffset();
             target.origin=motiongun::Sub(target.origin,{offset.x,0,offset.z});
         }
@@ -1618,6 +1627,23 @@ bool ApplyArmIK(uint8_t* item, float* joints, int count) {
         for(int segment=1;segment<3;++segment)
             if(!ReadIKBind(obj,count,bones,mapping,poses,first+segment,bind[segment])) return false;
         if (!firstperson::SolveTrackedArm(native,target,pole,bind,correction+hand*3)) return false;
+        if(Cfg().firstPersonDriftLog) {
+            static uint64_t nextSizeLog[2][2]{};
+            const auto now=GetTickCount64();
+            if(now>=nextSizeLog[shadow ? 1 : 0][hand]) {
+                nextSizeLog[shadow ? 1 : 0][hand]=now+5000;
+                const auto length=[](motiongun::Vec p) { return std::sqrt(motiongun::Dot(p,p)); };
+                const auto& b=native[2].basis.r;
+                LogF("shadow-sizing: pass=%s hand=%d bones=%d geom=%p units=%.1f shoulder=(%.1f,%.1f,%.1f) elbow=(%.1f,%.1f,%.1f) wrist=(%.1f,%.1f,%.1f) lengths=%.1f/%.1f wristScale=%.3f/%.3f/%.3f target=(%.1f,%.1f,%.1f) worldWrist=(%.1f,%.1f,%.1f)",
+                    shadow ? "light" : "eye",hand,bones,geom,LiveWorldUnitsPerMetre(),
+                    native[0].origin.x,native[0].origin.y,native[0].origin.z,
+                    native[1].origin.x,native[1].origin.y,native[1].origin.z,
+                    native[2].origin.x,native[2].origin.y,native[2].origin.z,
+                    length(motiongun::Sub(native[1].origin,native[0].origin)),length(motiongun::Sub(native[2].origin,native[1].origin)),
+                    length({b[0][0],b[1][0],b[2][0]}),length({b[0][1],b[1][1],b[2][1]}),length({b[0][2],b[1][2],b[2][2]}),
+                    target.origin.x,target.origin.y,target.origin.z,nativeWrist.x,nativeWrist.y,nativeWrist.z);
+            }
+        }
         solved[hand]=true;
     }
     // Commit only after both arms solve. Duplicate HD helper bones mapped to
@@ -1630,6 +1656,34 @@ bool ApplyArmIK(uint8_t* item, float* joints, int count) {
             motiongun::ReadRows(joints+i*12)),joints+i*12);
     }
     return solved[0] || solved[1];
+}
+
+void ApplyTrackedShadowArms(uint8_t* item) {
+    if (!g_active || !g_scenePoseValid || !g_haveHeading || !Gate() ||
+        GameDllBound()!=g_boundDll || GameDllBase()!=g_boundBase ||
+        !g_boundDll->joints || !g_boundDll->objects || !item || item!=g_headingItem ||
+        item!=*Ptr<uint8_t*>(g_boundDll->laraItem) || InteractionAligning()) return;
+    const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    if (IsRollState(item) || IsLadder(item) || locomotion::IsLedgeArmsOnlyState(state)) return;
+    const int object=*reinterpret_cast<const int16_t*>(item+off::item_object_number);
+    if (object<0) return;
+    const auto* geom=Ptr<uint8_t>(g_boundDll->objects)+object*off::object_stride+off::object_geom;
+    const int bones=*reinterpret_cast<const int32_t*>(geom+28);
+    const int count=bones>0 ? bones : 15;
+    // DrawCreatureHD zeroes masked bones AFTER GetJoints. Preserve the complete
+    // solved palette for mixed-weight attachment vertices; zero matrices shrink
+    // their arms/guns. The shader trims visibility without deforming the seam.
+    if(!ApplyArmIK(item,Ptr<float>(g_boundDll->joints),count,true) || !g_shadowSkinScope) return;
+    const auto* mapping=bones>0 ? *reinterpret_cast<const int32_t* const*>(geom+48) : nullptr;
+    g_shadowSkinMask=firstperson::SkinJointMask(g_shadowMeshBits,mapping,count);
+    g_shadowWristMask=0;
+    for(int i=0;i<count;++i) {
+        const int joint=mapping ? mapping[i] : i;
+        if(joint==10 || joint==13) g_shadowWristMask|=1u<<i;
+    }
+    std::memset(g_shadowSkinPalette,0,sizeof(g_shadowSkinPalette));
+    std::memcpy(g_shadowSkinPalette,Ptr<float>(g_boundDll->joints),count*12*sizeof(float));
+    g_shadowSkinReady=true;
 }
 
 // Ladder eyes use the short interaction anchor to stay outside the wall.
@@ -1691,8 +1745,12 @@ bool ApplyLadderTorsoClearance(uint8_t* item,float* joints,int count) {
 void __cdecl Detour_GetJoints(uint8_t* item) {
     g_renderWrist=-1;
     g_bodySkinReady=false;
+    g_shadowSkinReady=false;
     g_hGetJoints.Original<Fn_GetJoints>()(item);
-    if (DrawingNativeShadow()) return;
+    if (DrawingNativeShadow()) {
+        ApplyTrackedShadowArms(item);
+        return;
+    }
     if (g_renderArm>=0 && g_renderArm<2) ++g_motionJointCalls[g_renderArm];
     if (g_renderArm<0) {
         // Fit only Lara's ordinary HD body/attachments. Tracked gun hands
@@ -3577,6 +3635,10 @@ void FirstPersonShutdown() {
 
 bool FirstPersonActive() { return g_active; }
 bool FirstPersonShadowPass() { return g_shadowDepthScope; }
+const float* FirstPersonShadowSkin(uint32_t& visibleJoints,uint32_t& wristJoints) {
+    visibleJoints=g_shadowSkinMask;wristJoints=g_shadowWristMask;
+    return g_shadowSkinScope && g_shadowSkinReady && DrawingNativeShadow() ? g_shadowSkinPalette : nullptr;
+}
 const float* FirstPersonNativeBodySkin() {
     return g_bodySkinScope && g_bodySkinReady && g_renderArm<0 && !DrawingNativeShadow()
         ? g_bodySkinPalette : nullptr;

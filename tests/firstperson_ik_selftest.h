@@ -324,8 +324,8 @@ void TestFirstPersonParity() {
         }
         IKSetup(game);*Ptr<int32_t>(dll.renderPass)=4;
         g_bodyVisualOffset={100,200};Detour_GetJoints(item);
-        Check(!std::memcmp(Ptr<float>(dll.joints),ikNative,sizeof(ikNative)) && !FirstPersonNativeBodySkin(),
-              "shadow skeleton bypasses both body fit and controller IK");
+        Check(!std::memcmp(Ptr<float>(dll.joints),ikNative,8*12*sizeof(float)) && !FirstPersonNativeBodySkin(),
+              "shadow torso bypasses eye body fit and cannot feed jiggle physics");
         // A degenerate second arm cannot commit a partially solved first arm.
         IKSetup(game);std::memcpy(ikNative+9*12,ikNative+8*12,12*sizeof(float));
         Detour_GetJoints(item);uint32_t mask=0;

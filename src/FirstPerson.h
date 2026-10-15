@@ -47,6 +47,8 @@ const float* FirstPersonHandSkin(int& wristJoint);
 // Complete animation palette for jiggle sampling, before arm IK/visibility masking.
 const float* FirstPersonNativeBodySkin();
 const float* FirstPersonBodySkin(uint32_t& visibleJoints);
+// Complete tracked light-pass palette before native attachment masking.
+const float* FirstPersonShadowSkin(uint32_t& visibleJoints,uint32_t& wristJoints);
 bool FirstPersonWristCentre(float out[3]);
 // The last rendered scene eye, before stereo head translation. False when the
 // first-person gameplay camera is unavailable.

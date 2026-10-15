@@ -31,6 +31,10 @@ const float* FirstPersonNativeBodySkin() { return testNativeBodyPalette; }
 const float* testBodyPalette=nullptr;
 uint32_t testVisibleJoints=0;
 const float* FirstPersonBodySkin(uint32_t& mask) { mask=testVisibleJoints; return testBodyPalette; }
+const float* testShadowPalette=nullptr;
+const float* FirstPersonShadowSkin(uint32_t& mask,uint32_t& wrists) {
+    mask=testVisibleJoints;wrists=(1u<<13)|(1u<<10);return testShadowPalette;
+}
 bool FirstPersonWristCentre(float out[3]) {
     out[0]=out[1]=out[2]=0; return testHandPalette!=nullptr;
 }
@@ -413,6 +417,28 @@ void main() {
     testShadowPass=true;gl::Uniform4fv(jointsLoc,96,fullPalette);
     BoneSkinAfterValidate(false);
     Require(pixelWhite(),"shadow draw clears a preceding tracked-wrist clipping uniform");
+    // Shadow attachment draws also zero masked bones. Restore the complete
+    // skin palette, and keep gun vertices rigid even when forearm/wrist differ.
+    testShadowPalette=fullPalette;testVisibleJoints=1u<<10;
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"tracked shadow retains full gun size across a masked forearm seam");
+    fullPalette[9*12]=fullPalette[9*12+5]=-1;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"opposed forearm/wrist rotations cannot shrink the pistol shadow");
+    fullPalette[9*12]=fullPalette[9*12+5]=1;
+    testVisibleJoints=1u<<9;
+    gl::Uniform4fv(weightsLoc,1,belowSeam);
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"forearm shadow keeps full mixed-bone width and length");
+    gl::Uniform4fv(weightsLoc,1,forearmWeights);
+    testVisibleJoints=1u<<10;BoneSkinAfterValidate(false);
+    Require(!pixelWhite(),"shadow repair respects the attachment's native mesh mask");
+    testShadowPalette=nullptr;gl::Uniform4fv(jointsLoc,96,fullPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"following native shadow clears tracked shadow visibility");
     testShadowPass=false;testHandPalette=nullptr;testHandJoint=-1;
     // Drop, walk, rehang, and exit first person on the same shader program.
     for (int transition=0;transition<8;++transition) {

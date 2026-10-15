@@ -268,6 +268,8 @@ struct ProgramState {
     bool handLogged = false;
     GLint locVisibleBody = -2;
     bool bodyMaskLive = false;
+    GLint locShadow = -2;
+    bool shadowLive = false;
 };
 ProgramState g_prog[kMaxProgram];
 
@@ -978,13 +980,15 @@ void BoneSkinResetRegion() {
 
 void BoneSkinAfterValidate(bool jointApplied) {
     // This runs after native validate_draw uploads its masked palette and
-    // before either eye draws. The hand shader uses the corrected wrist
-    // rigidly for position/normal and hides the original forearm-side weights.
+    // before drawing. Eye hands use a rigid wrist; tracked shadows retain the
+    // complete arm palette and rigid hand vertices without zero-bone shrinkage.
     int handJoint=-1;
     const bool shadow=FirstPersonShadowPass();
     const float* handPalette=shadow ? nullptr : FirstPersonHandSkin(handJoint);
     uint32_t visibleJoints=0;
-    const float* bodyPalette=shadow ? nullptr : FirstPersonBodySkin(visibleJoints);
+    uint32_t wristJoints=0;
+    const float* shadowPalette=shadow ? FirstPersonShadowSkin(visibleJoints,wristJoints) : nullptr;
+    const float* bodyPalette=shadow ? shadowPalette : FirstPersonBodySkin(visibleJoints);
     const auto& state=VidState();
     if (gl::LoadedSkinApi() && state.shader>=0 && state.shader<kShaderCount) {
         const GLuint program=Shaders()[state.shader].id;
@@ -994,6 +998,24 @@ void BoneSkinAfterValidate(bool jointApplied) {
                 p.locHand=gl::GetUniformLocation(program,"uTrackedHand");
                 p.locJoints=gl::GetUniformLocation(program,"uJoints[0]");
                 p.locVisibleBody=gl::GetUniformLocation(program,"uVisibleBody");
+                p.locShadow=gl::GetUniformLocation(program,"uTrackedShadow");
+            }
+            if(p.locShadow>=0) {
+                const bool active=shadowPalette && p.locJoints>=0 && p.locVisibleBody>=0;
+                if(active || p.shadowLive) {
+                    const float wrists[4]={float(wristJoints&0xffffu),float(wristJoints>>16),0,active ? 1.f : 0.f};
+                    gl::Uniform4fv(p.locShadow,1,wrists);
+                    p.shadowLive=active;
+                }
+            }
+            if(shadowPalette && Cfg().firstPersonDriftLog) {
+                static uint64_t nextShadowSizeLog=0;
+                const auto now=GetTickCount64();
+                if(now>=nextShadowSizeLog) {
+                    nextShadowSizeLog=now+5000;
+                    LogF("shadow-sizing: upload shader=%d program=%u shadowUniform=%d paletteUniform=%d visibleUniform=%d visible=%08X wrists=%08X",
+                        state.shader,program,p.locShadow,p.locJoints,p.locVisibleBody,visibleJoints,wristJoints);
+                }
             }
             if (p.locHand>=0) {
                 const bool active=handPalette && p.locJoints>=0;
