@@ -168,7 +168,7 @@ LAYOUT = ['lara', 'camera', 'room', 'number_rooms',
           'AnimateShotgun', 'DrawGunFlash', 'next_item_active', 'GetSpheres',
           'find_target_point', 'LOS', 'AnimatePistols', 'GetJointAbsPosition',
           'shotgun_smoke_origin_return', 'shotgun_smoke_direction_return',
-          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision', 'gRenderPass', 'gLaraHand', 'DrawToShadow', 'DrawLara']
+          'shotgun_spark_origin_return', 'shotgun_spark_direction_return', 'anims', 'MovableBlockCollision', 'gRenderPass', 'gLaraHand', 'DrawToShadow', 'DrawLara', 'GetHeight']
 
 # Not a PDB symbol: the return address FirstPerson.cpp gates on. Checked by
 # disassembling the five bytes before it, which must be the E8 rel32 call to

@@ -183,6 +183,32 @@ shorten an active ledge impact. This is an observer of native movement: input,
 animation, collision, camera, IK and jiggle physics are unchanged. Automated
 catch and pulse tests pass; headset confirmation of the feel remains pending.
 
+### Held automatic running jump (2026-10-21)
+
+Ported TR4/5's automatic jump fix to TR1, TR2 and TR3. With Modern Controls,
+hold **A / Jump while running forward** to wait for a ledge. The mod checks
+native floor heights along the approach and releases Jump early enough for
+Lara's seven-frame grounded run-up, targeting the last supported running tick
+before takeoff. Both first and third person are covered; first person already
+forces Modern Controls. Tank Controls retain their native jump handling.
+
+A quick release within 250 ms requests a manual jump; releasing a longer hold
+cancels the queued automatic jump. Stopping, walking, changing direction,
+entering an interaction or leaving valid grounded gameplay also cancels it.
+Holding through landing does not queue another automatic jump. Native animation
+and collision still control clearance and takeoff; steering or collisions during
+the committed run-up can change the result, so this is not a guarantee of a
+pixel-perfect launch under every condition.
+
+All **140 installed gameplay animation banks** verify the run dispatch and
+seven-frame, 47-unit-per-frame run-up. The **802,051** production-hook regression
+checks include sustained holds, both views, eight approach headings, narrow
+gaps, steps, walls, missing geometry, native rejection, taps and cancellation.
+Release/x64 builds successfully and all **3,602** address/layout checks pass.
+The DLL is deployed with the previous DLL backed up and the INI unchanged:
+[deployment record](build/auto-jump/deployment.json). In-headset ledge timing
+remains to be verified.
+
 ### Late stopping jump correction in both views (2026-10-09)
 
 Jump priority now works in **first and third person**. The first implementation
@@ -1996,10 +2022,11 @@ needs in-headset verification. Walking into a wall has been confirmed without
 clipping; the latest jump, wall-climb and pull-up changes have not yet been
 confirmed there.
 
-The latest `tools/verify_addresses.py` run passed all **3,537** PDB, earlier retail,
+The latest `tools/verify_addresses.py` run passed all **3,602** PDB, earlier retail,
 Gold, October retail and EGS address, layout and hook-window checks, including the new
 `MovableBlockCollision` observer, native hand/shadow globals and `DrawToShadow`
-hook in all three games, plus TR3's outer `DrawLara` crouch visibility hook. Existing weapon, effect,
+hook in all three games, native `GetHeight` for automatic jumps, plus TR3's outer
+`DrawLara` crouch visibility hook. Existing weapon, effect,
 shotgun joint-query and animation-table addresses remain covered.
 `tools/verify_locomotion.py` checks the PDB and retail input, simulation,
 animation, collision and room-update addresses and hook prologues.

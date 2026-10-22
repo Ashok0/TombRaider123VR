@@ -10,7 +10,7 @@ def verify(path):
     if path.stem.upper().startswith("CUT"):
         return False
     data, cursor, tables = path.read_bytes(), 0, {}
-    for name, size in (("anims", 32), ("changes", 6), ("ranges", 8)):
+    for name, size in (("anims", 32), ("changes", 6), ("ranges", 8), ("commands", 2)):
         count, = struct.unpack_from("<I", data, cursor)
         cursor += 4
         end = cursor + count * size
@@ -64,6 +64,15 @@ def verify(path):
         for dest, at in matches:
             state, base, end, *_ = anim(dest)
             assert state == 3 and base <= at <= end, (path, dest, "native running jump")
+            assert dest in (16,18) and at==base, (path,"running jump enters full run-up")
+    for index in (0,16,18):
+        speed,acceleration=struct.unpack_from('<2i',tables['anims'],index*32+8)
+        assert (speed,acceleration)==(47<<16,0), (path,index,'run-up speed')
+        if index:
+            _,first,last,_,_,_,_,count,start=anim(index)
+            assert last-first+1==7, (path,index,'seven grounded run-up frames')
+            commands=struct.unpack_from('<3h',tables['commands'],start*2)
+            assert count>=1 and commands==(2,-100,75), (path,index,'native takeoff command')
     for index in (6, 8, 10):
         assert anim(index)[0] == 1 and not list(transitions(index, 3)), (path, index, "run transition blocks jump")
     return True
@@ -75,4 +84,4 @@ if __name__ == "__main__":
     for game in ("1", "2", "3"):
         count = sum(verify(p) for p in (Path(sys.argv[1]) / game).rglob("*.PDP"))
         assert count, (game, "no gameplay tables")
-        print(f"TR{game}: {count} animation banks verify immediate compression and unchanged running jumps")
+        print(f"TR{game}: {count} animation banks verify jump dispatch, seven-frame 47-unit run-up and native takeoff")

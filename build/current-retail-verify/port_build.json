@@ -620,6 +620,11 @@
     "old": 239616,
     "new": 240224,
     "how": "fuzzy 0.98"
+   },
+   "GetHeight": {
+    "old": 39952,
+    "new": 39984,
+    "how": "unique exact normalized instruction match"
    }
   }
  },
@@ -1079,6 +1084,11 @@
     "old": 425472,
     "new": 423728,
     "how": "function match"
+   },
+   "GetHeight": {
+    "old": 58016,
+    "new": 58000,
+    "how": "unique exact normalized instruction match"
    }
   }
  },
@@ -1540,6 +1550,11 @@
     "old": 629296,
     "new": 635248,
     "how": "function match"
+   },
+   "GetHeight": {
+    "old": 142576,
+    "new": 142832,
+    "how": "unique exact normalized instruction match"
    }
   }
  }

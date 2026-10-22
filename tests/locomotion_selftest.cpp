@@ -344,6 +344,7 @@ void TestResponsiveEntry() {
 
 #include "ledge_pull_selftest.h"
 #include "jump_priority_selftest.h"
+#include "auto_jump_selftest.h"
 #include "ledge_catch_selftest.h"
 #include "crouch_selftest.h"
 
@@ -430,6 +431,7 @@ int main() {
     TestCrouchParity();
     TestLedgePullGesture();
     TestJumpPriority();
+    TestAutomaticJump();
     TestResponsiveEntry();
     TestGunControls();
     TestGunHaptics();

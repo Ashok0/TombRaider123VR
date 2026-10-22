@@ -560,6 +560,11 @@
     "old": 64720,
     "new": 65376,
     "how": "unique exact normalized instruction match"
+   },
+   "GetHeight": {
+    "old": 39952,
+    "new": 40496,
+    "how": "unique exact normalized instruction match"
    }
   }
  },
@@ -958,6 +963,11 @@
    "DrawLara": {
     "old": 96992,
     "new": 95776,
+    "how": "unique exact normalized instruction match"
+   },
+   "GetHeight": {
+    "old": 58016,
+    "new": 56624,
     "how": "unique exact normalized instruction match"
    }
   }
@@ -1359,6 +1369,11 @@
    "DrawLara": {
     "old": 175424,
     "new": 175888,
+    "how": "unique exact normalized instruction match"
+   },
+   "GetHeight": {
+    "old": 142576,
+    "new": 143024,
     "how": "unique exact normalized instruction match"
    }
   }

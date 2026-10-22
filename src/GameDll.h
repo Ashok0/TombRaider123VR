@@ -151,6 +151,7 @@ struct GameDllLayout {
     uint32_t laraHands; // GEOM_INFO[41], native bare/gloved rest and run variants.
     uint32_t drawToShadow; // void(int room); builds native shadow map before the scene.
     uint32_t drawLara; // outer renderer; body proximity gate before HD body/hand passes
+    uint32_t getHeight; // int32 GetHeight(FLOOR_INFO*,x,y,z); native slopes/portals for edge jump
 };
 
 // Resolve whichever of tomb1/2/3.dll is loaded. Cheap and idempotent; call once
