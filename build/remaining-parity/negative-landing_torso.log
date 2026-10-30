@@ -1,0 +1,5 @@
+locomotion_selftest.cpp
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: ordinary landing removes native torso squat before head/controller IK

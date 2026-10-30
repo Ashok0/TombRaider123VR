@@ -6,11 +6,17 @@
 #include <cstdlib>
 #include <openvr.h>
 #include "../src/StereoMath.h"
+#include "../src/BodyFollower.h"
 #define private public
 #include "../src/VRSystem.h"
 #undef private
 #include "../src/VRSystem.cpp"
 namespace tr {
+int CurrentGame() { return -1; }
+int32_t AppFlag(uint32_t) { return 0; }
+const GameDllLayout* GameDllBound() { return nullptr; }
+uint64_t GameDllBase() { return 0; }
+void WorldInventoryRecenter() {}
 Config testConfig;
 bool testFirstPerson=false;
 const Config& Cfg() { return testConfig; }
@@ -139,5 +145,68 @@ int main() {
     }
     vr::VREvent_t dashboard{};dashboard.eventType=vr::VREvent_DashboardActivated;
     vr.HandleRuntimeEvent(dashboard);Near(vr.m_runtimeRecenterPending,false,"dashboard alone does not recalibrate height");
+    testFirstPerson=false;
+    for(float yaw:{-2.8f,-1.f,0.f,.6f,2.8f}) for(float pitch:{-.8f,0.f,.8f}) {
+        const float c=std::cos(yaw),s=std::sin(yaw),cp=std::cos(pitch),sp=std::sin(pitch);
+        vr.m_trackingFromRuntime=Affine::Identity();
+        vr.m_rawHeadPose={{{c,s*sp,s*cp,1.2f},{0,cp,-sp,1.7f},{-s,c*sp,c*cp,.8f}}};
+        vr.m_headFromTracking=InvertRigid(FromHmd(vr.m_rawHeadPose));
+        vr.m_headingYawValid=vr.m_headingYawVertical=false;
+        Affine before[2];
+        for(int hand=0;hand<2;++hand) {
+            vr.m_controllerPoseValid[hand]=true;
+            vr.m_controllerPose[hand]={{{1,0,0,hand?.5f:-.5f},{0,1,0,1.2f},{0,0,1,.2f}}};
+            before[hand]=Mul(InvertRigid(FromHmd(vr.m_rawHeadPose)),FromHmd(vr.m_controllerPose[hand]));
+        }
+        vr.RecenterView();
+        Near(vr.HeadYawRadians(),0,"view toggle resets artificial tracking yaw");
+        Near(vr.HeadVerticalOffset(),0,"view toggle captures current standing height");
+        Near(vr.m_rawHeadPose.m[1][1],cp,"yaw reset retains actual headset pitch");
+        for(int hand=0;hand<2;++hand) {
+            const auto after=Mul(InvertRigid(FromHmd(vr.m_rawHeadPose)),FromHmd(vr.m_controllerPose[hand]));
+            for(int r=0;r<3;++r) for(int col=0;col<4;++col)
+                Near(after.r[r][col],before[hand].r[r][col],"view reset preserves head/controller relative pose");
+        }
+        vr::HmdMatrix34_t anchor{};vr.LevelHeadPose(anchor);
+        Near(anchor.m[1][1],1,"inventory anchor removes head pitch");
+        Near(anchor.m[1][3],1.7f,"inventory anchor stays at actual eye height");
+        const auto first=vr.m_trackingFromRuntime;vr.RecenterView();
+        for(int r=0;r<3;++r) for(int col=0;col<4;++col)
+            Near(vr.m_trackingFromRuntime.r[r][col],first.r[r][col],"repeated view reset is idempotent");
+    }
+    vr.m_poseValid=false;const auto prior=vr.m_trackingFromRuntime;vr.RecenterView();
+    Near(vr.m_viewRecenterPending,true,"untracked view toggle defers yaw reset");
+    for(int r=0;r<3;++r) for(int col=0;col<4;++col)
+        Near(vr.m_trackingFromRuntime.r[r][col],prior.r[r][col],"untracked toggle cannot mutate tracking frame");
+    // Move the eyes around a stationary neck. Head pitch must move the view,
+    // but cannot masquerade as pelvis lowering in the body solver.
+    vr.m_poseValid=true;testFirstPerson=true;
+    for(float neutralPitch:{-.25f,0.f,.25f}) {
+        const auto poseAt=[&](float pitch,float crouch) {
+            const float c=std::cos(pitch),s=std::sin(pitch);
+            const float eyeY=1.62f+.08f*c+.12f*s-crouch;
+            vr.m_rawHeadPose={{{1,0,0,0},{0,c,-s,eyeY},{0,s,c,0}}};
+            vr.m_headFromTracking=InvertRigid(FromHmd(vr.m_rawHeadPose));
+            vr.m_headPosRaw[0]=vr.m_headPosRaw[2]=0;vr.m_headPosRaw[1]=eyeY;
+            vr.RefreshHeadTranslation();
+        };
+        poseAt(neutralPitch,0);vr.RecenterHead();
+        Near(vr.FirstPersonPostureDrop(),0,"posture neutral captured on recenter");
+        for(float pitch:{-1.5f,-1.2f,-.8f,-.4f}) for(float crouch:{0.f,.15f,.3f}) {
+            poseAt(pitch,crouch);
+            Near(vr.FirstPersonPostureDrop(),crouch,"neck rotation is removed from body crouch estimate");
+            Near(firstperson::StandingPostureWeight(vr.FirstPersonPostureDrop()),
+                firstperson::StandingPostureWeight(crouch),"looking down retains upright leg constraint");
+            const auto view=vr.EyeView(Eye::Left);
+            const float height=vr.FirstPersonHeightDrop();
+            Near(height,vr.m_headNeutral[1]-vr.m_headPosRaw[1],"raw eye translation remains tracked");
+            Near(vr.FirstPersonVerticalOffset(),height,"body fitting still knows actual rendered eye height");
+            (void)vr.FirstPersonPostureDrop();
+            const auto after=vr.EyeView(Eye::Left);
+            for(int r=0;r<3;++r) for(int col=0;col<4;++col)
+                Near(after.r[r][col],view.r[r][col],"posture compensation does not alter the view transform");
+        }
+    }
+    vr.m_poseValid=false;Near(vr.FirstPersonPostureDrop(),0,"lost tracking cannot invent a crouch");
     std::printf("PASS: %d real tracking/eye/projection checks\n",checks);
 }

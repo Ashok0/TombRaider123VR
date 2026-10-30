@@ -8,6 +8,7 @@ C:\dev\TombRaider123VR\src\EnhancedEffects.cpp;C:\dev\TombRaider123VR\build\obj\
 C:\dev\TombRaider123VR\src\GL.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\GL.obj
 C:\dev\TombRaider123VR\src\GameDll.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\GameDll.obj
 C:\dev\TombRaider123VR\src\Gamepad.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Gamepad.obj
+C:\dev\TombRaider123VR\src\CollectionParity.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\CollectionParity.obj
 C:\dev\TombRaider123VR\src\Hooks.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Hooks.obj
 C:\dev\TombRaider123VR\src\InlineHook.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\InlineHook.obj
 C:\dev\TombRaider123VR\src\Log.cpp;C:\dev\TombRaider123VR\build\obj\x64\Release\Log.obj

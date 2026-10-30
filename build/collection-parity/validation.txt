@@ -1,0 +1,13 @@
+Collection parity validation, 2026-10-28
+Release x64 build: PASS (deployment disabled)
+Core math/config/inline hooks: PASS, 0 failures
+Locomotion and integration: PASS, 802340 checks
+Tracking/eye/projection: PASS, 66807 checks
+Body/calibration/holster/blend: PASS, 15654 checks
+Collection focus/flare/OpenGL hooks: PASS, 86 checks
+Physics/native shaders: PASS, 1698 checks
+Existing PDB/binary addresses: PASS, 3602 checks
+New exact-build hook windows and SHA-256 evidence: PASS
+Headset gameplay validation: outstanding
+DLL SHA-256: 4b7a0327157b1f2adcbb4dbc44bb1658e0bed7ebf93ab51454cd437551bc9780
+Full-body IK default enabled in INI, embedded INI and Config; Release rebuild passed. Regression counts above are from the feature-port validation before this default-only change.

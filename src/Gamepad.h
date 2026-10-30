@@ -24,6 +24,11 @@
 #include <cstdint>
 
 namespace tr {
+enum class Eye;
+struct Affine;
+bool WorldInventoryActive();
+Affine WorldInventoryEyeView(Eye eye);
+void WorldInventoryRecenter();
 
 // Install the pointer override. Idempotent and cheap; call once per frame so it
 // survives the game re-resolving XInput, and so it self-heals if we install

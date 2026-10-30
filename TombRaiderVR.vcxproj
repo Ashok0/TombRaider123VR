@@ -131,6 +131,7 @@
     <ClCompile Include="src\GL.cpp" />
     <ClCompile Include="src\GameDll.cpp" />
     <ClCompile Include="src\Gamepad.cpp" />
+    <ClCompile Include="src\CollectionParity.cpp" />
     <ClCompile Include="src\Hooks.cpp" />
     <ClCompile Include="src\InlineHook.cpp" />
     <ClCompile Include="src\Log.cpp" />
@@ -170,10 +171,21 @@
     <ClInclude Include="src\LocomotionMath.h" />
     <ClInclude Include="src\LedgePullGesture.h" />
     <ClInclude Include="src\LedgeCatchHaptics.h" />
+    <ClInclude Include="src\LedgeGrabFeedback.h" />
+    <ClInclude Include="src\JumpLanding.h" />
+    <ClInclude Include="src\JumpAddresses.inl" />
+    <ClInclude Include="src\JumpParity.inl" />
     <ClInclude Include="src\Sky.h" />
     <ClInclude Include="src\StereoMath.h" />
     <ClInclude Include="src\StereoRenderer.h" />
     <ClInclude Include="src\VRSystem.h" />
+    <ClInclude Include="src\BodyFollower.h" />
+    <ClInclude Include="src\CollectionParity.h" />
+    <ClInclude Include="src\InventoryProjection.h" />
+    <ClInclude Include="src\FirstPersonBodyIK.h" />
+    <ClInclude Include="src\PhysicalHolster.h" />
+    <ClInclude Include="src\PistolAnimationBlend.h" />
+    <ClInclude Include="src\WorldInventory.h" />
     <ClInclude Include="src\VideoPanel.h" />
   </ItemGroup>
 

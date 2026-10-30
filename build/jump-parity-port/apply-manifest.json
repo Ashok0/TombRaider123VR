@@ -1,0 +1,67 @@
+[
+  {
+    "path": "src/FirstPerson.cpp",
+    "before": "55dbefba09e3852a194ed8a914d7b9f30f02ea1e7d5ae7c779ce0a89cb25b7a9",
+    "after": "7222c028c7d6452e3226622cc692fe24ca679ce7751bf999fa4668206430ea38"
+  },
+  {
+    "path": "src/JumpAddresses.inl",
+    "before": null,
+    "after": "a6d679128143a06738bf1714786f7976df19bb1049b8035f104bc70124e07566"
+  },
+  {
+    "path": "src/JumpParity.inl",
+    "before": null,
+    "after": "0c3aef98b2c30b5408085adb3e46a81f1470bf29b03ce843fb41091114ea0166"
+  },
+  {
+    "path": "README.md",
+    "before": "5c4691f9164b257cb8b486ee640111bd44a3204f0b1e58105b7fc9255c075287",
+    "after": "a7b0d458ab0bc998beed20ec916f5c093239b4ec6b3f7f2839e60c2f1ea566e9"
+  },
+  {
+    "path": "TombRaiderVR.vcxproj",
+    "before": "bcf4bbf937e31b2d285d6655ef27c7259640dfa23e3b30b621d280fa482d74a4",
+    "after": "31a6c26bf4a8cb4c2ecf8b0d352645866f7ac74c12557c2a19afe20bb1b81346"
+  },
+  {
+    "path": "tests/locomotion_selftest.cpp",
+    "before": "f52677eba8649aff31e19249bd69208f4383509df037aaab281f14ebd18680ee",
+    "after": "43b679a0c01c0b16a07c8878133dc78a60421e34c78024faf451e2c83bd74c52"
+  },
+  {
+    "path": "tests/jump_priority_selftest.h",
+    "before": "6f826c243dd3ae001bfed1b32dfb55e66b47490bb67e4ff952ab7179d5353af9",
+    "after": "d686715cefe08cc62e8c7980414c6657feb2c240a8d2066c5b73db00652c3e9d"
+  },
+  {
+    "path": "tests/directional_jump_selftest.h",
+    "before": "aebdad6087e0bdcf988b9aa9611c186b1b7d1952661cf0914594cb5aa6ea2ca3",
+    "after": "cfa8b7c93dc6df34c8e343ae9a45006e21d7814bbddcd987f44eac5d35cf400d"
+  },
+  {
+    "path": "tests/jump_port_selftest.h",
+    "before": null,
+    "after": "e5259da06bad0c64709ea06c7aa7d92d2dc65ae2a94fe0314575fb50c75f967c"
+  },
+  {
+    "path": "tests/jump_port_assets.h",
+    "before": null,
+    "after": "d8f8cb733577d60092d0471562b5c83cda45d1ba02e431a44f6f3f8d71e3d53f"
+  },
+  {
+    "path": "tools/verify_directional_jump.py",
+    "before": null,
+    "after": "4da83f279d5ea2cc879bf85c1569f950df67ed72b61c09aef9c598628c4140ad"
+  },
+  {
+    "path": "tools/verify_jump_port_assets.py",
+    "before": null,
+    "after": "e76334966597f1706c88c11b4963fd4149527b1a10e9e29a6b4e162ffad64607"
+  },
+  {
+    "path": "tools/verify_jump_port_binaries.py",
+    "before": null,
+    "after": "e22a9460c9db999d52d4e5ecefb4ca85b054c4bf9f1743b9a42684496bf12dc3"
+  }
+]

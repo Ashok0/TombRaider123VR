@@ -1,0 +1,585 @@
+{
+  "created_utc": "2026-10-29T00:27:05.404444+00:00",
+  "local": "C:\\dev\\TombRaider123VR",
+  "reference": "C:\\dev\\TombRaider123VR\\build\\collection-parity\\reference-snapshot",
+  "scope": "All files under both src trees; scalar Config.h defaults. Differences require semantic review.",
+  "counts": {
+    "identical": 14,
+    "different": 43,
+    "local_only": 12,
+    "reference_only": 18
+  },
+  "config_reference_only": {
+    "alternateEyeGame6": "true",
+    "alternateEyeMinOffscreen": "50",
+    "cullWatchCount": "0",
+    "decoupledPitchZoomOff": "true",
+    "firstPersonBodyYawSpeedDegrees": "120",
+    "firstPersonHKScope": "true",
+    "firstPersonHKScopeForwardMetres": "0.18f",
+    "firstPersonHKScopeMeshFit": "true",
+    "firstPersonHKScopeUpMetres": "0.24f",
+    "firstPersonMotionGunGripForwardMetres": "0.2032f",
+    "firstPersonMotionGunPitchDegrees": "-30.0f",
+    "firstPersonMotionGunRaiseMetres": "-0.06985f",
+    "firstPersonMotionGunRightMetres": "0",
+    "firstPersonMotionGunRollDegrees": "0",
+    "firstPersonMotionGunYawDegrees": "0",
+    "headOffsetWorld": "true",
+    "hideBinocularOverlay": "true",
+    "hideOpticsTint": "true",
+    "hideScopeOverlay": "true",
+    "menuChordPressSeconds": "0.15f",
+    "menuChordSeconds": "1.0f",
+    "nativeStereoGame6": "true",
+    "opticsHeadAtCamera": "true",
+    "recentreKey": "0x65",
+    "tr4EffectStrength": "1.0f",
+    "tr4Effects": "true",
+    "tr4SunrayStrength": "1.0f",
+    "videoSkipGame6": "true",
+    "worldLaserSight": "true"
+  },
+  "config_local_only": {
+    "enhancedEffects": "true",
+    "firstPersonAutoAimDegrees": "45.0f",
+    "firstPersonRoomscaleDriftMetres": "0.004f",
+    "firstPersonRoomscaleFullMetres": "0.45f",
+    "firstPersonYawFromLara": "false"
+  },
+  "config_default_differences": {
+    "cullDumpKey": {
+      "local": "0",
+      "reference": "0x77"
+    },
+    "firstPerson": {
+      "local": "false",
+      "reference": "true"
+    }
+  },
+  "files": [
+    {
+      "file": "BodyFollower.h",
+      "status": "identical",
+      "local_sha256": "1be7f40ed6c84624eb501650fc70635e9e3f5ca090fff74b3ab4557ff325748e",
+      "reference_sha256": "1be7f40ed6c84624eb501650fc70635e9e3f5ca090fff74b3ab4557ff325748e"
+    },
+    {
+      "file": "BoneSkin.cpp",
+      "status": "different",
+      "local_sha256": "41fd8d4c5b510e6d664dbdeae1ca95c97c541321034938b891910818f9764715",
+      "reference_sha256": "c284d5becf0455da3389600eb250218e7c0eaf039c0c9312fc5c6322d1ee2340"
+    },
+    {
+      "file": "BoneSkin.h",
+      "status": "different",
+      "local_sha256": "e3de8df8235d63efa67cf509dc6a4199e9a997b0c424d6d5116d8987ff8f5627",
+      "reference_sha256": "c7cb05bc97f762efc8ddccbb1b9d6e415e2541560003e6c885aa096a9ac2b228"
+    },
+    {
+      "file": "Callsite.cpp",
+      "status": "identical",
+      "local_sha256": "7835c1b8515fa66cbb7a715a1ae57f87683440dc5c614a77c511da87dc977cec",
+      "reference_sha256": "7835c1b8515fa66cbb7a715a1ae57f87683440dc5c614a77c511da87dc977cec"
+    },
+    {
+      "file": "Callsite.h",
+      "status": "identical",
+      "local_sha256": "53db0924dc6203cd42981b5230db3415cffa50a497efe327a085e114cc6cbca7",
+      "reference_sha256": "53db0924dc6203cd42981b5230db3415cffa50a497efe327a085e114cc6cbca7"
+    },
+    {
+      "file": "CollectionAddresses.inl",
+      "status": "local_only",
+      "local_sha256": "96850f9dcfc4bfbb00db3dc1cfd46e6a300c3b748efd009c6a70fca14f566bd4",
+      "reference_sha256": null
+    },
+    {
+      "file": "CollectionParity.cpp",
+      "status": "local_only",
+      "local_sha256": "4655850edc1d5ffc8dcfa2ac880c6bafcd74a312e0a73d86ce6b153129fdf9a1",
+      "reference_sha256": null
+    },
+    {
+      "file": "CollectionParity.h",
+      "status": "local_only",
+      "local_sha256": "0c619f207ee4d62b760637cde21a08362e7b9007d7592eef172c9f7f6485806b",
+      "reference_sha256": null
+    },
+    {
+      "file": "Config.cpp",
+      "status": "different",
+      "local_sha256": "21d0f937ac2eb3f58fd3983a74fc06aecd580559f9408d79fa05602fd8abebe8",
+      "reference_sha256": "dcab2765427ea763ce0a6df6cc0febe425bf32c04eff36d795d677bc7f30e7f9"
+    },
+    {
+      "file": "Config.h",
+      "status": "different",
+      "local_sha256": "e3b1831544d536a6bcdc8c91fa43a6f7ecad61ebc62cd907c378a25fd713c9c9",
+      "reference_sha256": "a9ec4c810a2d20edea336d378504f87b706a5b866b10728e080969ebc7b071c6"
+    },
+    {
+      "file": "DefaultIni.h",
+      "status": "different",
+      "local_sha256": "bfa45081ce17176908d960c7f24bd651375cf2c821170865dabcbad6ec3e08fe",
+      "reference_sha256": "36d17a3e98c5c8b29c0ce26935da15375fd4bbedd990fce56974c49aaa129be6"
+    },
+    {
+      "file": "DynamicBones.cpp",
+      "status": "different",
+      "local_sha256": "489db1c6f403093e939562c6a07f8cb55572449fbc5770d6e6d751dba58afb82",
+      "reference_sha256": "6e63ac0464b7589dcbd488c152c59a1c943bdc80a4adb7d4d5336f31c15c6440"
+    },
+    {
+      "file": "DynamicBones.h",
+      "status": "different",
+      "local_sha256": "547d56a321bd8ee4e3a8f8ebb44c33690607557d0824a9486f76379960677a20",
+      "reference_sha256": "17cb56d0e1b08db8df21d86da0143faa7d11a7363af40d0dc8dc7d5bf12d0c1e"
+    },
+    {
+      "file": "Engine.cpp",
+      "status": "different",
+      "local_sha256": "38d7d7f9af4b76971efcc2243275ce69a1bc180d4e4c8010aff8fc4337c58dec",
+      "reference_sha256": "66f1ad0ed968c8b4e75f18720e43e7d3b80be176a5365e7cfbaf63e440a73481"
+    },
+    {
+      "file": "Engine.h",
+      "status": "different",
+      "local_sha256": "57b6e1aee4ff38fee6fa1eb0a603dd2154353c13a52f19dbdaed84fcbc9e8eef",
+      "reference_sha256": "dd4969de9873405c9bd6f24b3f5afd18ca9ef398a19d9e738ceea91e2598b2a1"
+    },
+    {
+      "file": "EnhancedEffects.cpp",
+      "status": "local_only",
+      "local_sha256": "22f87d8348a9a4cbd9929d5d2b513567a374b28e3e5d768daf253c9eea634ea8",
+      "reference_sha256": null
+    },
+    {
+      "file": "EnhancedEffects.h",
+      "status": "local_only",
+      "local_sha256": "41798c17731cd7eb1e009eed906d4f8ce8feb7455e14a93844a47b7fe18ce65c",
+      "reference_sha256": null
+    },
+    {
+      "file": "FirstPerson.cpp",
+      "status": "different",
+      "local_sha256": "d332b54c3dfa67fbdcb45543a5d2c07d713db5492c7b651e2b2d2bf3b100bce7",
+      "reference_sha256": "fabe07c1dda4b0a2577b72910ac45b81b3aab43ceea3b33c8490e18031d2e999"
+    },
+    {
+      "file": "FirstPerson.h",
+      "status": "different",
+      "local_sha256": "ce2050f578ae913959b03e114698c84d320f62b32cc729a9f483577109cd90c9",
+      "reference_sha256": "13f60e2944d28e1f1e36fb862178fb47b17324e2591e94070cc9dd5731c8b4af"
+    },
+    {
+      "file": "FirstPersonActionIcon.h",
+      "status": "local_only",
+      "local_sha256": "d1a674ec56bc5f808c3a28b0bc15e5e9ed58687b5ef7ce574b14044c6f8c0e47",
+      "reference_sha256": null
+    },
+    {
+      "file": "FirstPersonBodyIK.h",
+      "status": "identical",
+      "local_sha256": "b4ce275ab8996e61ec5f15e7c9e262b64c5c68928f5ed51404a3ce81601d0b84",
+      "reference_sha256": "b4ce275ab8996e61ec5f15e7c9e262b64c5c68928f5ed51404a3ce81601d0b84"
+    },
+    {
+      "file": "FirstPersonClearance.h",
+      "status": "different",
+      "local_sha256": "65c5cbf846d84a83aa58567a99ee2fa03d716c0d6209e6080f59812c2ea8a7c1",
+      "reference_sha256": "6e2692a8c3a01d3659d464d3b42680e37e57ad571b7bfd7af4a12318231c72bf"
+    },
+    {
+      "file": "FirstPersonIK.h",
+      "status": "identical",
+      "local_sha256": "f0450046305aa6cd6100ad64dccca260b6ded61b027b7f036f2bd34c6a1f5eb3",
+      "reference_sha256": "f0450046305aa6cd6100ad64dccca260b6ded61b027b7f036f2bd34c6a1f5eb3"
+    },
+    {
+      "file": "FirstPersonStabilization.h",
+      "status": "different",
+      "local_sha256": "b75e4ae271673df80a8c47ae83e46d4a63f72417ed3e23ddc1419f249d474f4f",
+      "reference_sha256": "48dc6403743accd4eddf5f2857929d20157ef9efd8a787fe546755d477fe2785"
+    },
+    {
+      "file": "FirstPersonVisibility.h",
+      "status": "different",
+      "local_sha256": "023e125f072be7ba9e9780f096276db4eb4ff7b8fbae0f9409128c617754991b",
+      "reference_sha256": "071f1897cbae921f8905a5dfe43f6eb50d4d7e64ff2e889035ca99d269c852e9"
+    },
+    {
+      "file": "GL.cpp",
+      "status": "different",
+      "local_sha256": "7ca0e586fecd53ef66c1ed9f5bd13646d5d936dd56abf00c977bedc8e9b65e4c",
+      "reference_sha256": "67db34718739bfd71ad237b3e25c0d5185c9208029335840b7bc5456b175a848"
+    },
+    {
+      "file": "GL.h",
+      "status": "different",
+      "local_sha256": "98b39b121e501e4fd4f32049626372461043bc5f379d0edfd6aacf3cf46ec89e",
+      "reference_sha256": "541b4bcefbe2d018b186c6149e130c21c2d735226652e80f81651874a3780790"
+    },
+    {
+      "file": "GameDll.cpp",
+      "status": "different",
+      "local_sha256": "da46419e59c167ad56139e1a3cc54cc37ff1ff37f2b1750afec9ecf5ad79af10",
+      "reference_sha256": "a69a82404e1b0151647a04632f49284dbd70f82fbf6ad7c757e74a3d9eb3759f"
+    },
+    {
+      "file": "GameDll.h",
+      "status": "different",
+      "local_sha256": "2902a10773460622c5c8ff33e82025f43c34dcf07bc5df9cd165438217056091",
+      "reference_sha256": "0448ccaba3a73ed0a9f33a4790eb8e4d07cc7d9e90c166887860a9b2c6a74caa"
+    },
+    {
+      "file": "Gamepad.cpp",
+      "status": "different",
+      "local_sha256": "b2cf2f8122ae5259ba0fd2d1aec046b858bb722db1e64ae4a9f000338bee6400",
+      "reference_sha256": "f945d1beda06a3734639b4ee944bee8f8d4da9f3ea68c7c81b77897888771d42"
+    },
+    {
+      "file": "Gamepad.h",
+      "status": "different",
+      "local_sha256": "8b83941d6b59f76b6463cdfb5df8ce8264cdbcc6f5cbdd45641272ab36c95ae9",
+      "reference_sha256": "f292fef6ea85e8e0a27ba5c7e3550196b55d2db8ef8c40706d88986135bef9f1"
+    },
+    {
+      "file": "GunHaptics.h",
+      "status": "different",
+      "local_sha256": "8def3f68df7729c3b776d08fabb05baf5c17e0f29cb677a38035ab35c1e56317",
+      "reference_sha256": "2698b44e000eb72aff9998ebbbd3048631cc57d5c3a97ccca48c12432a3b01e0"
+    },
+    {
+      "file": "HKScope.cpp",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "4acfc12a6b86021988ca99873b0f74df076773d10e13d92e7d02c993f9fa5bfc"
+    },
+    {
+      "file": "HKScope.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "1bea04f04a10f0dcb13b9c27d004e143056eaf512227e1e79e0277d3024863a0"
+    },
+    {
+      "file": "HKScopeMath.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "8ff630be1195ed0590cf47b5fb254dae6b32a45dff4f478bb27766e488bf8764"
+    },
+    {
+      "file": "HandSkin.h",
+      "status": "local_only",
+      "local_sha256": "197ba70736ab25bb6efdd7873d3e1f3e47ed9e466ddb4e43e8c3e4b595c3e7bd",
+      "reference_sha256": null
+    },
+    {
+      "file": "HeadHeightClamp.h",
+      "status": "local_only",
+      "local_sha256": "28baa3047c18e04905672873a2f281dac42c9b21c3033b09ece6ac91f84c527f",
+      "reference_sha256": null
+    },
+    {
+      "file": "Hooks.cpp",
+      "status": "different",
+      "local_sha256": "33aa48af27204890801996dadf89caa3cc2d60b093b3c0404b89de39c711ceba",
+      "reference_sha256": "4d77f22e8f29ddc5a45383ab175f85a283a585c9e255db5a0795c906a41ee0c0"
+    },
+    {
+      "file": "Hooks.h",
+      "status": "different",
+      "local_sha256": "b3a78e2b7e420d8ca7ca308c112bbec7984ea29767786380bd1dd422169106ea",
+      "reference_sha256": "59c63e679db06620708c7cd9de1e98d792c809f090ce7d389f38f8e734fee59e"
+    },
+    {
+      "file": "InlineHook.cpp",
+      "status": "identical",
+      "local_sha256": "96f89df7ff314af6ea0d666c12be5a71dfdd254c93c8e81bd1d71781dbf66c7b",
+      "reference_sha256": "96f89df7ff314af6ea0d666c12be5a71dfdd254c93c8e81bd1d71781dbf66c7b"
+    },
+    {
+      "file": "InlineHook.h",
+      "status": "identical",
+      "local_sha256": "d3d113881f90a0fd19c0290e1d75b906cb6202793c8f7294cb8848fdadf35844",
+      "reference_sha256": "d3d113881f90a0fd19c0290e1d75b906cb6202793c8f7294cb8848fdadf35844"
+    },
+    {
+      "file": "InventoryProjection.h",
+      "status": "local_only",
+      "local_sha256": "7473d656ebf0e51ecb6da856fd3f60c8db2f65d1693ddf5613cfb72195795297",
+      "reference_sha256": null
+    },
+    {
+      "file": "InventoryScene.cpp",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "c9894c4fbc8dc12d6aedfcfb19f0098337d89f0db35c046c8fa6db21b6c5e14a"
+    },
+    {
+      "file": "InventoryScene.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "f6d819bbaa7d179d4eb3a5078456d638abff222310f40b9d80d5a2d4cc9ca1cf"
+    },
+    {
+      "file": "JumpLanding.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "b90f8775271111175b3a93967db3521fb4e8e3ccc070567a14bc35151e2d4825"
+    },
+    {
+      "file": "LedgeCatchHaptics.h",
+      "status": "local_only",
+      "local_sha256": "1c7301af3962bedfd2c749f1d61222b3b6b592602744ad6f88e9d40c3000aec6",
+      "reference_sha256": null
+    },
+    {
+      "file": "LedgeGrabFeedback.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "9c08c5a523d857fb5685bd0e1dbaeaccc377fc8ccb01aed4f3232c525812ca21"
+    },
+    {
+      "file": "LedgePullGesture.h",
+      "status": "different",
+      "local_sha256": "12833f6418677369d8ec3bb119270d5e53c1098f8dfb69d7bea048dcd81ca1e2",
+      "reference_sha256": "612230734a93f248ed20ae6d140659181b0934bd01b4bd27386692b1299a8d90"
+    },
+    {
+      "file": "LocomotionMath.h",
+      "status": "different",
+      "local_sha256": "98f59da8c43c4333b5311428fdbe46e17b00945ab69a06dc750d57116c51e72e",
+      "reference_sha256": "486d176ad3cc3940a409c5dac80c7d8eb3d34968fc0ce0ae5793dd0595d6cb40"
+    },
+    {
+      "file": "Log.cpp",
+      "status": "identical",
+      "local_sha256": "4e740725c302f2bd17dae0012f3041323df9e9ad748afb9254ab603e60565081",
+      "reference_sha256": "a845b75d27225af347dfb27a76f19621fd127cae1617c399ac9abd80d3230a01"
+    },
+    {
+      "file": "Log.h",
+      "status": "identical",
+      "local_sha256": "b22291e2097d1348812fe14cd43fbb44e7faaec59e8f119135ec87640fa9bfcf",
+      "reference_sha256": "42ce25e3c10e64f988385edd3355adede0875f2051bd1bc8729eccae1c9f551d"
+    },
+    {
+      "file": "MotionGunInput.h",
+      "status": "different",
+      "local_sha256": "311a83c3d2dd11767e799fa8482dc33ddbb79c46050ebe1ca95693743d6b5b43",
+      "reference_sha256": "e262b53386fb6a601fdf06772578a5afe9dd5b114bd5c32cf54990cad1f89bb7"
+    },
+    {
+      "file": "MotionGunMath.h",
+      "status": "different",
+      "local_sha256": "9ab22a41b26516d8b1f1e532d10ff7b4aed86544220845442c638b897a8f1610",
+      "reference_sha256": "a245da853361bf241fa51df54377d54904f910bea2bde6437f9bbb4c682133fa"
+    },
+    {
+      "file": "MotionHandSkin.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "679be2a412c7a13f544674cf6f83e248b3edfec41bc7badf1213a4e31074aeb9"
+    },
+    {
+      "file": "Overlay.cpp",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "0cf469fe3803ab7e1ba70cebe5687671c8a65002002712d8be12f72d63b6a856"
+    },
+    {
+      "file": "Overlay.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "1ae345360c21709d3ad1ce04610c5f2b9b0e0dc4c309e9958cf37cf5c5ad6d86"
+    },
+    {
+      "file": "PhysicalHolster.h",
+      "status": "different",
+      "local_sha256": "d5e27ada2d3094263da32fd135d1a2adf1a5714a2796ee20581a0f9ccb606625",
+      "reference_sha256": "9760c8f1eb86122752b4d637f9e17e60e36da01fe433d83903ccd998c1444a7f"
+    },
+    {
+      "file": "PhysicalHolster.inl",
+      "status": "different",
+      "local_sha256": "0030db97a9cebb262f52f30b3608ac671e6adbee9626b05325cc5e4376ee5aa3",
+      "reference_sha256": "22f87cda39a5e6aa98226464df72709978ffa58d1ba523fa6556375f55e56966"
+    },
+    {
+      "file": "PhysicalSwitch.inl",
+      "status": "different",
+      "local_sha256": "0ceb520f1e75bb32f9a4ebc8ec99fde0883bbf944a870c0aea23cb366f5f6186",
+      "reference_sha256": "02c5f4ccc3ff840ddc90819a95843e40a7aa0c07e4be223b3762061d3b9336cd"
+    },
+    {
+      "file": "PistolAnimationBlend.h",
+      "status": "different",
+      "local_sha256": "94e4c31cc3b4e22036b829ea92bf88a39e9772e55a4b8f7f137b45bad2e65fd5",
+      "reference_sha256": "fd1daed400afc5e5c89ea8956aa88371143df8a90adc5dde3ddacb3a9623cf8c"
+    },
+    {
+      "file": "PortalCull.cpp",
+      "status": "different",
+      "local_sha256": "e521f67d22f25cbc47a72508b5cb846a08c1af2d43b79ca8601156b3d269ca32",
+      "reference_sha256": "e16c46fe3ebc8a180612d4fe3b993183ebf8e564ad921c886e99e7c088732fff"
+    },
+    {
+      "file": "PortalCull.h",
+      "status": "different",
+      "local_sha256": "f01056aa918d50d707b01b22b957cf6bd94736c0d3f5da3693dea6e5aa20baf7",
+      "reference_sha256": "4aa0170eb902634fdfb974103160ac0ea8ed17580762cd22d0c08481100a496c"
+    },
+    {
+      "file": "PortalGeom.h",
+      "status": "identical",
+      "local_sha256": "b2f23c0a9763e5d16a79691e4c7fc0cf79597dff778d24f0aabd2d7b61465e35",
+      "reference_sha256": "000223b179cedeba07f64c5aa4b727be721b782970521ac64fbcca44348f13a7"
+    },
+    {
+      "file": "Sky.cpp",
+      "status": "different",
+      "local_sha256": "b08a9b1651b093c11cb4036adf61c03febff5778a95f937dd93c9bf8fc5b3e33",
+      "reference_sha256": "be647b0becd19957e680abc62e17fd3b6af56948ef535205eb7f0fe4f19ee6eb"
+    },
+    {
+      "file": "Sky.h",
+      "status": "different",
+      "local_sha256": "cf1dc2f7310b7aeb008ffdf656f0c3501b7fee59ce228d7088033d4a40482f2e",
+      "reference_sha256": "c16d74c1a88db867a216d0eb66cdd735f71de5fe64c7d43da5f4146e977e3a65"
+    },
+    {
+      "file": "StereoMath.h",
+      "status": "different",
+      "local_sha256": "770dee2edd65cc67c6814c39c916cdd709d29db5855fc22f59fb49e624a699b8",
+      "reference_sha256": "853c473cf6a74f1f971ea8f4eb137e88f402fbc790c3a7ef7e446895c8aefc75"
+    },
+    {
+      "file": "StereoRenderer.cpp",
+      "status": "identical",
+      "local_sha256": "7cf376a715a20c46dbeabe46d0fad81ed44dabeea220edcb58e2bff21db1d5f2",
+      "reference_sha256": "7cf376a715a20c46dbeabe46d0fad81ed44dabeea220edcb58e2bff21db1d5f2"
+    },
+    {
+      "file": "StereoRenderer.h",
+      "status": "identical",
+      "local_sha256": "29efaeac61f45fa4e343245db0a0245a2bc3b05c203a825fc4c2a3096dd83d75",
+      "reference_sha256": "29efaeac61f45fa4e343245db0a0245a2bc3b05c203a825fc4c2a3096dd83d75"
+    },
+    {
+      "file": "SwitchAddresses.inl",
+      "status": "local_only",
+      "local_sha256": "eb5731b4e3f6172dda18a7d9d38529ca1afda6adbe58567f472fedc8147eae2e",
+      "reference_sha256": null
+    },
+    {
+      "file": "SwitchPosePath.h",
+      "status": "different",
+      "local_sha256": "23413d2f009458b63b92291a8eaab8059d41f4ba0a83d547bce050b91c892a7f",
+      "reference_sha256": "c110a95d68a8fb10caca4f81b852a99a240c2b2de53a8082326dceace8aa65d7"
+    },
+    {
+      "file": "TR4Effects.cpp",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "2d0fb2383b361c42df96bab383a8d7417e6dba5e86450bc657a18c9c5d985cde"
+    },
+    {
+      "file": "TR4Effects.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "1975e628bc804ef28de56edeabe3b53ffbe81ec34ee6ab553ddebb3f2d8d0db5"
+    },
+    {
+      "file": "TR4EffectsGL.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "d9f2edc4f47291af167c917a5f98f11621b27670ce3357b1bfb1b53cb13da89a"
+    },
+    {
+      "file": "TR4EffectsMath.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "45a3e3ec58d3404b80566a71617ee061341fce1265a654cf25037f8dc82803b7"
+    },
+    {
+      "file": "VRSystem.cpp",
+      "status": "different",
+      "local_sha256": "68c78fda634bc2b40e4b973fe74cd4c735faaaecfcb5881e5567beda4c0871ae",
+      "reference_sha256": "d21e9027c1e94b392d165fb7874238db4301cdf1c9af32df7158777b8fa3efd1"
+    },
+    {
+      "file": "VRSystem.h",
+      "status": "different",
+      "local_sha256": "7ae45d4424431073a1a88c07f12ef675990819d304c459e62e09faebcd146121",
+      "reference_sha256": "0c3a73fd958ea694f3acba719200c122192ffa17069df0c1d4613316c29412b5"
+    },
+    {
+      "file": "VideoPanel.cpp",
+      "status": "different",
+      "local_sha256": "8a0dac48a48084866ae751d4cd28e07ce9558af17b644eea820c25a846c48195",
+      "reference_sha256": "8effbfc4aa4bb08c65276778104630e9cb2e35fb66e3385939981ad1d0952112"
+    },
+    {
+      "file": "VideoPanel.h",
+      "status": "identical",
+      "local_sha256": "9220b32abe1d5e7901806563ed2d7d022cdaf5ff6dc1b1f5cbb7894312da3c22",
+      "reference_sha256": "9220b32abe1d5e7901806563ed2d7d022cdaf5ff6dc1b1f5cbb7894312da3c22"
+    },
+    {
+      "file": "WeaponLaserMesh.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "952c685451aa3de25c1d26e9c6fb0a79c86ba2f06c037c7b9b59337dcdb7898b"
+    },
+    {
+      "file": "WorldInventory.h",
+      "status": "different",
+      "local_sha256": "6ef6a9e670db7fd8c279446a353049ab83ed15391373960815d29c21c1a03704",
+      "reference_sha256": "5b71146bec10e40e1f80162eb945692b6cf862ddab23247fb2c074068400b94e"
+    },
+    {
+      "file": "WorldLaser.cpp",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "036ab060f325fb4f50a505e9f2614163b053c040723e9469440bb9863f2b0b8f"
+    },
+    {
+      "file": "WorldLaser.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "bb582102d1378a4e12ad1c28ce6e96d43d33733a0f0438d0ba3a13042c7a6787"
+    },
+    {
+      "file": "WorldLaserNative.h",
+      "status": "reference_only",
+      "local_sha256": null,
+      "reference_sha256": "1c219b37615973896e0f1931e8f969ac0eba2c2da8d648efde5cffb9c676de8f"
+    },
+    {
+      "file": "WristCap.h",
+      "status": "local_only",
+      "local_sha256": "2e2beef7d0790aee559fddff4bbb13d9943d698ff9ce8e6b3db57575accdd7c0",
+      "reference_sha256": null
+    },
+    {
+      "file": "dllmain.cpp",
+      "status": "different",
+      "local_sha256": "3835abd2465a137115c5789901a0ddea2c45059ddb848f252b3f078686811f55",
+      "reference_sha256": "95b611a5402b519e31f9431b398dce265a49f7be7e44652bb401e64ad0cfbf47"
+    },
+    {
+      "file": "proxy\\winmm_forwards.inc",
+      "status": "identical",
+      "local_sha256": "e6efc2057a3d75e3566cee966737e7afdf63caad9da4843c7ab69ca9cc9d1282",
+      "reference_sha256": "e6efc2057a3d75e3566cee966737e7afdf63caad9da4843c7ab69ca9cc9d1282"
+    },
+    {
+      "file": "proxy\\winmm_proxy.cpp",
+      "status": "different",
+      "local_sha256": "16fe6b77cca0e45cbcdd47dddfab48fff8fb54c3230405dc6618016e48d109d6",
+      "reference_sha256": "7529cfd94cdf4abb1d1c94c13823385c9ef7e89a2fcc6d902706bebff32c62d3"
+    }
+  ],
+  "reference_origin": "C:\\dev\\TombRaider456VR"
+}

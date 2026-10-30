@@ -10,6 +10,7 @@
 #include <cstdlib>
 
 namespace tr {
+void FirstPersonDrawLara(void* item,void*,void (__fastcall* draw)(void*)) { draw(item); }
 Config testConfig;
 RenderState testState{};
 Shader testShaders[kShaderCount]{};
@@ -31,6 +32,8 @@ const float* FirstPersonNativeBodySkin() { return testNativeBodyPalette; }
 const float* testBodyPalette=nullptr;
 uint32_t testVisibleJoints=0;
 const float* FirstPersonBodySkin(uint32_t& mask) { mask=testVisibleJoints; return testBodyPalette; }
+uint32_t testWristSeams=0;
+uint32_t FirstPersonBodyWristSeamMask() { return testWristSeams; }
 const float* testShadowPalette=nullptr;
 const float* FirstPersonShadowSkin(uint32_t& mask,uint32_t& wrists) {
     mask=testVisibleJoints;wrists=(1u<<13)|(1u<<10);return testShadowPalette;
@@ -406,6 +409,20 @@ void main() {
     Require(pixelWhite(),"ledge arm seam retains full native positions with torso hidden");
     gl::Uniform4fv(weightsLoc,1,forearmWeights);
     Require(!pixelWhite(),"body mask discards hidden torso fragments");
+    // A costume cuff may be mostly weighted to the hidden wrist while still
+    // sharing the visible forearm. Keep its blended surface, not the hand.
+    const float cuffWeights[4]={.75f,.25f,0,0},pureHand[4]={1,0,0,0};
+    testVisibleJoints=1u<<9;gl::Uniform4fv(weightsLoc,1,cuffWeights);
+    BoneSkinAfterValidate(false);Require(!pixelWhite(),"old body threshold removes wrist-heavy cuff pixels");
+    testWristSeams=1u<<10;BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"body wrist exception preserves mixed costume cuff pixels");
+    gl::Uniform4fv(weightsLoc,1,pureHand);
+    Require(!pixelWhite(),"cuff exception cannot reveal pure hidden hand surfaces");
+    gl::Uniform4fv(weightsLoc,1,cuffWeights);testWristSeams=1u<<13;BoneSkinAfterValidate(false);
+    Require(!pixelWhite(),"unrelated hidden joints retain normal visibility threshold");
+    testWristSeams=1u<<10;BoneSkinAfterValidate(false);Require(pixelWhite(),"cuff exception can resume on next body pass");
+    testWristSeams=0;BoneSkinAfterValidate(false);Require(!pixelWhite(),"following body pass clears stale cuff permission");
+    testVisibleJoints=1u<<10;gl::Uniform4fv(weightsLoc,1,forearmWeights);BoneSkinAfterValidate(false);
     // The shadow pass can reuse a program after an eye-view hand/body draw.
     // Native uploads its palette; the production cleanup must clear old masks.
     testShadowPass=true;gl::Uniform4fv(jointsLoc,96,fullPalette);
@@ -579,6 +596,11 @@ void main() {
     Require(g_capProgram==0 && g_capVao==0 && g_capBuffer==0 && g_wristRims.empty(),
             "wrist cap resources and mesh cache reset safely");
     wglMakeCurrent(nullptr, nullptr); wglDeleteContext(context); ReleaseDC(window,dc); DestroyWindow(window);
+    ResetPhysics();testDll.drawLaraHD=1;testConfig.dynamicBones=false;
+    g_settled=true;DynamicBonesUpdate();
+    float disabledOffset[3]{};
+    Require(g_boundDll==&testDll && !g_settled && !DynamicBonesWorldOffset(disabledOffset),
+            "holster draw scope survives disabled chest physics without applying deformation");
     g_boundDll = nullptr;
     std::printf("Physics self-test: %d checks passed\n", checks);
     return 0;

@@ -440,6 +440,7 @@ try:
                         {'DrawSkyHD': 'DrawSkyHD'})
         check_prologues(dll, 'FirstPerson.cpp',
                         {'GenerateW2V': 'phd_GenerateW2V',
+                         'GetCollisionInfo': 'GetCollisionInfo',
                          'DrawCreatureHD': 'DrawCreatureHD',
                          'DrawToShadow': 'DrawToShadow',
                          'GetJoints': 'GetJoints',
@@ -637,6 +638,7 @@ try:
                             image_dir=d, table=DR, tag=tag)
             check_prologues(dll, 'FirstPerson.cpp',
                             {'GenerateW2V': 'phd_GenerateW2V',
+                             'GetCollisionInfo': 'GetCollisionInfo',
                              'DrawCreatureHD': 'DrawCreatureHD',
                              'DrawToShadow': 'DrawToShadow',
                              'GetJoints': 'GetJoints',

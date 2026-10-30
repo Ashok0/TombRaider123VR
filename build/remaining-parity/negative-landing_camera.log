@@ -1,0 +1,5 @@
+locomotion_selftest.cpp
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: only intentional ordinary landings retain standing presentation; drops, falls, hard landings and level changes stay native

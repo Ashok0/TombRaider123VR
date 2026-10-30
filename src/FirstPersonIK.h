@@ -131,46 +131,81 @@ inline float ArmClearanceFraction(const Frame (&arm)[3],Vec offset) {
     return float(std::clamp((-b+std::sqrt(std::max(0.0,b*b-4*a*c)))/(2*a),0.0,1.0));
 }
 
-// The tracked wrist always preserves the full calibrated controller frame.
-// Only the forearm uses anti-twist constraints; clamping the hand after its
-// grip offset was rotated would make the grip orbit away from the controller.
+// Feet, ledge grips and armed wrists preserve the exact target orientation.
+// Unarmed hands alone use the anti-twist wrist constraints.
 inline bool SolveArm(const Frame (&native)[3], const Frame& target,
                      Vec preferredBend, Frame* corrections, ArmTwistState* twistState=nullptr,
-                     const Basis* neutralWrist=nullptr, bool stabilizeForearm=true) {
+                     const Basis* neutralWrist=nullptr, bool constrainWrist=true, Vec gripLocal={},
+                     bool rigidReach=false) {
     const Vec upper=Sub(native[1].origin,native[0].origin);
     const Vec lower=Sub(native[2].origin,native[1].origin);
-    float a=std::sqrt(Dot(upper,upper)),b=std::sqrt(Dot(lower,lower));
-    if (!std::isfinite(a) || !std::isfinite(b) || a<1.e-3f || b<1.e-3f) return false;
-    const Vec delta=Sub(target.origin,native[0].origin);
-    const float distance=std::sqrt(Dot(delta,delta));
-    if (!std::isfinite(distance)) return false;
-    Vec direction{};
-    if (!Unit(delta,direction) && !Unit(Sub(native[2].origin,native[0].origin),direction))
-        direction={0,0,1};
-    Vec bend{};
-    if (!Unit(Sub(preferredBend,Scale(direction,Dot(preferredBend,direction))),bend))
-        Unit(Cross(direction,std::fabs(direction.x)<.8f ? Vec{1,0,0} : Vec{0,1,0}),bend);
-    // Preserve segment lengths within reach. Outside it, extend both segments
-    // proportionally so the wrist stays exactly at the calibrated controller.
-    if (distance>a+b) { const float stretch=distance/(a+b); a*=stretch; b*=stretch; }
-    if (distance<std::fabs(a-b)) a=b=(a+b)*.5f;
-    const float along=distance>1.e-4f ? (a*a-b*b+distance*distance)/(2*distance) : 0;
-    const float height=std::sqrt(std::max(0.f,a*a-along*along));
-    const Vec elbow=Add(native[0].origin,Add(Scale(direction,along),Scale(bend,height)));
-    const Vec points[3]={native[0].origin,elbow,target.origin};
+    const float upperLength=std::sqrt(Dot(upper,upper)),lowerLength=std::sqrt(Dot(lower,lower));
+    if (!std::isfinite(upperLength) || !std::isfinite(lowerLength) ||
+        upperLength<1.e-3f || lowerLength<1.e-3f) return false;
+    Vec points[3]{};
+    const auto placeBones=[&](Vec endpoint) {
+        float a=upperLength,b=lowerLength;
+        const Vec delta=Sub(endpoint,native[0].origin);
+        float distance=std::sqrt(Dot(delta,delta));
+        if (!std::isfinite(distance)) return false;
+        Vec direction{};
+        if (!Unit(delta,direction) && !Unit(Sub(native[2].origin,native[0].origin),direction))
+            direction={0,0,1};
+        Vec bend{};
+        if (!Unit(Sub(preferredBend,Scale(direction,Dot(preferredBend,direction))),bend))
+            Unit(Cross(direction,std::fabs(direction.x)<.8f ? Vec{1,0,0} : Vec{0,1,0}),bend);
+        points[0]=native[0].origin;
+        if (rigidReach) {
+            // Tracked wrists stay on the controllers. Beyond the reachable
+            // annulus, translate the shoulder by only the excess instead of
+            // scaling either rigid mesh. A tiny margin avoids a locked elbow
+            // and the unequal-length folded-arm singularity. This is draw-only;
+            // native grips and legs retain their existing anchored-root solve.
+            const float margin=std::min(a,b)*.001f;
+            const float reachable=std::clamp(distance,std::fabs(a-b)+margin,a+b-margin);
+            points[0]=Add(points[0],Scale(direction,distance-reachable));
+            distance=reachable;
+        } else {
+            if (distance>a+b) { const float stretch=distance/(a+b); a*=stretch; b*=stretch; }
+            if (distance<std::fabs(a-b)) a=b=(a+b)*.5f;
+        }
+        const float along=distance>1.e-4f ? (a*a-b*b+distance*distance)/(2*distance) : 0;
+        const float height=std::sqrt(std::max(0.f,a*a-along*along));
+        points[1]=Add(points[0],Add(Scale(direction,along),Scale(bend,height)));
+        points[2]=endpoint;
+        return true;
+    };
+    if (!placeBones(target.origin)) return false;
     ArmTwistState localTwist{};
-    Basis limitedWrist{},forearmRoll=IdentityBasis();
-    const Basis lowerSwing=Align(lower,Sub(points[2],points[1]));
+    Basis wrist=target.basis,forearmRoll=IdentityBasis();
+    Basis lowerSwing=Align(lower,Sub(points[2],points[1]));
     Vec lowerAxis{};
     if (!Unit(Sub(points[2],points[1]),lowerAxis)) return false;
     // A body-relative neutral wrist, independent of the animated hand pose,
     // makes the same controller pose produce the same result in walk and run.
     const Basis rest=neutralWrist ? *neutralWrist : GunBasis(IdentityBasis());
     const Vec restForward{rest.r[0][1],rest.r[1][1],rest.r[2][1]};
-    const Basis reference=Multiply(Align(restForward,lowerAxis),rest);
-    if (stabilizeForearm) {
+    Basis reference=Multiply(Align(restForward,lowerAxis),rest);
+    if (constrainWrist) {
         ConstrainWrist(reference,target.basis,lowerAxis,
-                       twistState ? *twistState : localTwist,limitedWrist,forearmRoll);
+                       twistState ? *twistState : localTwist,wrist,forearmRoll);
+        if (Dot(gripLocal,gripLocal)>0) {
+            // The gun target already puts this LOCAL grip point on the physical
+            // controller. Wrist limits change its rotation: keeping the old
+            // wrist origin would orbit the grip around the wrong pivot.
+            // Preserve the bounded hand orientation, then reconnect the bones
+            // to the wrist position that keeps that same grip point fixed.
+            const Vec grip=Transform(target,gripLocal);
+            if (!placeBones(Sub(grip,Transform(wrist,gripLocal))) ||
+                !Unit(Sub(points[2],points[1]),lowerAxis)) return false;
+            lowerSwing=Align(lower,Sub(points[2],points[1]));
+            reference=Multiply(Align(restForward,lowerAxis),rest);
+            // Distribute twist around the reconnected forearm's actual axis.
+            // Do not feed this second decomposition back into wrist history.
+            auto redistribution=twistState ? *twistState : localTwist;
+            Basis unused{};
+            ConstrainWrist(reference,wrist,lowerAxis,redistribution,unused,forearmRoll);
+        }
         // Remove native animation roll before adding controller roll. Otherwise
         // the running animation can reintroduce a knot even with wrist limits.
         const auto animated=RotationOf(Multiply(lowerSwing,native[2].basis));
@@ -179,14 +214,12 @@ inline bool SolveArm(const Frame (&native)[3], const Frame& target,
         forearmRoll=Multiply(forearmRoll,RotationMatrix(roll));
     }
     for (int i=0;i<3;++i) {
-        // Keep rotation and position from the SAME GripFrame, as gun hands do.
-        // The limited orientation is for forearm stabilization, not tracking.
-        Frame desired{target.basis,target.origin}, inv{};
+        Frame desired{wrist,points[2]}, inv{};
         if (i<2) {
             const Vec old=Sub(native[i+1].origin,native[i].origin);
             const Vec next=Sub(points[i+1],points[i]);
             Vec axis{}; if (!Unit(old,axis)) return false;
-            const float ratio=std::sqrt(Dot(next,next)/Dot(old,old));
+            const float ratio=rigidReach ? 1.f : std::sqrt(Dot(next,next)/Dot(old,old));
             const float u[3]={axis.x,axis.y,axis.z};
             auto stretch=IdentityBasis();
             for (int row=0;row<3;++row) for (int col=0;col<3;++col)
@@ -203,27 +236,124 @@ inline bool SolveArm(const Frame (&native)[3], const Frame& target,
     }
     return true;
 }
+
+// Pistol animation palettes interpolate matrix elements, including scale and
+// shear. They must not supply lengths or material axes to tracked arms. Build
+// the reference chain from the model's bind pose and the current solved torso;
+// this follows real body motion without retaining any weapon animation.
+inline bool PistolArmReference(const Frame& torso,const Frame& torsoBind,
+                               const Frame (&bind)[3],float scale,Frame (&chain)[3]) {
+    if(!std::isfinite(scale) || scale<=0) return false;
+    auto basis=RotationMatrix(RotationProduct(RotationOf(torso.basis),
+                                              RotationInverse(RotationOf(torsoBind.basis))));
+    for(auto& row:basis.r) for(float& value:row) value*=scale;
+    const Frame placement{basis,Sub(torso.origin,Transform(basis,torsoBind.origin))};
+    for(int i=0;i<3;++i) {
+        chain[i]=Multiply(placement,bind[i]);
+        Frame inverse{};if(!Inverse(chain[i],inverse)) return false;
+    }
+    return Dot(Sub(chain[1].origin,chain[0].origin),Sub(chain[1].origin,chain[0].origin))>1.e-6f &&
+        Dot(Sub(chain[2].origin,chain[1].origin),Sub(chain[2].origin,chain[1].origin))>1.e-6f;
+}
+
 // Controller arms use the exact wrist, including roll beyond +/-90 degrees.
 // Match forearm roll to the hand through the mesh's REST joint relationship,
 // not through an animated gun/recoil pose or an assumed shared local axis.
-// Apply only twist around elbow->wrist: it cannot move either endpoint, change
-// reach, accumulate turns, or redirect the gun. Native feet/grips use SolveArm.
+// Transport that roll back through the elbow to the upper arm. Both changes
+// are axial twists: they cannot move joints, change reach or redirect the gun.
+// Native feet/grips use SolveArm.
+struct ArmRollContinuity {
+    bool valid=false,recovering=false;
+    float confidence=1;
+    Basis wrist{},forearm{};
+    Vec axis{};
+};
+
 inline bool SolveTrackedArm(const Frame (&native)[3],const Frame& target,
-                            Vec pole,const Frame (&bind)[3],Frame* corrections) {
-    if(!SolveArm(native,target,pole,corrections,nullptr,nullptr,false)) return false;
+                            Vec pole,const Frame (&bind)[3],Frame* corrections,
+                            bool upperArmPresent=true,ArmRollContinuity* continuity=nullptr) {
+    if(!SolveArm(native,target,pole,corrections,nullptr,nullptr,false,{},true)) return false;
     const auto forearm=Multiply(corrections[1],native[1]);
     Vec axis{};if(!Unit(Sub(target.origin,forearm.origin),axis)) return false;
     const auto restRelation=RotationProduct(RotationInverse(RotationOf(bind[2].basis)),
                                             RotationOf(bind[1].basis));
     const auto desired=RotationProduct(RotationOf(target.basis),restRelation);
+    // Ordinary poses use the actual posed mesh axes. Replacing these with
+    // rest axes globally adds a second, different swing/twist projection;
+    // animated/partial palettes can then wobble on the opposite arm.
     const auto delta=RotationProduct(desired,RotationInverse(RotationOf(forearm.basis)));
     const ArmRotation twist{delta.w,Scale(axis,Dot(delta.v,axis))};
-    // Exact 180-degree swing has no defined twist. Keep the positional solve
-    // there; any defined controller pose immediately determines its own roll.
-    if(twist.w*twist.w+Dot(twist.v,twist.v)>1.e-10f) {
-        const auto roll=RotationMatrix(twist);
+    auto axial=twist;
+    if(twist.w*twist.w+Dot(twist.v,twist.v)<=1.e-10f) {
+        // Only an undefined 180-degree wrist swing needs a rest-pose fallback.
+        // It must not inherit native idle/recoil roll while tracking is still.
+        const auto reference=RotationProduct(
+            RotationOf(Align(Sub(bind[2].origin,bind[1].origin),axis)),RotationOf(bind[1].basis));
+        const auto correction=RotationProduct(reference,RotationInverse(RotationOf(forearm.basis)));
+        axial={correction.w,Scale(axis,Dot(correction.v,axis))};
+    }
+    if(axial.w*axial.w+Dot(axial.v,axial.v)>1.e-10f) {
+        const auto roll=RotationMatrix(axial);
         const Frame aboutElbow{roll,Sub(forearm.origin,Transform(roll,forearm.origin))};
         corrections[1]=Multiply(aboutElbow,corrections[1]);
+    }
+    if(continuity) {
+        // Near an antiparallel wrist swing, extracting axial twist amplifies
+        // tiny torso/head movements. Carry the previous material frame through
+        // the actual controller rotation and new bone direction in that region.
+        // Well-conditioned poses retain the original solve; wrist tracking and
+        // all joint positions remain exact, with no hand-position filtering.
+        const float confidence=std::sqrt(twist.w*twist.w+Dot(twist.v,twist.v));
+        continuity->confidence=confidence;
+        if(continuity->valid && (confidence<.35f || continuity->recovering)) {
+            const auto handDelta=RotationMatrix(RotationProduct(RotationOf(target.basis),
+                RotationInverse(RotationOf(continuity->wrist))));
+            const auto predicted=Multiply(Align(Transform(handDelta,continuity->axis),axis),
+                                           Multiply(handDelta,continuity->forearm));
+            const auto actual=Multiply(corrections[1],native[1]);
+            const auto difference=RotationProduct(RotationOf(actual.basis),RotationInverse(RotationOf(predicted)));
+            const float angle=std::remainder(2*std::atan2(Dot(difference.v,axis),difference.w),6.28318530718f);
+            const float t=std::clamp((confidence-.15f)/.20f,0.f,1.f);
+            const auto movedAxis=Transform(handDelta,continuity->axis);
+            const float swing=std::atan2(std::sqrt(Dot(Cross(movedAxis,axis),Cross(movedAxis,axis))),Dot(movedAxis,axis));
+            const auto handRotation=RotationOf(handDelta);
+            const float handTurn=2*std::atan2(std::sqrt(Dot(handRotation.v,handRotation.v)),std::fabs(handRotation.w));
+            // Do not release a stored ambiguity as a pop on leaving the band,
+            // or keep creeping when all input is stationary. Reconciliation
+            // follows actual bone/controller motion, never elapsed render calls.
+            const float budget=2*swing+handTurn;
+            const float applied=std::clamp(angle*t*t*(3-2*t),-budget,budget);
+            continuity->recovering=confidence<.35f || std::fabs(angle-applied)>.001f;
+            const auto wanted=Multiply(RotationMatrix(AxisRotation(axis,applied)),predicted);
+            const auto change=RotationMatrix(RotationProduct(RotationOf(wanted),RotationInverse(RotationOf(actual.basis))));
+            corrections[1]=Multiply({change,Sub(forearm.origin,Transform(change,forearm.origin))},corrections[1]);
+        }
+        continuity->valid=true;continuity->axis=axis;
+        continuity->wrist=RotationMatrix(RotationOf(target.basis));
+        continuity->forearm=RotationMatrix(RotationOf(Multiply(corrections[1],native[1]).basis));
+    }
+    if(upperArmPresent) {
+        const auto upper=Multiply(corrections[0],native[0]);
+        const auto lower=Multiply(corrections[1],native[1]);
+        Vec upperAxis{};
+        if(!Unit(Sub(lower.origin,upper.origin),upperAxis)) return false;
+        // Carry the forearm's material frame back through the elbow bend.
+        // Leaving the upper mesh in its animated roll winds the elbow seam
+        // up when the controller rolls inward. Account for the authored bend
+        // and independent mesh axes; copying Euler roll is not sufficient.
+        const auto restBend=Align(Sub(bind[1].origin,bind[0].origin),
+                                  Sub(bind[2].origin,bind[1].origin));
+        const auto relation=RotationProduct(RotationInverse(RotationOf(bind[1].basis)),
+            RotationProduct(RotationOf(restBend),RotationOf(bind[0].basis)));
+        const auto transport=RotationOf(Align(axis,upperAxis));
+        const auto desiredUpper=RotationProduct(transport,
+            RotationProduct(RotationOf(lower.basis),relation));
+        const auto upperDelta=RotationProduct(desiredUpper,RotationInverse(RotationOf(upper.basis)));
+        const ArmRotation upperTwist{upperDelta.w,Scale(upperAxis,Dot(upperDelta.v,upperAxis))};
+        if(upperTwist.w*upperTwist.w+Dot(upperTwist.v,upperTwist.v)>1.e-10f) {
+            const auto roll=RotationMatrix(upperTwist);
+            corrections[0]=Multiply({roll,Sub(upper.origin,Transform(roll,upper.origin))},corrections[0]);
+        }
     }
     return true;
 }

@@ -1,0 +1,5 @@
+locomotion_selftest.cpp
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: crouch hides forearms, keeps both tracked hands and preserves native flag changes

@@ -35,8 +35,12 @@ FirstPersonRoomscaleNeckMetres=0.15 estimates the horizontal neck-to-HMD pivot.
 7. Combine physical dragging with analog-stick movement. Manual travel must
    not consume the tracked offset or add a second copy of the physical step.
 8. Approach walls, corners, doors, stairs and ledges slowly. Body drag should
-   respect collision and room transitions. Large drops and insufficient
-   headroom block dragging. Tracked camera leaning can still enter geometry.
+   respect walls, headroom and room transitions. With the sticks centered,
+   walk physically off a ledge in small steps, pausing at its lip. Lara should
+   enter native falling and continue down on subsequent ticks, rather than
+   being pushed back by standing collision while the rendered body floats.
+   Repeat with full-body IK on/off in all three games. Stick/Walk edge protection
+   retains native behavior. Tracked camera leaning can still enter geometry.
 9. Open/close inventory, use R3 D-pad shift, enter fixed cameras, climb, operate
    switches, jump and swim. Returning to ground must not release queued drag.
 10. Test both Modern and Tank controls for physical body dragging and the four

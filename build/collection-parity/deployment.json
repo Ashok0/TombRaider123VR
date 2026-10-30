@@ -1,0 +1,13 @@
+{
+  "deployedAt": "2026-10-28T16:07:56.969131-04:00",
+  "gameFolder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered",
+  "dllSha256": "4b7a0327157b1f2adcbb4dbc44bb1658e0bed7ebf93ab51454cd437551bc9780",
+  "iniSha256": "3e44b99853a4850fe1bc812a6fce4796f0f3bb62126bd596f913181e3746c0b6",
+  "backupSuffix": ".pre-collection-parity-20261028-160739",
+  "settings": {
+    "FirstPersonFullBodyIK": 1,
+    "WorldInventory": 1,
+    "Ortho3DLockToHead": 0
+  },
+  "headsetValidation": "pending"
+}

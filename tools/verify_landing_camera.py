@@ -27,9 +27,10 @@ def verify(path, game):
         record = tables["anims"][index * 32:(index + 1) * 32]
         return struct.unpack_from("<h", record, 6)[0], *struct.unpack_from("<8h", record, 16)
 
-    expected = {13: 7, 24: 2, 31: 2, 82: 2, 92: 1}
+    expected = {24: 2, 31: 2, 82: 2, 92: 1}
     for index, state in expected.items():
         assert anim(index)[0] == state, (path, index, "landing/death state")
+    assert anim(13)[0] == 7 and anim(13)[3] == 13, (path, 13, "looping left turn, not landing")
     state99 = anim(99)[0]
     assert state99 == (58 if game == "1" else 2), (path, 99, "water-exit/landing variant")
     assert anim(99)[3] == (101 if game == "1" else 82), (path, 99, "variant exit")

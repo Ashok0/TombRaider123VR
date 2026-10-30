@@ -1,0 +1,5 @@
+locomotion_selftest.cpp
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: base camera still stops at geometry with free physical leaning enabled

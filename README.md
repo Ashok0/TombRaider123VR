@@ -3,6 +3,35 @@
 Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered*
 (`tomb123.exe`), covering all three games.
 
+### Jump parity with TR4/5 (2026-10-30)
+
+The nine October 30 jump differences now have implementations for TR1, TR2
+and TR3: upright first-person preparation, immediate standing/directional and
+running takeoff, matching ledge-auto-jump timing, immediate soft-landing
+recovery, auto-jump through playable fixed/heavy cameras, held-jump preservation
+on camera recovery, retention of Modern Controls during those overrides,
+stable sideways-jump cameras, and armed directional-takeoff protection.
+
+Native animation commands still supply airborne clips, velocity and gravity;
+floor/ceiling checks, hard landings, actual cinematics and third-person takeoff
+timing remain native. The armed backward-to-side misdirection was reproduced
+in all three games' native code before adapting the fix. Existing hands-only
+side/back jump visibility is retained. No INI change is needed.
+
+Validation: Release x64 builds successfully. Read-only checks cover all 140
+installed gameplay animation banks (3,920 takeoff/landing assertions) and
+compression dispatch across 15 binary fixtures / nine unique DLL builds.
+The native direction probe passed 360 cases. The existing movement suite passed
+1,152,967 checks before the expanded jump suite was introduced. That expanded
+self-test crashed in its synthetic camera fixture; further self-test runs were
+stopped at the user's request. Its fixture pointer was corrected but not rerun.
+The final port therefore does not claim a completed self-test suite or headset
+gameplay validation. Build and deployment evidence is in `build/jump-parity-port`.
+
+The [remaining nine gameplay parity corrections](docs/remaining-parity-port.md)
+cover body transitions, TR3 crouch/sprint, water exits, physical pull-ups,
+ledge/holster feedback, costume cuffs and ordinary-jump landings.
+
 This is a port of the [TR4-6 VR mod](https://github.com/Ashok0/TombRaider456VR)
 to the earlier remaster. The stereo architecture is the same one; what is new is
 that Tomb Raider I-III Remastered **ships private PDBs next to the executable**,
@@ -52,8 +81,9 @@ rewrite also has independent maths tests and verifies its newly required
   stereo or paint over distant geometry.
 - First person: the camera rides Lara's animated head instead of the chase
   camera, interpolated so it does not judder against the world, with her head
-  hidden and the rest of her body still visible. Camera clearance checks the
-  rendered eyes against walls while walking or jumping. Push/pull cameras follow
+  hidden and the rest of her body still visible. Base-camera wall collision
+  protects the forward eye offset while walking or jumping; optional tracked
+  collision also limits physical leaning. Push/pull cameras follow
   the block horizontally and Lara's torso vertically, with clearance for headset
   leaning; other interaction animations retract the forward eye offset.
 - Roomscale: leaning and ducking move the viewpoint, turning round turns Lara,
@@ -61,6 +91,33 @@ rewrite also has independent maths tests and verifies its newly required
 - First-person movement smoothing, wall/jump clearance, camera recentering on
   view changes, native Action prompts, and optional tracked HD gun hands.
 - Live IPD and world-scale tuning on the numpad.
+
+The [14-gap TR4/5 feature port](docs/collection-parity.md) adds full-body IK,
+physical holsters, pistol pose continuity, held flares, spatial inventory,
+background controller polling and tracking/roomscale improvements. Full-body
+IK and spatial inventory are enabled by default; physical crouch and camera
+wall collision for physical leaning are opt-in. See the port record for controls, settings and validation.
+
+### Crate clearance and VRIK gait stability (2026-10-28)
+
+Two further fixes are ported from TombRaider456VR to all three games:
+
+- The base first-person camera now stops at crates and walls even with
+  `FirstPersonWallCollision=0`. That setting permits physical head leaning
+  through geometry; it no longer bypasses clearance for the game's forward
+  eye offset. Setting it to `1` also clamps tracked leaning. Movable-block
+  face clearance and the collection's climbing/mount camera handling are retained.
+- With full-body IK and movement stabilization enabled, sidestepping and
+  backpedaling use a stable upper-body reference that travels and turns with
+  Lara. Native torso sway no longer rocks the tracked shoulders/elbows with
+  either empty hands or weapons drawn. Feet keep their stepping animation,
+  real head/hand motion stays live, and native draw/holster arms remain animated.
+
+Production regression tests cover all three games, armed/unarmed paths,
+native/HD palettes, moving roots/cameras, live tracking, repeated stereo draws,
+and camera clearance with either lean policy. Each new regression fails with
+its correction disabled. Release compilation and the locomotion, body-parity
+and core self-tests pass. In-headset confirmation remains pending.
 
 ### First-person Modern Controls enforcement (2026-10-11)
 

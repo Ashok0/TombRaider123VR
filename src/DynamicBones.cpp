@@ -269,7 +269,7 @@ void __fastcall Detour_DrawLaraHD(void* item) {
     g_scopeDraws     = 0;
     g_scopeJointsMin = 0;
     g_scopeJointsMax = 0;
-    g_hDrawLaraHD.Original<Fn_DrawLaraHD>()(item);
+    FirstPersonDrawLara(item,reinterpret_cast<void*>(Base()+L().app),g_hDrawLaraHD.Original<Fn_DrawLaraHD>());
     g_inLara = false;
 
     if (g_frameScopes < kMaxScopes)
@@ -731,7 +731,7 @@ void Report() {
 void DynamicBonesObserveDraw() {
     g_drawIsBody = false;
     g_drawRenderBody = false;
-    if (!g_inLara || FirstPersonShadowPass()) return;
+    if (!Cfg().dynamicBones || !g_inLara || FirstPersonShadowPass()) return;
 
     const RenderState& vs = VidState();
     if (!vs.joints || vs.shader < 0 || vs.shader >= kShaderCount
@@ -814,7 +814,8 @@ void DynamicBonesUpdate() {
     const GameDllLayout* d = GameDllBound();
     const uint64_t base = GameDllBase();
 
-    const bool want = Cfg().enabled && Cfg().dynamicBones && d && base
+    // Physical holsters share this outer draw scope even with chest physics off.
+    const bool want = Cfg().enabled && (Cfg().dynamicBones || Cfg().firstPersonMotionGuns) && d && base
                    && d->drawLaraHD != 0;
 
     if (g_boundDll && (!want || d != g_boundDll || base != g_boundBase)) {
@@ -837,11 +838,12 @@ void DynamicBonesUpdate() {
         }
         if (!g_loggedFirst) {
             g_loggedFirst = true;
-            LogF("dynbones: hooked %S (%s) -- chest physics enabled; draws scoped "
+            LogF("dynbones: hooked %S (%s) -- shared physics/holster draws scoped "
                  "to Lara", d->module, d->name);
         }
     }
 
+    if(!Cfg().dynamicBones) { ResetSolver();return; }
     const int level = AppFlag(drva::app_off::level);
     const uint64_t item = *reinterpret_cast<uint64_t*>(base + d->laraItem);
     if (level != g_level || item != g_item) {

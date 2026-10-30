@@ -61,6 +61,25 @@ void TestCameraClearance() {
             Check(eye.x_pos==body.x_pos && eye.z_pos==body.z_pos,
                   "real floor, ceiling, missing room, static and collision shifts still block the eye");
         }
+        testConfig.firstPersonWallCollision=false;
+        PHD_3DPOS freeEye{74901,2371,30921,0,0,0,0};
+        ClampRenderedHeadToCollision(item,freeEye);
+        Check(freeEye.x_pos==body.x_pos && freeEye.z_pos==body.z_pos,
+              "base camera still stops at geometry with free physical leaning enabled");
+        for(int state:{0,1,2,12,15,3,9,25,26,27,28,29}) for(float lean:{0.f,.2f,.8f}) {
+            Field<int16_t>(off::item_anim_state)=int16_t(state);
+            testViewRight=lean;testViewForward=lean;
+            PHD_3DPOS anchor{74901,2371,30921,0,0,0,0};
+            const auto before=body;
+            ClampRenderedHeadToCollision(item,anchor);
+            Check(anchor.x_pos==body.x_pos && anchor.z_pos==body.z_pos && anchor.y_pos==2371,
+                  "walking jumping and impact retain base clearance independently of HMD lean");
+            Check(!std::memcmp(&before,&body,sizeof(body)),"camera clearance never moves Lara through the obstacle");
+            ClampRenderedHeadToCollision(item,anchor);
+            Check(anchor.x_pos==body.x_pos && anchor.z_pos==body.z_pos,
+                  "physical leaning cannot retract an already safe base camera");
+        }
+        testViewRight=testViewForward=0;
     }
 }
 }

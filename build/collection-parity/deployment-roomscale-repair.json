@@ -1,0 +1,13 @@
+﻿{
+    "deployedAt":  "2026-10-28T17:05:54.7971224-04:00",
+    "source":  "C:\\dev\\TombRaider123VR\\build\\collection-parity\\bin\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "sha256":  "31ACCB7E4B1EAE8B262AD047B86FB867AB581C2E76CEA9A2FAE55E84871DD6CA",
+    "previousSha256":  "F212ADCBE11C00D6B85B4F7ED5A6A66CCE4FA6FBB4AF7F667C0F1D0AE2B256E3",
+    "backup":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll.pre-roomscale-repair-20261028-170554",
+    "iniSha256":  "3E44B99853A4850FE1BC812A6FCE4796F0F3BB62126BD596F913181E3746C0B6",
+    "fix":  "Preserve roomscale ledge allowance through native standing collision; native gravity owns falling",
+    "locomotionChecks":  803311,
+    "binaryAddressChecks":  3677,
+    "headsetVisualValidation":  "Pending"
+}

@@ -1,0 +1,32 @@
+﻿{
+    "deployedAt":  "2026-10-28T22:44:51.8741404-04:00",
+    "source":  "C:\\dev\\TombRaider123VR\\build\\remaining-parity\\bin\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "sha256":  "72B2FC3F0944CD029762D48F9B924B96515D53AC86C0D2584F5A316FF470D335",
+    "previousSha256":  "760B34C50AB2B82EC26F386CF20B9BAB5F50F85813D414CB00280D37839E8BD5",
+    "backup":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll.pre-remaining-parity-20261028-224451",
+    "iniSha256":  "3E44B99853A4850FE1BC812A6FCE4796F0F3BB62126BD596F913181E3746C0B6",
+    "fixes":  [
+                  "Mount/landing visibility recovery",
+                  "TR3 crouch/crawl hands-only masking",
+                  "Per-game water-exit camera/grips",
+                  "TR3 sprint continuity",
+                  "Ledge pull gesture robustness",
+                  "Large ledge-catch feedback",
+                  "Sustained holster proximity feedback",
+                  "Blended costume cuff preservation",
+                  "Ordinary-jump landing camera/torso stabilization"
+              ],
+    "locomotionChecks":  1146402,
+    "trackingChecks":  67387,
+    "bodyChecks":  15654,
+    "inventoryChecks":  1888,
+    "physicsRenderChecks":  1704,
+    "binaryAddressChecks":  3677,
+    "negativeControls":  "10 of 10 caught their intended regression",
+    "nativeAnimationBanks":  140,
+    "coreTests":  "Pass (0 failures)",
+    "remainingAuditedGameplayParityDifferences":  0,
+    "audit":  "C:\\dev\\TombRaider123VR\\docs\\remaining-parity-port.md",
+    "headsetVisualValidation":  "Pending"
+}

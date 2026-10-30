@@ -18,6 +18,14 @@
 #include "../src/Gamepad.cpp"
 
 namespace tr {
+int CurrentGame() { return g_boundDll ? g_boundDll->module[4]-L'1' : -1; }
+bool testInventoryScene=false;
+bool InventorySceneDrawing() { return testInventoryScene; }
+bool InventorySceneReady() { return false; }
+bool testFlareReady=false;
+bool CollectionFlareReady() { return testFlareReady; }
+bool VRSystem::LevelHeadPose(vr::HmdMatrix34_t&) const { return false; }
+Affine VRSystem::AnchoredEyeView(Eye,const vr::HmdMatrix34_t&) const { return Affine::Identity(); }
 Config testConfig;
 VRSystem testVR;
 RenderState testRenderState{};
@@ -25,6 +33,7 @@ RenderState& VidState() { return testRenderState; }
 int testWater=0;
 int testConfigFlags=0;
 int testLevelType=0;
+int testInventory=0,testLevel=0;
 bool testPoseAvailable=true;
 int testMissingHand=-1;
 vr::HmdMatrix34_t testControllerPose[2]{};
@@ -38,6 +47,7 @@ bool VRSystem::ControllerHeightBelowHead(int hand,float& down) const {
 }
 int testHapticShots[2]{};
 int testLedgeCatches=0;
+void VRSystem::HolsterHoverHaptic(int,bool) {}
 void VRSystem::LedgeCatchHaptic() { ++testLedgeCatches; }
 void VRSystem::GunShotHaptic(int hand) { if (hand>=0 && hand<2) ++testHapticShots[hand]; }
 float testViewRight=0, testViewForward=0, testViewRise=0, testHeadPitch=0;
@@ -47,6 +57,7 @@ const Config& Cfg() { return testConfig; }
 VRSystem& VR() { return testVR; }
 int LaraWaterStatus() { return testWater; }
 int32_t AppFlag(uint32_t offset) { return offset==drva::app_off::cfg_flags ? testConfigFlags :
+    offset==drva::app_off::InInv ? testInventory : offset==drva::app_off::level ? testLevel :
     offset==drva::app_off::level_type ? testLevelType : 0; }
 void SetAppFlagBits(uint32_t offset,uint32_t mask,uint32_t value) {
     if (offset==drva::app_off::cfg_flags) testConfigFlags=int((uint32_t(testConfigFlags)&~mask)|(value&mask));
@@ -57,12 +68,15 @@ bool testAllowRecenter=false;
 int testRecenterCalls=0;
 float VRSystem::HeadYawRadians() const { return testHeadYaw; }
 void VRSystem::PivotHeadFloorOffset(float turn) { ++testPivotCount; testPivotTurn=turn; }
-void VRSystem::HeadFloorOffset(float& x,float& z) const { x=z=0; }
+float testFloorRight=0,testFloorForward=0;
+void VRSystem::HeadFloorOffset(float& x,float& z) const { x=testFloorRight;z=testFloorForward; }
 // Unrelated first-person entry points must never be reached by these tests.
 float VRSystem::HeadPitchRadians() const { return testHeadPitch; }
+void VRSystem::RecenterView() { RecenterHead(); }
 void VRSystem::RecenterHead() { if (!testAllowRecenter) std::abort(); ++testRecenterCalls; }
 void VRSystem::FirstPersonViewOffset(float& x,float& z) const { x=testViewRight; z=testViewForward; }
 float VRSystem::HeadVerticalOffset() const { return testViewRise; }
+float VRSystem::FirstPersonPostureDrop() const { return -testViewRise; }
 void VRSystem::ConsumeHeadFloorOffset(float x,float z) { if (x!=0 || z!=0) std::abort(); }
 bool VRSystem::ControllerPose(int hand,vr::HmdMatrix34_t& pose) const {
     pose=testControllerPose[hand]; return testPoseAvailable && testMissingHand!=hand;
@@ -160,6 +174,7 @@ void __cdecl NativeAboveWater(uint8_t* target,void*) {
     }
 }
 void Reset(int state,Vec stick,bool smooth,float heading=0) {
+    g_nativeJumpCompression=nullptr;
     std::memset(item,0,sizeof(item));
     std::memset(module,0,sizeof(module));
     dll={}; dll.module=L"tomb1.dll"; dll.laraItem=8; dll.camera=32; dll.analogInput=160;
@@ -171,6 +186,12 @@ void Reset(int state,Vec stick,bool smooth,float heading=0) {
     Field<int16_t>(off::item_goal_state)=int16_t(state);
     Field<int16_t>(off::item_speed)=10;
     testConfig=Config{};
+    testConfig.firstPersonFullBodyIK=false; // Legacy movement fixtures; body fixtures opt in explicitly.
+    testInventory=0;testLevel=0;testInventoryScene=false;g_inventoryScenePoseValid=false;
+    ResetBodyFollower();g_autoBodyCalibration={};ResetPhysicalHolsters();
+    g_armedMenuHold=false;g_worldInventory.Reset();testFlareReady=false;
+    testFloorRight=testFloorForward=0;
+    testConfig.firstPersonWallCollision=true; // Legacy clearance fixtures explicitly exercise opt-in collision.
     testConfig.enabled=true;
     testConfig.firstPersonMovementStabilization=smooth;
     testConfig.firstPersonRoomscaleMove=false;
@@ -338,6 +359,11 @@ void TestResponsiveEntry() {
 #include "arm_visibility_selftest.h"
 #include "firstperson_ik_selftest.h"
 #include "ik_collection_parity_selftest.h"
+#include "world_inventory_selftest.h"
+#include "collection_integration_selftest.h"
+#include "directional_jump_selftest.h"
+#include "remaining_parity_selftest.h"
+#include "roomscale_fall_selftest.h"
 #include "tracked_shadow_selftest.h"
 #include "monkey_shadow_selftest.h"
 #include "block_camera_selftest.h"
@@ -347,8 +373,29 @@ void TestResponsiveEntry() {
 #include "auto_jump_selftest.h"
 #include "ledge_catch_selftest.h"
 #include "crouch_selftest.h"
+#include "jump_port_selftest.h"
 
 int main() {
+    TestJumpPort();
+    Reset(2,{0,0},false);
+    for(bool firstPerson:{false,true}) {
+        g_active=firstPerson;testInventory=0;
+        PHD_3DPOS gameplay{};gameplay.x_pos=12345;gameplay.y_pos=-900;gameplay.z_pos=6789;
+        gameplay.x_rot=345;gameplay.y_rot=-1234;
+        UpdateInventorySceneCamera(gameplay);
+        Check(InventorySceneCameraReady(),"both gameplay camera modes can supply paused scenery");
+        PHD_3DPOS menu{};menu.y_pos=-256;menu.z_pos=1286;
+        const auto nativeMenu=menu;testInventory=1;testInventoryScene=false;
+        UpdateInventorySceneCamera(menu);
+        Check(!std::memcmp(&menu,&nativeMenu,sizeof(menu)),"ring camera is unchanged outside background drawing");
+        testInventoryScene=true;UpdateInventorySceneCamera(menu);
+        Check(!std::memcmp(&menu,&gameplay,sizeof(menu)),"scenery uses frozen gameplay pose in first AND third person");
+        testInventoryScene=false;menu=nativeMenu;UpdateInventorySceneCamera(menu);
+        testInventoryScene=true;UpdateInventorySceneCamera(menu);
+        Check(!std::memcmp(&menu,&gameplay,sizeof(menu)),"native inventory updates cannot overwrite gameplay snapshot");
+        ++testLevel;menu=nativeMenu;UpdateInventorySceneCamera(menu);
+        Check(!InventorySceneCameraReady() && !std::memcmp(&menu,&nativeMenu,sizeof(menu)),"old level camera cannot render new level scenery");
+    }
     const struct { Vec stick; int gait; } directions[]={
         {{0,1},1}, {{0,-1},16}, {{1,0},21}, {{-1,0},22}};
     for (bool smooth:{false,true}) for (float heading:{0.f,.7f,2.8f}) {
@@ -429,6 +476,7 @@ int main() {
         }
     }
     TestCrouchParity();
+    TestDirectionalJumps();
     TestLedgePullGesture();
     TestJumpPriority();
     TestAutomaticJump();
@@ -445,11 +493,15 @@ int main() {
     TestMountCameraHandoff();
     TestFirstPersonParity();
     TestCollectionIKParity();
+    TestWorldInventory();
+    TestCollectionIntegration();
+    TestRoomscaleNativeFall();
     TestFirstPersonControlMode();
     TestMonkeyControls();
     TestShadowPlacement();
     TestTrackedShadows();
     TestPhysicalSwitch();
+    TestRemainingParity();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }

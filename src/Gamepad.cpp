@@ -1,4 +1,6 @@
 #include "Gamepad.h"
+#include "WorldInventory.h"
+#include "CollectionParity.h"
 #include "Engine.h"
 #include "GameDll.h"
 #include "Config.h"
@@ -59,6 +61,50 @@ bool               g_loggedOnce = false;
 int                g_lastWater  = -2;
 bool               g_viewToggleHeld = false;
 
+inventory::Session g_worldInventory;
+vr::HmdMatrix34_t g_inventoryAnchor{};
+bool g_armedMenuHold=false;
+void ApplyArmedMenu(XGamepad& pad) {
+    const bool down=(pad.wButtons&XB_BACK)!=0;
+    const auto* dll=GameDllBound();const auto base=GameDllBase();
+    if(!down || !dll || !base || !Cfg().enabled || !Cfg().gamepadEnabled || !VR().active() ||
+       InInventory() || InTitle() || InCutscene() || AppFlag(drva::app_off::photo_mode)) {
+        g_armedMenuHold=false;return;
+    }
+    const int status=*reinterpret_cast<const int16_t*>(base+dll->lara+2);
+    const int gun=*reinterpret_cast<const int16_t*>(base+dll->lara+4);
+    const int lastGun=dll->module[4]==L'1' ? 4 : dll->module[4]==L'2' ? 7 : 8;
+    g_armedMenuHold=g_armedMenuHold || (gun>=1 && gun<=lastGun && status>=2 && status<=4);
+    // TR1-3 have no selectable ammunition variants. Match the collection's
+    // armed-X behavior by consuming the whole press, including holster end.
+    if(g_armedMenuHold) { pad.wButtons&=uint16_t(~XB_BACK);g_worldInventory.pending=false; }
+}
+bool WorldInventoryAllowed() {
+    const int game=CurrentGame();
+    return Cfg().enabled && Cfg().gamepadEnabled && Cfg().worldInventory &&
+        !Cfg().monoTracking && VR().active() && VR().poseValid() &&
+        (game>=0 && game<3) && !InTitle() && !InCutscene() &&
+        !AppFlag(drva::app_off::photo_mode);
+}
+
+bool ApplyWorldInventory(XGamepad& pad,bool& shifted) {
+    inventory::Input in{pad.wButtons,pad.sThumbLX/32767.f,pad.sThumbLY/32767.f,
+        pad.bLeftTrigger,pad.bRightTrigger,shifted};
+    bool owned=false;
+    if(g_worldInventory.Update(in,WorldInventoryAllowed(),InInventory(),CurrentGame(),
+        GetTickCount64(),Cfg().dpadShiftDeadzone,owned)) {
+        VR().LevelHeadPose(g_inventoryAnchor);
+        Log("inventory: unarmed X prepared level eye-height anchor with horizontal facing");
+    }
+    if(owned) {
+        pad.wButtons=in.buttons;
+        pad.sThumbLX=pad.sThumbLY=pad.sThumbRX=pad.sThumbRY=0;
+        pad.bLeftTrigger=pad.bRightTrigger=0;
+        shifted=true;
+    }
+    return owned;
+}
+
 int16_t Axis(float v) {
     if (v >  1.0f) v =  1.0f;
     if (v < -1.0f) v = -1.0f;
@@ -102,7 +148,7 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
 
     const VRSystem::HandState& L = h[0];
     const VRSystem::HandState& R = h[1];
-    gripAction = gameplay && L.grip > 0.5f && R.grip > 0.5f;
+    gripAction = false;
 
     uint16_t b = 0;
     if (R.btnLower)   b |= XB_A;               // Jump
@@ -124,8 +170,11 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
     // A plain R3 click -- held with the stick centred -- still emits
     // RIGHT_THUMB exactly as before, so whatever the game binds it to survives.
     const bool photoChord = L.stickClick && R.stickClick;
+    const unsigned holsterGrips=FirstPersonHolsterGrips(L.grip>.5f,R.grip>.5f,L.valid,R.valid,
+        gameplay && !photoChord && !L.btnUpper);
+    gripAction=gameplay && !holsterGrips && L.grip>.5f && R.grip>.5f;
     const bool switchGrip = FirstPersonSwitchGrip(R.grip > 0.5f,
-        gameplay && !gripAction && !photoChord && !L.btnUpper && !L.btnLower &&
+        gameplay && !(holsterGrips&2) && !gripAction && !photoChord && !L.btnUpper && !L.btnLower &&
         L.trigger <= 0.12f && R.trigger <= 0.12f);
     uint16_t dpad = 0;
     if (Cfg().dpadShift && R.stickClick && !photoChord) {
@@ -149,11 +198,11 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
 
     // The two-grip gameplay chord is a second Action button. Do not send its
     // constituent Duck/Walk buttons, or they can interrupt a block push.
-    if (!gripAction && L.grip > 0.5f) b |= XB_LEFT_SHOULDER;
+    if ((!gripAction && !(holsterGrips&1) && L.grip > 0.5f) || FirstPersonPhysicalDuck()) b |= XB_LEFT_SHOULDER;
 
     // Walk modifier. X is what the game binds Walk to; RIGHT_SHOULDER also
     // keeps the optional RT+RB pitch chord reachable.
-    if (!gripAction && !switchGrip && R.grip > 0.5f)
+    if (!gripAction && !switchGrip && !(holsterGrips&2) && R.grip > 0.5f)
         b |= static_cast<uint16_t>(XB_X | XB_RIGHT_SHOULDER);
 
     out.Gamepad.wButtons      = b;
@@ -226,6 +275,10 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
                 mine.Gamepad.sThumbRY = real.Gamepad.sThumbRY;
         }
     }
+
+    ApplyArmedMenu(mine.Gamepad);
+    const bool inventoryOwned=ApplyWorldInventory(mine.Gamepad,shifted);
+    if(inventoryOwned) { *state=mine;return ERROR_SUCCESS; }
 
     // Photo Mode's native controller binding is L3+R3. Leave the buttons intact
     // and only neutralise the axes while both are clicked, so stick drift cannot
@@ -336,6 +389,19 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
 
 } // namespace
 
+bool WorldInventoryActive() {
+    g_worldInventory.Sync(WorldInventoryAllowed(),InInventory(),CurrentGame(),GetTickCount64());
+    return g_worldInventory.open;
+}
+
+Affine WorldInventoryEyeView(Eye eye) {
+    return VR().AnchoredEyeView(eye,g_inventoryAnchor);
+}
+
+void WorldInventoryRecenter() {
+    if(g_worldInventory.pending || g_worldInventory.open) VR().LevelHeadPose(g_inventoryAnchor);
+}
+
 void GamepadUpdate() {
     FirstPersonControlModeUpdate();
     if (!Cfg().gamepadEnabled) return;
@@ -385,6 +451,8 @@ void GamepadShutdown() {
     g_original = nullptr;
     g_installed = false;
     g_viewToggleHeld = false;
+    g_armedMenuHold=false;
+    g_worldInventory.Reset();
 }
 
 } // namespace tr

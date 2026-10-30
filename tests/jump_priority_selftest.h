@@ -83,7 +83,10 @@ void TestStopJumpHandoff() {
     Check(g_groundJump.pending && g_groundJump.held,"third-person eye draws preserve both tap and press edge");
     *Ptr<int32_t>(dll.camera+off::camera_type)=kCamFixed;
     UpdateGroundJumpCameraContext(item);
-    Check(!g_groundJump.pending && g_groundJump.held,"scripted camera cancels buffer without inventing another A press");
+    Check(g_groundJump.pending && g_groundJump.held,"playable fixed camera preserves the jump request");
+    *Ptr<int32_t>(dll.camera+off::camera_type)=kCamCinematic;
+    UpdateGroundJumpCameraContext(item);
+    Check(!g_groundJump.pending && g_groundJump.held,"cinematic camera cancels buffer without inventing another A press");
 }
 void TestJumpPriority() {
     TestStopJumpHandoff();
@@ -140,7 +143,7 @@ void TestJumpPriority() {
         if (reason==8) *Ptr<uint16_t>(dll.lara+60)=0x2000;
         if (reason==9) testConfig.enabled=false;
         if (reason==10) g_shifted=true;
-        if (reason==11) *Ptr<int32_t>(dll.camera+off::camera_type)=kCamFixed;
+        if (reason==11) *Ptr<int32_t>(dll.camera+off::camera_type)=kCamCinematic;
         if (reason==12) *Ptr<uint32_t>(dll.input)=0x100;
         if (reason==13) *Ptr<uint32_t>(dll.input)=0x1000;
         if (reason==14) dll.anims=0;

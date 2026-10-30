@@ -92,6 +92,8 @@
 #include "StereoRenderer.h"
 #include "VideoPanel.h"
 #include "Gamepad.h"
+#include "CollectionParity.h"
+#include "InventoryProjection.h"
 #include "Callsite.h"
 #include "GameDll.h"
 #include "DynamicBones.h"
@@ -732,7 +734,39 @@ void __cdecl Detour_validate_draw() {
         glEnable(GL_SCISSOR_TEST);
     }
 
-    // The ortho-3D layer (the inventory ring), left with the engine's own ortho
+    // A spatial inventory is one native layout, including perspective meshes,
+    // orthographic meshes and flat text. Normalize all three into the same
+    // anchor before applying the HMD projection. Gameplay background draws are
+    // excluded and retain their ordinary world camera.
+    if (VrLive() && VR().poseValid() && !Cfg().monoTracking &&
+        TargetIsBackbuffer() && WorldInventoryActive() && !InventorySceneDrawing()) {
+        mat4* native = VidState().proj;
+        if (native) {
+            const mat4 saved=*native;
+            const float scale=LiveWorldUnitsPerMetre();
+            const float depth=(Cfg().hudDepthMetres>0 ? Cfg().hudDepthMetres : 4.0f)*scale;
+            const float width=depth*std::tan(Cfg().hudSizeDegrees*3.14159265358979f/360.0f);
+            const float aspect=ScreenHeight()>0 ? float(ScreenWidth())/ScreenHeight() : 1.7778f;
+            const float height=(Cfg().hudFlipY ? -1.0f : 1.0f)*width/(aspect>0 ? aspect : 1.7778f);
+            const Eye eye=g_currentEye==0 ? Eye::Left : Eye::Right;
+            mat4 projection{};
+            VR().EyeProjection(eye,0.01f*scale,std::max(64.0f*scale,depth*16.0f),projection);
+            const mat4 placement=inventory::MenuToAnchor(saved,worldPass && !IsOrthoProjection(saved),
+                worldPass,depth,width,height,0.5f*Cfg().ortho3DSlabMetres*scale);
+            *native=Mul4(projection,Mul4(AffineToMat4(WorldInventoryEyeView(eye)),placement));
+            VidState().consts|=kProj;
+            g_hValidateDraw.Original<Fn_validate_draw>()();
+            *native=saved;
+            static bool logged=false;
+            if(!logged) {
+                Log("inventory: shared spatial projection active for native perspective ring and labels");
+                logged=true;
+            }
+            return;
+        }
+    }
+
+    // The ortho-3D layer, left with the engine's own ortho
     // projection by the gate above. It still needs stereo -- an ortho matrix is
     // identical in both eyes, so without help it double-visions exactly like an
     // untouched HUD -- but it must NOT go through the HUD's panel, which
@@ -745,7 +779,7 @@ void __cdecl Detour_validate_draw() {
             const Eye oe = (g_currentEye == 0) ? Eye::Left : Eye::Right;
             std::memcpy(&g_savedOrtho3D, op, sizeof(mat4));
 
-            if (Cfg().ortho3DLockToHead) {
+            if (Cfg().ortho3DLockToHead && !WorldInventoryActive()) {
                 // Ortho output has w == 1 and no perspective divide, so moving
                 // m[12] is a pure convergence shift: it changes where the layer
                 // fuses and nothing else. Every relative x, y and z survives it
@@ -792,7 +826,7 @@ void __cdecl Detour_validate_draw() {
                 L.m[14] = -Zc;
                 L.m[15] = 1.0f;
 
-                const mat4 E = AffineToMat4(VR().EyeView(oe));
+                const mat4 E = AffineToMat4(WorldInventoryActive() && !InventorySceneDrawing() ? WorldInventoryEyeView(oe) : VR().EyeView(oe));
                 *op = Mul4(Ppersp, Mul4(E, Mul4(L, g_savedOrtho3D)));
             }
 
@@ -817,7 +851,7 @@ void __cdecl Detour_validate_draw() {
             const Eye hudEye = (g_currentEye == 0) ? Eye::Left : Eye::Right;
             std::memcpy(&g_savedHud, hudProj, sizeof(mat4));
 
-            if (Cfg().hudLockToHead) {
+            if (Cfg().hudLockToHead && !WorldInventoryActive()) {
                 // Screen-locked: a flat per-eye NDC shift. Ortho output has
                 // w == 1, so ndc.x moves with m[12] directly.
                 hudProj->m[12] += VR().HudNdcShiftX(hudEye, Cfg().hudDepthMetres);
@@ -859,7 +893,7 @@ void __cdecl Detour_validate_draw() {
                 L.m[14] = -Z;
                 L.m[15] = 1.0f;
 
-                const mat4 E = AffineToMat4(VR().EyeView(hudEye));
+                const mat4 E = AffineToMat4(WorldInventoryActive() && !InventorySceneDrawing() ? WorldInventoryEyeView(hudEye) : VR().EyeView(hudEye));
                 *hudProj = Mul4(Ppersp, Mul4(E, Mul4(L, g_savedHud)));
             }
 
@@ -905,6 +939,7 @@ void __cdecl Detour_validate_draw() {
     // translation is hers, not the player's -- see Config.h.
     Affine eyeXform = VR().EyeView(
         eye, !FirstPersonActive() || Cfg().firstPersonHeadTranslation);
+    if(WorldInventoryActive() && !InventorySceneDrawing()) eyeXform=WorldInventoryEyeView(eye);
     if (skyInfinity) {
         // Rotation only. IPD and head translation are what give the dome a
         // finite stereo depth; looking around is the rotation, and that stays.
@@ -1358,6 +1393,7 @@ void __cdecl Detour_ogl_present() {
     PortalCullUpdate();
     SkyUpdate();
     FirstPersonUpdate();
+    CollectionUpdate();
 
     // Periodic health report, in deltas. A one-shot report at a fixed frame only
     // ever samples the menus, where almost everything legitimately is 2D.
@@ -1590,6 +1626,7 @@ bool InstallHooks() {
 }
 
 void RemoveHooks() {
+    CollectionShutdown();
     DynamicBonesShutdown();
     BoneSkinShutdown();
     EnhancedEffectsShutdown();

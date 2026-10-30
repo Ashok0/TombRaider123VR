@@ -1,0 +1,6 @@
+locomotion_selftest.cpp
+C:\dev\TombRaider123VR\src\LocomotionMath.h(98): warning C4100: 'game': unreferenced parameter
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: sprint keeps heading and body fitting only in TR3

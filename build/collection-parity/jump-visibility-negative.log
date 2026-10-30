@@ -1,0 +1,5 @@
+locomotion_selftest.cpp
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: side/back jump hides body and forearms then restores them on exit

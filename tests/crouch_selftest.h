@@ -128,13 +128,13 @@ void TestCrouchParity() {
     g_hDrawCreatureHD.m_trampoline=reinterpret_cast<void*>(&NativeCrouchHands);
     crouchDrawCalls=crouchHandMask=0;expectCrouchModern=false;
     Detour_CrouchDraw(item);
-    Check(crouchDrawCalls==3 && crouchHandMask==0x3600 && (testConfigFlags&0x83)==0x83,
-          "forearms and both tracked hands draw and native flag changes survive");
+    Check(crouchDrawCalls==2 && crouchHandMask==0x2400 && (testConfigFlags&0x83)==0x83,
+          "crouch hides forearms, keeps both tracked hands and preserves native flag changes");
     dll.renderPass=212;*Ptr<int32_t>(dll.renderPass)=4;expectCrouchModern=true;
-    Detour_CrouchDraw(item);Check(crouchDrawCalls==4,"native shadow pass bypasses hand splitting and proximity override");
+    Detour_CrouchDraw(item);Check(crouchDrawCalls==3,"native shadow pass bypasses hand splitting and proximity override");
     *Ptr<int32_t>(dll.renderPass)=0;
     *Ptr<int16_t>(dll.lara+2)=0;SetMeshVisibility(true,false,true);
-    Check(Field<uint32_t>(off::item_mesh_bits)==0,"unarmed crouch retains existing body hiding");
+    Check(Field<uint32_t>(off::item_mesh_bits)==0x3fffu,"tracked unarmed crouch retains skeleton for draw-local hands-only masking");
     *Ptr<int16_t>(dll.lara+2)=4;SetMeshVisibility(true,false,true);
     Check(Field<uint32_t>(off::item_mesh_bits)==0x3fffu,"equipping again restores body and arms from full saved mesh mask");
     SetMeshVisibility(false,false);

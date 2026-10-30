@@ -235,6 +235,15 @@ void LoadConfig(const wchar_t* ini) {
                                                 g_cfg.firstPersonYawFromLara, ini);
     g_cfg.firstPersonHeadTranslation = GetBool(L"FirstPersonHeadTranslation",
                                                 g_cfg.firstPersonHeadTranslation, ini);
+    g_cfg.firstPersonFullBodyIK = GetBool(L"FirstPersonFullBodyIK", g_cfg.firstPersonFullBodyIK, ini);
+    g_cfg.firstPersonBodyYawSlackDegrees = GetFloat(L"FirstPersonBodyYawSlackDegrees", g_cfg.firstPersonBodyYawSlackDegrees, ini);
+    g_cfg.firstPersonBodyLeanRadiusMetres = GetFloat(L"FirstPersonBodyLeanRadiusMetres", g_cfg.firstPersonBodyLeanRadiusMetres, ini);
+    g_cfg.firstPersonBodyFollowSpeedMetres = GetFloat(L"FirstPersonBodyFollowSpeedMetres", g_cfg.firstPersonBodyFollowSpeedMetres, ini);
+    g_cfg.firstPersonBodyHandYawWeight = GetFloat(L"FirstPersonBodyHandYawWeight", g_cfg.firstPersonBodyHandYawWeight, ini);
+    g_cfg.firstPersonBodyScale = GetFloat(L"FirstPersonBodyScale", g_cfg.firstPersonBodyScale, ini);
+    g_cfg.firstPersonPhysicalCrouch = GetBool(L"FirstPersonPhysicalCrouch", g_cfg.firstPersonPhysicalCrouch, ini);
+    g_cfg.firstPersonWallCollision = GetBool(L"FirstPersonWallCollision", g_cfg.firstPersonWallCollision, ini);
+    g_cfg.worldInventory = GetBool(L"WorldInventory", g_cfg.worldInventory, ini);
     g_cfg.firstPersonUnarmedIK = GetBool(L"FirstPersonUnarmedIK", g_cfg.firstPersonUnarmedIK, ini);
     g_cfg.firstPersonHideHead        = GetBool(L"FirstPersonHideHead",
                                                 g_cfg.firstPersonHideHead, ini);

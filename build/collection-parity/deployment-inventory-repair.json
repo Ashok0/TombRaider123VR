@@ -1,0 +1,16 @@
+﻿{
+    "deployedAt":  "2026-10-28T16:39:18.9269927-04:00",
+    "source":  "C:\\dev\\TombRaider123VR\\build\\collection-parity\\bin\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "sha256":  "F212ADCBE11C00D6B85B4F7ED5A6A66CCE4FA6FBB4AF7F667C0F1D0AE2B256E3",
+    "previousSha256":  "4B7A0327157B1F2ADCBB4DBC44BB1658E0BED7EBF93AB51454CD437551BC9780",
+    "backup":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll.pre-inventory-repair-20261028-163918",
+    "iniSha256":  "3E44B99853A4850FE1BC812A6FCE4796F0F3BB62126BD596F913181E3746C0B6",
+    "fixes":  [
+                  "Submit background without ending frame",
+                  "Restore native inventory camera without clearing background",
+                  "Shared ring and label spatial projection",
+                  "Preserve gameplay background camera in both view modes"
+              ],
+    "headsetVisualValidation":  "Pending"
+}

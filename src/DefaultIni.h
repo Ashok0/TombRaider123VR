@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 38287 bytes, 790 lines.
+// Source: TombRaiderVR.ini, 38639 bytes, 801 lines.
 #pragma once
 
 namespace tr {
@@ -808,6 +808,18 @@ FirstPersonAimPitchDegrees=0
 FirstPersonHandOffsetX=0
 FirstPersonHandOffsetY=0
 FirstPersonHandOffsetZ=0
+
+; TR4/5 collection parity: full-body fitting and optional physical duck (TR3).
+FirstPersonFullBodyIK=1
+FirstPersonBodyYawSlackDegrees=45
+FirstPersonBodyLeanRadiusMetres=0.15
+FirstPersonBodyFollowSpeedMetres=0.9
+FirstPersonBodyHandYawWeight=0.15
+FirstPersonBodyScale=0
+FirstPersonPhysicalCrouch=0
+; Base eye clearance always applies; 0 permits physical leaning through walls, 1 also clamps leaning.
+FirstPersonWallCollision=0
+WorldInventory=1
 )INI";
 }
 

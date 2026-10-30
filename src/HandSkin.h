@@ -22,10 +22,15 @@ inline bool Patch(std::string& vertex, std::string& fragment) {
         "\n    ivec3 handIndex = ivec3(j.xyz);\n"
         "    uint bodyBits = uint(uVisibleBody.x) | (uint(uVisibleBody.y) << 16u);\n"
         "    vVisibleBodyWeight = 0.0;\n"
+        "    vBodyWristWeight = 0.0;\n"
+        "    uint seamBits = uint(uBodyWristSeams.x) | (uint(uBodyWristSeams.y) << 16u);\n"
         "    for (int b = 0; b < 3; ++b) {\n"
         "        if (handIndex[b] >= 0 && handIndex[b] < 32 &&\n"
         "            (bodyBits & (1u << uint(handIndex[b]))) != 0u)\n"
         "            vVisibleBodyWeight += w[b];\n"
+        "        if (handIndex[b] >= 0 && handIndex[b] < 32 &&\n"
+        "            (seamBits & (1u << uint(handIndex[b]))) != 0u)\n"
+        "            vBodyWristWeight += w[b];\n"
         "    }\n"
         "    if (uTrackedShadow.w > 0.5) {\n"
         "        uint wristBits = uint(uTrackedShadow.x) | (uint(uTrackedShadow.y) << 16u);\n"
@@ -52,12 +57,13 @@ inline bool Patch(std::string& vertex, std::string& fragment) {
     vertex.insert(vertex.find(main),
         "uniform vec4 uTrackedHand;\nout float vTrackedHandWeight;\n"
         "uniform vec4 uTrackedShadow;\n"
-        "uniform vec4 uVisibleBody;\nout float vVisibleBodyWeight;\n");
+        "uniform vec4 uVisibleBody;\nout float vVisibleBodyWeight;\n"
+        "uniform vec4 uBodyWristSeams;\nout float vBodyWristWeight;\n");
     fragment.insert(brace+1,
         "\n    if (uTrackedHand.w > 0.5 && vTrackedHandWeight < 0.5) discard;\n"
-        "    if (uVisibleBody.w > 0.5 && vVisibleBodyWeight < 0.5) discard;\n");
+        "    if (uVisibleBody.w > 0.5 && vVisibleBodyWeight < 0.5 && !(vBodyWristWeight > 0.0 && vVisibleBodyWeight > 0.0)) discard;\n");
     fragment.insert(fm,"uniform vec4 uTrackedHand;\nin float vTrackedHandWeight;\n"
-        "uniform vec4 uVisibleBody;\nin float vVisibleBodyWeight;\n");
+        "uniform vec4 uVisibleBody;\nin float vVisibleBodyWeight;\nin float vBodyWristWeight;\n");
     return true;
 }
 } // namespace tr::handskin

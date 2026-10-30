@@ -267,6 +267,8 @@ struct ProgramState {
     bool handLive = false;
     bool handLogged = false;
     GLint locVisibleBody = -2;
+    GLint locWristSeams = -2;
+    bool wristSeamsLive = false;
     bool bodyMaskLive = false;
     GLint locShadow = -2;
     bool shadowLive = false;
@@ -998,6 +1000,7 @@ void BoneSkinAfterValidate(bool jointApplied) {
                 p.locHand=gl::GetUniformLocation(program,"uTrackedHand");
                 p.locJoints=gl::GetUniformLocation(program,"uJoints[0]");
                 p.locVisibleBody=gl::GetUniformLocation(program,"uVisibleBody");
+                p.locWristSeams=gl::GetUniformLocation(program,"uBodyWristSeams");
                 p.locShadow=gl::GetUniformLocation(program,"uTrackedShadow");
             }
             if(p.locShadow>=0) {
@@ -1034,6 +1037,14 @@ void BoneSkinAfterValidate(bool jointApplied) {
                     // The next normal draw must restore the engine's palette,
                     // including when it reuses this same GL program.
                     VidState().consts|=kJoints;
+                }
+            }
+            if(p.locWristSeams>=0) {
+                const uint32_t seams=!shadow && bodyPalette && !handPalette ? FirstPersonBodyWristSeamMask() : 0;
+                if(seams || p.wristSeamsLive) {
+                    const float mask[4]={float(seams&0xffffu),float(seams>>16),0,0};
+                    gl::Uniform4fv(p.locWristSeams,1,mask);
+                    p.wristSeamsLive=seams!=0;
                 }
             }
             if (p.locVisibleBody>=0) {

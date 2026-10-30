@@ -1,0 +1,9 @@
+physics_selftest.cpp
+GL.cpp
+InlineHook.cpp
+Log.cpp
+Generating Code...
+Landing peaks: 60Hz 13.553, 90Hz 13.235, 120Hz 13.049
+effects: 33 real vertex sources, 46 real fragment sources compiled
+C:\dev\TombRaider123VR\tests\..\PDB\tomb123.exe: 8 skin sources, 288 native hand shader pairs compiled
+FAIL: body wrist exception preserves mixed costume cuff pixels

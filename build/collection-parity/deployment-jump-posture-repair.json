@@ -1,0 +1,27 @@
+﻿{
+    "deployedAt":  "2026-10-28T20:27:49.1446398-04:00",
+    "source":  "C:\\dev\\TombRaider123VR\\build\\collection-parity\\bin\\TombRaiderVR.dll",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "sha256":  "760B34C50AB2B82EC26F386CF20B9BAB5F50F85813D414CB00280D37839E8BD5",
+    "previousSha256":  "31ACCB7E4B1EAE8B262AD047B86FB867AB581C2E76CEA9A2FAE55E84871DD6CA",
+    "backup":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll.pre-jump-posture-repair-20261028-202748",
+    "iniSha256":  "3E44B99853A4850FE1BC812A6FCE4796F0F3BB62126BD596F913181E3746C0B6",
+    "fixes":  [
+                  "Directional jump analog guard",
+                  "Directional jump HD body/hair visibility",
+                  "Head-pitch posture compensation",
+                  "Side/back arm stability",
+                  "Left-turn landing classification",
+                  "Backjump collision-root camera arc",
+                  "Base-camera crate/wall clearance"
+              ],
+    "locomotionChecks":  1145888,
+    "trackingChecks":  67387,
+    "bodyChecks":  15654,
+    "inventoryChecks":  1888,
+    "binaryAddressChecks":  3677,
+    "coreTests":  "Pass (0 failures)",
+    "remainingGameplayParityDifferences":  9,
+    "audit":  "C:\\dev\\TombRaider123VR\\docs\\collection-gap-audit-20261028.md",
+    "headsetVisualValidation":  "Pending"
+}

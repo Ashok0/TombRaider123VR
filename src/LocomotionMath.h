@@ -33,7 +33,8 @@ inline bool IsHardLanding(int state,int animation) {
 // Verified against all installed TR1/2/3 PDP banks. TR1 animation 99 is
 // a water-exit clip (state 58), not the TR2/3 stop landing.
 inline bool IsLandingAnimation(int state,int animation) {
-    return (state==7 && animation==13) || (state==1 && animation==92) ||
+    // State 7 / animation 13 is the looping left turn, not a landing.
+    return (state==1 && animation==92) ||
         (state==2 && (animation==24 || animation==31 || animation==82 || animation==99));
 }
 inline bool IsSwitchAnimation(int state) { return state==40 || state==41; }
@@ -94,16 +95,17 @@ inline Vec PivotFloorOffset(Vec rawEyeOffset, Vec neckArc, float yawDelta) {
     return Rotate(NeckFloorOffset(rawEyeOffset, neckArc), -yawDelta) + neckArc;
 }
 inline bool IsJumpSteeringState(int state) { return state == 15 || state == 3; }
-inline bool IsGroundLocomotionState(int state) {
+inline bool IsGroundLocomotionState(int state,int game=0) {
+    if(state==73) return game==3; // Sprint exists only in TR3.
     switch (state) {
     case 0: case 1: case 2: case 5: case 6: case 7:
     case 16: case 20: case 21: case 22: return true;
     default: return false;
     }
 }
-inline bool CanHardStopState(int state, int goal, bool gravity) {
-    return !gravity && IsGroundLocomotionState(state) &&
-           IsGroundLocomotionState(goal);
+inline bool CanHardStopState(int state, int goal, bool gravity,int game=0) {
+    return !gravity && IsGroundLocomotionState(state,game) &&
+           IsGroundLocomotionState(goal,game);
 }
 inline bool IsJumpOrFallState(int state) {
     return state == 3 || state == 9 || state == 15 ||
@@ -120,18 +122,21 @@ inline bool IsLedgeHangState(int state) {
     default: return false;
     }
 }
-inline bool IsLedgeMountState(int state) {
+inline bool IsWaterExitState(int state,int game) {
+    return game==1 ? state==58 : (game==2 || game==3) && state==55;
+}
+inline bool IsLedgeMountState(int state,int game=0) {
     // Verified against lara_control_routines in all three PDB images.
-    return state==19 || state==54; // pull-up/vault and gymnast pull-up
+    return state==19 || state==54 || IsWaterExitState(state,game);
 }
-inline bool IsLedgeArmsOnlyState(int state) {
-    return IsLedgeHangState(state) || IsLedgeMountState(state);
+inline bool IsLedgeArmsOnlyState(int state,int game=0) {
+    return IsLedgeHangState(state) || IsLedgeMountState(state,game);
 }
-inline bool IsClimbingCameraState(int state) {
+inline bool IsClimbingCameraState(int state,int game=0) {
     // TR1-3 wall-climb stance, steps and transitions. Pull-up has a native
     // animated eye and a retracted anchor; sweeping it from Lara's body can
     // place the camera behind her arms and torso.
-    return state >= 56 && state <= 61;
+    return game!=1 && state >= 56 && state <= 61;
 }
 inline bool IsLadderState(int game,int state) {
     // TR1 has no ladders: these IDs include its twist and water-exit states.
@@ -142,8 +147,9 @@ inline bool IsLadderState(int game,int state) {
 // the player, but here that same offset can cross the ledge wall or enter the
 // movable block. Values come from lara_control_routines in the TR1-3 DLLs;
 // TR3 adds hang2 and the two hanging-turn states.
-inline bool IsConstrainedInteractionState(int state) {
-    if (IsLedgeHangState(state)) return true;
+inline bool IsConstrainedInteractionState(int state,int game=0) {
+    if (IsLedgeHangState(state) || IsLedgeMountState(state,game)) return true;
+    if(state>=56 && state<=61) return IsClimbingCameraState(state,game);
     switch (state) {
     case 19: case 54:               // ledge pull-up/vault and gymnast pull-up
     case 36: case 37: case 38:       // push, pull, push/pull ready
@@ -154,10 +160,10 @@ inline bool IsConstrainedInteractionState(int state) {
         return false;
     }
 }
-inline int FirstPersonAnchorZ(int state, int normal, int constrained) {
+inline int FirstPersonAnchorZ(int state, int normal, int constrained,int game=0) {
     // A safety value must never move the camera farther into the obstacle than
     // the user's normal anchor, including custom anchors behind the head.
-    return IsConstrainedInteractionState(state) ? std::min(normal, constrained) : normal;
+    return IsConstrainedInteractionState(state,game) ? std::min(normal, constrained) : normal;
 }
 inline Vec SimulationStick(Vec world, float frameYaw, float decodedMagnitude) {
     const float n = Length(world);
@@ -199,12 +205,12 @@ inline int DirectionalRootScale(uint32_t action, bool preparingJump) {
     const uint32_t direction = action & Directions;
     return direction == Back || direction == StepLeft || direction == StepRight ? 3 : 1;
 }
-inline bool GroundGaitMatchesAction(int state, uint32_t action) {
+inline bool GroundGaitMatchesAction(int state, uint32_t action,int game=0) {
     // Shared TR1/2/3 native control/collision table states. Stop/turn and the
     // outgoing gait can persist after input changes; they must finish before
     // their velocity can be used along the newly requested direction.
     switch (action & Directions) {
-    case Forward: return state==0 || state==1; // walk/run
+    case Forward: return state==0 || state==1 || (game==3 && state==73);
     case Back: return state==16;              // continuous backward walk
     case StepRight: return state==21;
     case StepLeft: return state==22;

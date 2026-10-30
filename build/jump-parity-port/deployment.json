@@ -1,0 +1,32 @@
+﻿{
+    "status":  "source-applied-and-game-DLL-installed",
+    "deployed_at":  "2026-10-30T12:14:49.0495286-04:00",
+    "repository":  "C:\\dev\\TombRaider123VR",
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered",
+    "dll_sha256":  "DF292BC8B5B80FB6671F3901C8AF6F5F38FDCE482539EDE17E01918645F1D357",
+    "ini_sha256":  "3E44B99853A4850FE1BC812A6FCE4796F0F3BB62126BD596F913181E3746C0B6",
+    "backup":  "C:\\dev\\TombRaider456VR\\build\\before-jump-parity123-20261030-121448",
+    "source_files":  [
+                         "src/FirstPerson.cpp",
+                         "src/JumpAddresses.inl",
+                         "src/JumpParity.inl",
+                         "README.md",
+                         "TombRaiderVR.vcxproj",
+                         "tests/locomotion_selftest.cpp",
+                         "tests/jump_priority_selftest.h",
+                         "tests/directional_jump_selftest.h",
+                         "tests/jump_port_selftest.h",
+                         "tests/jump_port_assets.h",
+                         "tools/verify_directional_jump.py",
+                         "tools/verify_jump_port_assets.py",
+                         "tools/verify_jump_port_binaries.py"
+                     ],
+    "release_build":  "passed",
+    "asset_checks":  "3920 assertions across all 140 gameplay animation banks passed",
+    "binary_checks":  "15 fixtures / nine unique DLL builds passed",
+    "native_direction_probe":  "360 cases passed; armed backward-to-side error reproduced in all three games",
+    "existing_suite":  "1152967 checks passed before adding the expanded jump suite",
+    "expanded_selftest":  "incomplete: synthetic camera fixture crashed; further runs stopped at user request; fixture pointer corrected without rerunning",
+    "headset_verified":  false,
+    "changes":  "Gaps 1-9: preparation posture, immediate takeoff, matching ledge timing, soft landing recovery, playable camera overrides, held-jump persistence, retained Modern Controls, side-jump camera stabilization, armed directional takeoff guard."
+}

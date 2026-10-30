@@ -1,0 +1,191 @@
+{
+  "timestamp": 1788958425,
+  "size_of_image": 211226624,
+  "symbols": {
+    "vid_setPass": {
+      "old": 43936,
+      "new": 44016,
+      "how": "fuzzy 0.92"
+    },
+    "validate_draw": {
+      "old": 61360,
+      "new": 61440,
+      "how": "function match"
+    },
+    "ogl_draw": {
+      "old": 64816,
+      "new": 64896,
+      "how": "function match"
+    },
+    "ogl_present": {
+      "old": 63440,
+      "new": 63520,
+      "how": "function match"
+    },
+    "fmvShow": {
+      "old": 58912,
+      "new": 58992,
+      "how": "function match"
+    },
+    "ogl_setRenderTarget": {
+      "old": 66768,
+      "new": 66848,
+      "how": "function match"
+    },
+    "gGame": {
+      "old": 975912,
+      "new": 975912,
+      "how": "8/8 votes"
+    },
+    "_XInputGetState": {
+      "old": 4289632,
+      "new": 4289632,
+      "how": "3/3 votes"
+    },
+    "vid_state": {
+      "old": 208278896,
+      "new": 208278896,
+      "how": "3/3 votes"
+    },
+    "vid_state_prev": {
+      "old": 208279056,
+      "new": 208279056,
+      "how": "3/3 votes"
+    },
+    "mProj": {
+      "old": 208278304,
+      "new": 208278304,
+      "how": "3/3 votes"
+    },
+    "mView_packed": {
+      "old": 208279296,
+      "new": 208279296,
+      "how": "2/2 votes"
+    },
+    "shaders": {
+      "old": 211077824,
+      "new": 211077824,
+      "how": "3/3 votes"
+    },
+    "ogl_textures": {
+      "old": 211077712,
+      "new": 211077712,
+      "how": "2/2 votes"
+    },
+    "FBO_custom": {
+      "old": 208312904,
+      "new": 208312904,
+      "how": "3/3 votes"
+    },
+    "FBO_default": {
+      "old": 211077788,
+      "new": 211077788,
+      "how": "2/2 votes"
+    },
+    "app": {
+      "old": 3724464,
+      "new": 3724464,
+      "how": "4/4 votes"
+    },
+    "gWidth": {
+      "old": 4313728,
+      "new": 4313728,
+      "how": "3/3 votes"
+    },
+    "gHeight": {
+      "old": 4313724,
+      "new": 4313724,
+      "how": "3/3 votes"
+    },
+    "gTargetWidth": {
+      "old": 40489680,
+      "new": 40489680,
+      "how": "2/2 votes"
+    },
+    "gTargetHeight": {
+      "old": 4313756,
+      "new": 4313756,
+      "how": "1/1 votes"
+    },
+    "shader_init": {
+      "old": 60432,
+      "new": 60512,
+      "how": "function match"
+    },
+    "vidLoadTexture": {
+      "old": 39856,
+      "new": 39904,
+      "how": "function match"
+    },
+    "vidLoadTextureUpscaled": {
+      "old": 40944,
+      "new": 41024,
+      "how": "function match"
+    },
+    "ogl_texCreate": {
+      "old": 67264,
+      "new": 67344,
+      "how": "function match"
+    },
+    "ogl_texUpdate": {
+      "old": 67728,
+      "new": 67808,
+      "how": "function match"
+    },
+    "inputUpdate": {
+      "old": 18544,
+      "new": 18576,
+      "how": "function match"
+    },
+    "appProcessMessages": {
+      "old": 18128,
+      "new": 18160,
+      "how": "function match"
+    },
+    "isActive": {
+      "old": 4313732,
+      "new": 4313732,
+      "how": "6/6 votes"
+    },
+    "__security_cookie": {
+      "old": 852096,
+      "new": 852096,
+      "how": "133/133 votes"
+    },
+    "vidInit": {
+      "old": 46128,
+      "new": 46208,
+      "how": "function match"
+    },
+    "init_ogl": {
+      "old": 70144,
+      "new": 70224,
+      "how": "function match"
+    },
+    "appInit": {
+      "old": 34592,
+      "new": 34624,
+      "how": "function match"
+    },
+    "vid_setViewMatrix": {
+      "old": 42464,
+      "new": 42544,
+      "how": "function match"
+    },
+    "WinMain": {
+      "old": 27360,
+      "new": 27392,
+      "how": "function match"
+    },
+    "_XInputSetState": {
+      "old": 4289680,
+      "new": 4289680,
+      "how": "3/3 votes"
+    },
+    "mShadow": {
+      "old": 208279360,
+      "new": 208279360,
+      "how": "2/2 votes"
+    }
+  }
+}

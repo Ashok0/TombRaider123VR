@@ -13,6 +13,10 @@
 #include <cstdint>
 
 namespace tr {
+unsigned FirstPersonHolsterGrips(bool left,bool right,bool leftValid,bool rightValid,bool allowed);
+void FirstPersonDrawLara(void* item,void* app,void (__fastcall* draw)(void*));
+bool FirstPersonPhysicalDuck();
+bool FirstPersonFlareTip(int32_t (&tip)[3]);
 
 // Install or drop the hook to match the bound game DLL and the config. Cheap
 // and idempotent; call once per frame beside SkyUpdate().
@@ -47,6 +51,7 @@ const float* FirstPersonHandSkin(int& wristJoint);
 // Complete animation palette for jiggle sampling, before arm IK/visibility masking.
 const float* FirstPersonNativeBodySkin();
 const float* FirstPersonBodySkin(uint32_t& visibleJoints);
+uint32_t FirstPersonBodyWristSeamMask();
 // Complete tracked light-pass palette before native attachment masking.
 const float* FirstPersonShadowSkin(uint32_t& visibleJoints,uint32_t& wristJoints);
 bool FirstPersonWristCentre(float out[3]);

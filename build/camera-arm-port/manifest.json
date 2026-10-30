@@ -1,0 +1,23 @@
+﻿{
+    "status":  "built-and-tested",
+    "change":  "Port crate base-camera clearance and sidestep/backpedal VRIK arm stability from TR4/5 to TR1/2/3.",
+    "created_at":  "2026-10-28T17:22:36.5086543-04:00",
+    "dll_sha256":  "B05D5A3A14EEC0EA458AD9618F01778EAE30E07DF3F94E95DE774A28A1F11FAB",
+    "source_sha256":  {
+                          "src/FirstPerson.cpp":  "6500626B90016523E439CFC514A88DD62041B9BADCDD314A292AD1D64AD9EED8",
+                          "src/BodyFollower.h":  "1BE7F40ED6C84624EB501650FC70635E9E3F5CA090FFF74B3AB4557FF325748E",
+                          "src/Config.h":  "E3B1831544D536A6BCDC8C91FA43A6F7ECAD61EBC62CD907C378A25FD713C9C9",
+                          "src/DefaultIni.h":  "BFA45081CE17176908D960C7F24BD651375CF2C821170865DABCBAD6EC3E08FE",
+                          "tests/collection_integration_selftest.h":  "6DA8D49B94CB872B316CB55D34A6815B34445A826987CC81131CB3922CD4E95B",
+                          "tests/camera_clearance_selftest.h":  "DA14F37FE96B544ED456C136FD99398A25B238D17FB536DD194F61DFDFE00D53"
+                      },
+    "validation":  [
+                       "Release x64 build",
+                       "1144618 production locomotion/IK/camera checks",
+                       "15654 body-parity checks",
+                       "Core self-tests: zero failures",
+                       "Both new regressions fail with their correction disabled"
+                   ],
+    "deployed_to_game":  false,
+    "hardware_verified":  false
+}

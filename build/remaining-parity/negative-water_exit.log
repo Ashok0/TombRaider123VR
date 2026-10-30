@@ -1,0 +1,7 @@
+locomotion_selftest.cpp
+C:\dev\TombRaider123VR\src\LocomotionMath.h(125): warning C4100: 'game': unreferenced parameter
+C:\dev\TombRaider123VR\src\LocomotionMath.h(125): warning C4100: 'state': unreferenced parameter
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: mount-completion height holds across every render of the same native root pair

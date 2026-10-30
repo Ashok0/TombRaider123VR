@@ -1,0 +1,62 @@
+[
+  {
+    "case": "mount_visibility",
+    "exit": 1,
+    "failure": "FAIL: mount and water-exit eye draws retain native grip arms without torso",
+    "caught": true
+  },
+  {
+    "case": "crouch_visibility",
+    "exit": 1,
+    "failure": "FAIL: crouch hides forearms, keeps both tracked hands and preserves native flag changes",
+    "caught": true
+  },
+  {
+    "case": "water_exit",
+    "exit": 1,
+    "failure": "FAIL: mount-completion height holds across every render of the same native root pair",
+    "caught": true
+  },
+  {
+    "case": "sprint",
+    "exit": 1,
+    "failure": "FAIL: sprint keeps heading and body fitting only in TR3",
+    "caught": true
+  },
+  {
+    "case": "pull_head_only",
+    "exit": 1,
+    "failure": "FAIL: one hand, head-only motion, crouching, drift, jitter and invalid tracking cannot pull",
+    "caught": true
+  },
+  {
+    "case": "ledge_feedback",
+    "exit": 1,
+    "failure": "FAIL: half-tile catches qualify without minimum airtime, including reach and up-jump",
+    "caught": true
+  },
+  {
+    "case": "holster_hover",
+    "exit": 1,
+    "failure": "FAIL: sustained proximity stays gentle and hand-specific",
+    "caught": true
+  },
+  {
+    "case": "landing_camera",
+    "exit": 1,
+    "failure": "FAIL: only intentional ordinary landings retain standing presentation; drops, falls, hard landings and level changes stay native",
+    "caught": true
+  },
+  {
+    "case": "cuff_pixels",
+    "exit": 1,
+    "failure": "FAIL: body wrist exception preserves mixed costume cuff pixels",
+    "caught": true
+  },
+  {
+    "case": "landing_torso",
+    "exit": 1,
+    "failure": "FAIL: ordinary landing removes native torso squat before head/controller IK",
+    "caught": true
+  }
+]

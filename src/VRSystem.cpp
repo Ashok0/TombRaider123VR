@@ -6,6 +6,8 @@
 #include "GameDll.h"
 #include "FirstPerson.h"
 #include "LocomotionMath.h"
+#include "Engine.h"
+#include "Gamepad.h"
 
 #include <cstdio>
 #include <cmath>
@@ -13,6 +15,13 @@
 
 namespace tr {
 namespace {
+
+vr::HmdMatrix34_t TransformPose(const Affine& transform,const vr::HmdMatrix34_t& pose) {
+    Affine input{};for(int i=0;i<3;++i) for(int j=0;j<4;++j) input.r[i][j]=pose.m[i][j];
+    const auto result=Mul(transform,input);vr::HmdMatrix34_t out{};
+    for(int i=0;i<3;++i) for(int j=0;j<4;++j) out.m[i][j]=result.r[i][j];
+    return out;
+}
 
 // openvr_api.dll's exported C entry points. openvr.h declares these; we resolve
 // them by hand so the DLL has no static import on the runtime.
@@ -210,6 +219,11 @@ void VRSystem::Shutdown() {
     m_runtimeRecenterPending=m_runtimeRecenterHadYaw=false;
     m_controllerPoseValid[0] = m_controllerPoseValid[1] = false;
     m_haveNeutral = false;
+    m_trackingFromRuntime=Affine::Identity();
+    m_viewRecenterPending=false;
+    m_levelNeutralValid=false;
+    m_levelRooms=nullptr;m_levelGame=m_levelNumber=-1;
+    m_poseSerial=0;
     if (m_dll) { FreeLibrary(m_dll); m_dll = nullptr; }
 }
 
@@ -251,11 +265,26 @@ void VRSystem::BeginFrame() {
         m_compositor->WaitGetPoses(poses, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
     }
 
+    ++m_poseSerial;
     const auto& hmd = poses[vr::k_unTrackedDeviceIndex_Hmd];
     const bool wasValid = m_poseValid;
     m_poseValid = hmd.bPoseIsValid && hmd.bDeviceIsConnected;
     if (m_poseValid) {
-        vr::HmdMatrix34_t pose = hmd.mDeviceToAbsoluteTracking;
+        m_rawHeadPose=TransformPose(m_trackingFromRuntime,hmd.mDeviceToAbsoluteTracking);
+        vr::HmdMatrix34_t pose = m_rawHeadPose;
+        const auto* dll=GameDllBound();const auto base=GameDllBase();
+        const int game=CurrentGame(),level=AppFlag(drva::app_off::level);
+        const void* rooms=dll && base ? *reinterpret_cast<void**>(base+dll->room) : nullptr;
+        const bool loaded=rooms && *reinterpret_cast<int16_t*>(base+dll->numberRooms)>0 &&
+            *reinterpret_cast<void**>(base+dll->laraItem) && !InTitle();
+        if(!FirstPersonActive()) {
+            if(!loaded || rooms!=m_levelRooms || game!=m_levelGame || level!=m_levelNumber)
+                m_levelNeutralValid=false;
+            if(loaded && !InInventory() && !InCutscene() && !m_levelNeutralValid) {
+                m_haveNeutral=false;m_levelNeutralValid=true;
+                m_levelRooms=rooms;m_levelGame=game;m_levelNumber=level;
+            }
+        }
 
         // Ceiling clearance. Cap the head's HEIGHT before the pose is inverted,
         // which is the only place it is still a plain position -- afterwards it
@@ -271,6 +300,7 @@ void VRSystem::BeginFrame() {
             m_headNeutral[0] = pose.m[0][3];
             m_headNeutral[1] = pose.m[1][3];
             m_headNeutral[2] = pose.m[2][3];
+            m_neutralEyeNeckY=.08f*m_rawHeadPose.m[1][1]-.12f*m_rawHeadPose.m[1][2];
             m_haveNeutral = true;
             LogF("vr: head neutral set at (%+.2f, %+.2f, %+.2f) m -- tracked "
                  "translation is measured from here", m_headNeutral[0],
@@ -334,7 +364,7 @@ void VRSystem::BeginFrame() {
             idx < vr::k_unMaxTrackedDeviceCount && poses[idx].bPoseIsValid &&
             poses[idx].bDeviceIsConnected;
         if (m_controllerPoseValid[hand])
-            m_controllerPose[hand] = poses[idx].mDeviceToAbsoluteTracking;
+            m_controllerPose[hand] = TransformPose(m_trackingFromRuntime,poses[idx].mDeviceToAbsoluteTracking);
     }
 
     if (wasValid != m_poseValid) {
@@ -350,6 +380,10 @@ void VRSystem::BeginFrame() {
                  t[0][3], t[1][3], t[2][3], -t[0][2], -t[1][2], -t[2][2]);
         }
     }
+    if(m_viewRecenterPending && m_poseValid) RecenterView();
+    if(!FirstPersonActive() && !m_levelNeutralValid)
+        m_headFromTracking.r[0][3]=m_headFromTracking.r[1][3]=m_headFromTracking.r[2][3]=0;
+
 }
 
 bool VRSystem::ControllerPose(int hand, vr::HmdMatrix34_t& out) const {
@@ -452,16 +486,65 @@ void VRSystem::PivotHeadFloorOffset(float yawDelta) {
     ConsumeHeadFloorOffset(before.x - after.x, before.z - after.z);
 }
 
+bool VRSystem::LevelHeadPose(vr::HmdMatrix34_t& out) const {
+    if(!m_poseValid) return false;
+    const float yaw=HeadYawRadians(),c=std::cos(yaw),s=std::sin(yaw);
+    out={{{c,0,-s,m_rawHeadPose.m[0][3]},
+          {0,1,0,m_rawHeadPose.m[1][3]},
+          {s,0,c,m_rawHeadPose.m[2][3]}}};
+    return true;
+}
+
+Affine VRSystem::AnchoredEyeView(Eye eye,const vr::HmdMatrix34_t& anchor) const {
+    Affine relative=Mul(InvertRigid(FromHmd(m_rawHeadPose)),FromHmd(anchor));
+    if(!Cfg().monoTracking) {
+        int idx=static_cast<int>(eye);
+        if(Cfg().swapEyes) idx=1-idx;
+        Affine offset=m_eyeFromHead[idx];
+        for(int i=0;i<3;++i) offset.r[i][3]*=LiveIpdScale();
+        relative=Mul(offset,relative);
+    }
+    return ToEngineSpace(relative,LiveWorldUnitsPerMetre(),Cfg().flipViewY);
+}
+
+void VRSystem::RecenterView() {
+    m_viewRecenterPending=!m_poseValid;
+    if(!m_poseValid) return;
+    const float oldYaw=HeadYawRadians();
+    vr::HmdMatrix34_t level{};LevelHeadPose(level);
+    for(int i=0;i<3;++i) level.m[i][3]=0;
+    const auto correction=InvertRigid(FromHmd(level));
+    m_trackingFromRuntime=Mul(correction,m_trackingFromRuntime);
+    m_rawHeadPose=TransformPose(correction,m_rawHeadPose);
+    for(int hand=0;hand<2;++hand) if(m_controllerPoseValid[hand])
+        m_controllerPose[hand]=TransformPose(correction,m_controllerPose[hand]);
+    for(int i=0;i<3;++i) m_headPosRaw[i]=m_rawHeadPose.m[i][3];
+    m_headFromTracking=InvertRigid(FromHmd(m_rawHeadPose));
+    m_headingYaw=0;m_headingYawValid=true;m_headingYawVertical=false;
+    if(FirstPersonActive()) FirstPersonTrackingOriginChanged(oldYaw);
+    else RecenterHead();
+    WorldInventoryRecenter();
+}
+
 void VRSystem::RecenterHead() {
     m_haveNeutral = m_poseValid;
     if (m_poseValid) {
         for (int i = 0; i < 3; ++i) m_headNeutral[i] = m_headPosRaw[i];
+        m_neutralEyeNeckY=.08f*m_rawHeadPose.m[1][1]-.12f*m_rawHeadPose.m[1][2];
         const auto pivot = locomotion::NeckToHead(HeadYawRadians(),
             std::clamp(Cfg().firstPersonRoomscaleNeckMetres, 0.0f, 0.4f));
         m_neutralNeckToHead[0] = pivot.x;
         m_neutralNeckToHead[1] = pivot.z;
         RefreshHeadTranslation();
     }
+}
+
+float VRSystem::FirstPersonPostureDrop() const {
+    if(!m_poseValid || !m_haveNeutral) return 0;
+    // Match the TR4/5 eye-to-neck model: looking down lowers the eyes along
+    // an arc without lowering the pelvis. Keep actual eye/view tracking raw.
+    const float eyeNeckY=.08f*m_rawHeadPose.m[1][1]-.12f*m_rawHeadPose.m[1][2];
+    return FirstPersonHeightDrop()-std::max(0.f,m_neutralEyeNeckY-eyeNeckY);
 }
 
 float VRSystem::HeadYawRadians() const {
@@ -497,6 +580,7 @@ void VRSystem::HandleRuntimeEvent(const vr::VREvent_t& event) {
 void VRSystem::ApplyRuntimeRecenter() {
     if(!m_runtimeRecenterPending || !m_poseValid) return;
     m_runtimeRecenterPending=false;
+    WorldInventoryRecenter();
     m_headingYawValid=m_headingYawVertical=false;
     const float yaw=HeadYawRadians();
     if(FirstPersonActive()) {
@@ -687,6 +771,11 @@ void VRSystem::ReadControllers(HandState out[2]) const {
     }
 }
 
+void VRSystem::HolsterHoverHaptic(int hand,bool inside) {
+    if(hand<0 || hand>1) return;
+    m_gunHaptics.Hover(hand,inside && m_system,GetTickCount64());
+}
+
 void VRSystem::Submit(GLuint tex, uint32_t, uint32_t) {
     if (!m_compositor || !tex) return;
 
@@ -713,6 +802,30 @@ void VRSystem::Submit(GLuint tex, uint32_t, uint32_t) {
 
     m_compositor->Submit(vr::Eye_Left,  &t, &left);
     m_compositor->Submit(vr::Eye_Right, &t, &right);
+    // Read compositor history at a low cadence; never wait for the GPU or
+    // modify timing/reprojection settings. Compare with arm-glance timestamps.
+    if(Cfg().firstPersonDriftLog && FirstPersonActive()) {
+        static uint64_t nextTrace=0;
+        const auto now=GetTickCount64();
+        if(now>=nextTrace) {
+            nextTrace=now+500;
+            vr::Compositor_FrameTiming timings[32]{};
+            timings[0].m_nSize=sizeof(timings[0]);
+            const auto count=std::min(m_compositor->GetFrameTimings(timings,32),uint32_t(32));
+            unsigned dropped=0,misPresented=0,motion=0;uint32_t flags=0;
+            float gpu=0,interval=0,submit=0,render=0;
+            for(uint32_t i=0;i<count;++i) {
+                const auto& f=timings[i];dropped+=f.m_nNumDroppedFrames;misPresented+=f.m_nNumMisPresented;
+                motion+=(f.m_nReprojectionFlags&vr::VRCompositor_ReprojectionMotion)!=0;flags|=f.m_nReprojectionFlags;
+                gpu=std::max(gpu,f.m_flPreSubmitGpuMs);interval=std::max(interval,f.m_flClientFrameIntervalMs);
+                submit=std::max(submit,f.m_flSubmitFrameMs);
+                render=std::max(render,f.m_flNewFrameReadyMs-f.m_flNewPosesReadyMs);
+            }
+            if(count) LogF("vr-glance: t=%llu pose=%llu history=%u frames=%u..%u max-ms gpu=%.2f app=%.2f interval=%.2f submit=%.2f dropped=%u mispresented=%u motion-smoothed=%u flags=%x",
+                now,m_poseSerial,count,timings[0].m_nFrameIndex,timings[count-1].m_nFrameIndex,
+                gpu,render,interval,submit,dropped,misPresented,motion,flags);
+        }
+    }
 }
 
 } // namespace tr

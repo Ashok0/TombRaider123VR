@@ -1,0 +1,483 @@
+{
+  "timestamp": 1783331895,
+  "size_of_image": 5931008,
+  "symbols": {
+    "lara": {
+      "old": 4004928,
+      "new": 4017024,
+      "how": "29/29 votes"
+    },
+    "camera": {
+      "old": 4792224,
+      "new": 4804320,
+      "how": "67/67 votes"
+    },
+    "room": {
+      "old": 4792352,
+      "new": 4804448,
+      "how": "223/223 votes"
+    },
+    "number_rooms": {
+      "old": 4788560,
+      "new": 4800656,
+      "how": "40/40 votes"
+    },
+    "draw_rooms": {
+      "old": 4788160,
+      "new": 4800256,
+      "how": "10/10 votes"
+    },
+    "number_draw_rooms": {
+      "old": 4788564,
+      "new": 4800660,
+      "how": "29/29 votes"
+    },
+    "w2v_matrix": {
+      "old": 3533952,
+      "new": 3546048,
+      "how": "13/13 votes"
+    },
+    "phd_mxptr": {
+      "old": 1694360,
+      "new": 1706648,
+      "how": "759/759 votes"
+    },
+    "phd_winxmax": {
+      "old": 3533872,
+      "new": 3545968,
+      "how": "27/27 votes"
+    },
+    "phd_winymax": {
+      "old": 3533868,
+      "new": 3545964,
+      "how": "27/27 votes"
+    },
+    "outside": {
+      "old": 4765448,
+      "new": 4777544,
+      "how": "4/4 votes"
+    },
+    "outside_left": {
+      "old": 5863344,
+      "new": 5875440,
+      "how": "3/3 votes"
+    },
+    "outside_right": {
+      "old": 5863328,
+      "new": 5875424,
+      "how": "3/3 votes"
+    },
+    "outside_top": {
+      "old": 5863336,
+      "new": 5875432,
+      "how": "3/3 votes"
+    },
+    "outside_bottom": {
+      "old": 5863332,
+      "new": 5875428,
+      "how": "3/3 votes"
+    },
+    "PrintRoomsList": {
+      "old": 962384,
+      "new": 969824,
+      "how": "function match"
+    },
+    "S_GetObjectBounds": {
+      "old": 916336,
+      "new": 922816,
+      "how": "function match"
+    },
+    "DrawSkyHD": {
+      "old": 961152,
+      "new": 968592,
+      "how": "function match"
+    },
+    "S_InitialisePolyList": {
+      "old": 913408,
+      "new": 919872,
+      "how": "function match"
+    },
+    "phd_GenerateW2V": {
+      "old": 999264,
+      "new": 1006944,
+      "how": "function match"
+    },
+    "frame_frac": {
+      "old": 3533860,
+      "new": 3545956,
+      "how": "87/87 votes"
+    },
+    "lara_item": {
+      "old": 4005360,
+      "new": 4017456,
+      "how": "560/561 votes"
+    },
+    "DrawCreatureHD": {
+      "old": 949440,
+      "new": 956880,
+      "how": "function match"
+    },
+    "GetJoints": {
+      "old": 947664,
+      "new": 955104,
+      "how": "function match"
+    },
+    "joints": {
+      "old": 3664224,
+      "new": 3676320,
+      "how": "12/12 votes"
+    },
+    "LaraGun": {
+      "old": 430624,
+      "new": 431376,
+      "how": "function match"
+    },
+    "FireWeapon": {
+      "old": 437216,
+      "new": 438000,
+      "how": "function match"
+    },
+    "GetTargetOnLOS": {
+      "old": 436688,
+      "new": 437456,
+      "how": "fuzzy 0.97"
+    },
+    "DrawLaraHD": {
+      "old": 958368,
+      "new": 965808,
+      "how": "function match"
+    },
+    "DrawHair": {
+      "old": 846752,
+      "new": 853200,
+      "how": "function match"
+    },
+    "gLaraHead": {
+      "old": 4679808,
+      "new": 4691904,
+      "how": "3/3 votes"
+    },
+    "gActorHead": {
+      "old": 4694080,
+      "new": 4706176,
+      "how": "3/3 votes"
+    },
+    "objects": {
+      "old": 4964448,
+      "new": 4976544,
+      "how": "49/49 votes"
+    },
+    "analogInput": {
+      "old": 4792128,
+      "new": 4804224,
+      "how": "71/71 votes"
+    },
+    "input": {
+      "old": 4792180,
+      "new": 4804276,
+      "how": "346/346 votes"
+    },
+    "LaraAboveWater": {
+      "old": 362512,
+      "new": 363040,
+      "how": "function match"
+    },
+    "AnimateLara": {
+      "old": 487312,
+      "new": 487248,
+      "how": "function match"
+    },
+    "GetCollisionInfo": {
+      "old": 93488,
+      "new": 93984,
+      "how": "function match"
+    },
+    "UpdateLaraRoom": {
+      "old": 98080,
+      "new": 98576,
+      "how": "function match"
+    },
+    "GetFloor": {
+      "old": 141328,
+      "new": 141584,
+      "how": "function match"
+    },
+    "CalculateLaraMatrices": {
+      "old": 201360,
+      "new": 201568,
+      "how": "function match"
+    },
+    "DrawActionIndicators": {
+      "old": 980608,
+      "new": 988144,
+      "how": "function match"
+    },
+    "nActionIndicator": {
+      "old": 4633632,
+      "new": 4645728,
+      "how": "7/7 votes"
+    },
+    "ActionIndicator": {
+      "old": 4684320,
+      "new": 4696416,
+      "how": "1/1 votes"
+    },
+    "phd_persp": {
+      "old": 3533912,
+      "new": 3546008,
+      "how": "12/12 votes"
+    },
+    "phd_centerx": {
+      "old": 3533904,
+      "new": 3546000,
+      "how": "7/7 votes"
+    },
+    "phd_centery": {
+      "old": 3533908,
+      "new": 3546004,
+      "how": "7/7 votes"
+    },
+    "phd_znear": {
+      "old": 3533812,
+      "new": 3545908,
+      "how": "7/7 votes"
+    },
+    "phd_zfar": {
+      "old": 3533864,
+      "new": 3545960,
+      "how": "6/6 votes"
+    },
+    "next_item_free": {
+      "old": 4727464,
+      "new": 4739560,
+      "how": "10/10 votes"
+    },
+    "items": {
+      "old": 4964424,
+      "new": 4976520,
+      "how": "279/279 votes"
+    },
+    "FireHarpoon": {
+      "old": 404832,
+      "new": 405376,
+      "how": "function match"
+    },
+    "FireRocket": {
+      "old": 408048,
+      "new": 408656,
+      "how": "function match"
+    },
+    "FireGrenade": {
+      "old": 412432,
+      "new": 413088,
+      "how": "function match"
+    },
+    "ItemNewRoom": {
+      "old": 341568,
+      "new": 341968,
+      "how": "ordered argument-decoding signature"
+    },
+    "AnimateShotgun": {
+      "old": 416656,
+      "new": 417360,
+      "how": "function match"
+    },
+    "DrawGunFlash": {
+      "old": 178336,
+      "new": 178544,
+      "how": "function match"
+    },
+    "next_item_active": {
+      "old": 4764128,
+      "new": 4776224,
+      "how": "9/9 votes"
+    },
+    "GetSpheres": {
+      "old": 732784,
+      "new": 738736,
+      "how": "function match"
+    },
+    "find_target_point": {
+      "old": 436160,
+      "new": 436928,
+      "how": "function match"
+    },
+    "LOS": {
+      "old": 861824,
+      "new": 868112,
+      "how": "function match"
+    },
+    "AnimatePistols": {
+      "old": 421792,
+      "new": 422544,
+      "how": "function match"
+    },
+    "GetJointAbsPosition": {
+      "old": 843472,
+      "new": 849936,
+      "how": "function match"
+    },
+    "anims": {
+      "old": 4964432,
+      "new": 4976528,
+      "how": "377/377 votes"
+    },
+    "MovableBlockCollision": {
+      "old": 589568,
+      "new": 595536,
+      "how": "function match"
+    },
+    "gRenderPass": {
+      "old": 4004900,
+      "new": 4016996,
+      "how": "49/49 votes"
+    },
+    "gLaraHand": {
+      "old": 4265856,
+      "new": 4277952,
+      "how": "1/1 votes"
+    },
+    "DrawToShadow": {
+      "old": 981472,
+      "new": 989024,
+      "how": "function match"
+    },
+    "DrawLara": {
+      "old": 175424,
+      "new": 175616,
+      "how": "function match"
+    },
+    "GetHeight": {
+      "old": 142576,
+      "new": 142832,
+      "how": "function match"
+    },
+    "DrawPhaseInventory": {
+      "old": 312224,
+      "new": 312608,
+      "how": "function match"
+    },
+    "S_CopyBufferToScreen": {
+      "old": 974368,
+      "new": 981904,
+      "how": "function match"
+    },
+    "DoInventoryBackground": {
+      "new": 0,
+      "how": "absent from the PDB"
+    },
+    "DrawRooms": {
+      "old": 170528,
+      "new": 170720,
+      "how": "function match"
+    },
+    "PrintRooms": {
+      "old": 164784,
+      "new": 164976,
+      "how": "function match"
+    },
+    "S_OutputPolyList": {
+      "old": 914800,
+      "new": 921264,
+      "how": "function match"
+    },
+    "S_CmdFlush": {
+      "old": 866976,
+      "new": 873280,
+      "how": "function match"
+    },
+    "DoFlareInHand": {
+      "old": 442832,
+      "new": 443648,
+      "how": "function match"
+    },
+    "DoFlareLight": {
+      "old": 441856,
+      "new": 442672,
+      "how": "function match"
+    },
+    "dynamics": {
+      "old": 3750272,
+      "new": 3762368,
+      "how": "16/16 votes"
+    },
+    "number_dynamics": {
+      "old": 3667464,
+      "new": 3679560,
+      "how": "134/134 votes"
+    },
+    "FlareLightIndex": {
+      "old": 1628852,
+      "new": 1641140,
+      "how": "3/3 votes"
+    },
+    "AddTR2Dynamic": {
+      "new": 0,
+      "how": "absent from the PDB"
+    },
+    "TriggerDynamic": {
+      "new": 0,
+      "how": "absent from the PDB"
+    },
+    "HD_CollectDynamicLights": {
+      "old": 934000,
+      "new": 941344,
+      "how": "function match"
+    },
+    "app": {
+      "old": 4792184,
+      "new": 4804280,
+      "how": "1496/1496 votes"
+    },
+    "w2v_scene_return": {
+      "old": 914182,
+      "new": 920648,
+      "how": "return address of the phd_GenerateW2V call in S_InitialisePolyList"
+    },
+    "fire_w2v_return": {
+      "old": 437640,
+      "new": 438426,
+      "how": "return address of the phd_GenerateW2V call in FireWeapon"
+    },
+    "right_fire_return": {
+      "old": 422600,
+      "new": 423352,
+      "how": "return address of the FireWeapon call in AnimatePistols"
+    },
+    "left_fire_return": {
+      "old": 423339,
+      "new": 424091,
+      "how": "return address of the FireWeapon call in AnimatePistols"
+    },
+    "hit_los_return": {
+      "old": 437937,
+      "new": 438721,
+      "how": "return address of the GetTargetOnLOS call in FireWeapon"
+    },
+    "miss_los_return": {
+      "old": 438496,
+      "new": 439282,
+      "how": "return address of the GetTargetOnLOS call in FireWeapon"
+    },
+    "shotgun_smoke_origin_return": {
+      "old": 403662,
+      "new": 404210,
+      "how": "return address of the GetJointAbsPosition call in FireShotgun"
+    },
+    "shotgun_smoke_direction_return": {
+      "old": 403715,
+      "new": 404265,
+      "how": "return address of the GetJointAbsPosition call in FireShotgun"
+    },
+    "shotgun_spark_origin_return": {
+      "old": 403876,
+      "new": 404427,
+      "how": "return address of the GetJointAbsPosition call in FireShotgun"
+    },
+    "shotgun_spark_direction_return": {
+      "old": 403925,
+      "new": 404478,
+      "how": "return address of the GetJointAbsPosition call in FireShotgun"
+    }
+  }
+}

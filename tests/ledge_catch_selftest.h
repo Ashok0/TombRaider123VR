@@ -66,7 +66,7 @@ void TestLedgeCatchHaptics() {
     tr::GunHaptics rumble;
     rumble.LedgeCatch(100);
     rumble.Shot(0,101);
-    Check(rumble.until[0]==220 && rumble.until[1]==220,"gun shots cannot shorten a ledge impact burst");
+    Check(rumble.until[0]==181 && rumble.until[1]==180,"ledge impact uses the same 80 ms scheduler as gunshots");
     int pulses[2]{};
     for (uint64_t time=100;time<=230;++time) {
         auto emit=[&](int hand,unsigned short duration) {
@@ -75,7 +75,7 @@ void TestLedgeCatchHaptics() {
         };
         rumble.Update(time,emit);rumble.Update(time,emit);
     }
-    Check(pulses[0]==24 && pulses[1]==24,"120 ms impact reaches both hands once per allowed pulse interval");
+    Check(pulses[0]==17 && pulses[1]==16,"80 ms ledge burst respects pulse spacing and overlapping shot refresh");
     rumble.LedgeCatch(300);rumble.Reset();
     rumble.Update(300,[&](int,unsigned short) { Check(false,"shutdown cancels ledge rumble"); });
 }

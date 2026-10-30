@@ -54,6 +54,9 @@ public:
     // not matter whether the runtime's origin is the floor, a seated zero, or
     // something left over from the last session.
     void RecenterHead();
+    void RecenterView();
+    bool LevelHeadPose(vr::HmdMatrix34_t& out) const;
+    Affine AnchoredEyeView(Eye eye,const vr::HmdMatrix34_t& anchor) const;
 
     // Horizontal body request in tracking metres (+x right, +z FORWARD),
     // corrected for the estimated neck-to-HMD arc. The stabilized rendered eye
@@ -122,11 +125,17 @@ public:
     // Confirmed shot: strong 80 ms burst on [0] left / [1] right.
     void GunShotHaptic(int hand);
     void LedgeCatchHaptic();
+    void HolsterHoverHaptic(int hand,bool inside);
     bool ControllerPose(int hand, vr::HmdMatrix34_t& out) const;
     bool ControllerHeightBelowHead(int hand, float& down) const;
     bool FirstPersonControllerOffset(int hand, float& right, float& down,
                                      float& forward) const;
 
+    uint64_t PoseSerial() const { return m_poseSerial; }
+    bool HeadPose(vr::HmdMatrix34_t& out) const { out=m_rawHeadPose; return m_poseValid; }
+    float FirstPersonHeightDrop() const { return -HeadVerticalOffset(); }
+    float FirstPersonPostureDrop() const;
+    float FirstPersonVerticalOffset() const { return -HeadVerticalOffset(); }
     bool poseValid() const { return m_poseValid; }
 
     // One-shot log flag for the ceiling clamp, so it reports the first time it
@@ -144,6 +153,7 @@ private:
     float  m_headNeutral[3]   = { 0.0f, 0.0f, 0.0f };
     float  m_headPosRaw[3]    = { 0.0f, 0.0f, 0.0f };   // before the neutral
     float  m_neutralNeckToHead[2] = {}; // tracking-floor metres (right, forward)
+    float  m_neutralEyeNeckY = 0;
     bool   m_haveNeutral      = false;
     Affine m_eyeFromHead[2]   = { Affine::Identity(), Affine::Identity() };
     float  m_rawProj[2][4]    = {};                  // l, r, t, b per eye
@@ -157,6 +167,12 @@ private:
 
     vr::HmdMatrix34_t m_controllerPose[2]{};
     bool   m_controllerPoseValid[2]{};
+    Affine m_trackingFromRuntime=Affine::Identity();
+    bool m_viewRecenterPending=false,m_levelNeutralValid=false;
+    const void* m_levelRooms=nullptr;
+    int m_levelGame=-1,m_levelNumber=-1;
+    uint64_t m_poseSerial=0;
+    vr::HmdMatrix34_t m_rawHeadPose{};
     unsigned m_poseLogTick    = 0;
 
     uint32_t m_eyeW = 0, m_eyeH = 0;

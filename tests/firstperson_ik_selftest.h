@@ -9,6 +9,8 @@ void IKSetup(int game=1) {
     ArmSetup(game,1);
     dll.objects=2048; dll.joints=6500; dll.renderPass=200; dll.frameFrac=204;
     dll.laraHands=4500;
+    dll.w2vMatrix=1200;
+    Ptr<int32_t>(dll.w2vMatrix)[0]=Ptr<int32_t>(dll.w2vMatrix)[5]=Ptr<int32_t>(dll.w2vMatrix)[10]=16384;
     testConfig.firstPersonMotionGuns=true; testConfigFlags=1;
     g_scenePoseValid=true; g_scenePose={0,-650,80}; g_bodyVisualOffset={};
     g_bodyWallOffset={};g_ladderTorsoOffset={};
@@ -197,7 +199,7 @@ void TestWristTwistRecovery() {
 }
 void TestMountCameraHandoff() {
     using namespace tr;
-    for(int game:{1,2,3}) for(int mount:{19,54}) for(int rise:{256,513,769}) {
+    for(int game:{1,2,3}) for(int mount:{19,54,game==1?58:55}) for(int rise:{256,513,769}) {
         IKSetup(game);Field<int16_t>(18)=2;Field<int16_t>(24)=11;
         g_headingLevel=0;g_previousBody={};g_dragPrevious=g_dragCurrent=g_dragShown={};
         g_groundEye={};g_groundEye.Apply({0,0,0},0,{0,-718,100},0);
@@ -244,11 +246,11 @@ void TestMountCameraHandoff() {
                   "mount handoff releases when the native root pair advances");
         }
     }
-    for(int state:{3,19,54,7}) {
+    for(int state:{3,19,54,2}) {
         IKSetup(1);g_headingLevel=0;g_previousBody={};
         g_dragPrevious=g_dragCurrent=g_dragShown={};g_lastClimbCameraState=2;
         g_mountRootHeight.Begin(0,0);Field<int16_t>(18)=int16_t(state);
-        Field<int16_t>(24)=int16_t(state==7 ? 13 : 11);
+        Field<int16_t>(24)=int16_t(state==2 ? 24 : 11);
         PHD_3DPOS eye{0,-700,100};UpdateLocomotion(eye);
         Check(!g_mountRootHeight.active,"leaving grounded locomotion clears the mount-height override");
     }
@@ -365,7 +367,7 @@ void TestFirstPersonParity() {
     Reset(0,{},true);dll.module=L"tomb3.dll";*Ptr<uint16_t>(dll.lara+60)=4;
     Check(!Gate(),"TR3 special switch extra-animation bank also uses third-person camera");
     *Ptr<uint16_t>(dll.lara+60)=0;Check(Gate(),"extra-animation exit restores first person");
-    for (const auto clip : {std::pair<int,int>{7,13},{2,24},{2,31},{2,82},{1,92},{2,99}}) {
+    for (const auto clip : {std::pair<int,int>{2,24},{2,31},{2,82},{1,92},{2,99}}) {
         Reset(clip.first,{},true);Field<int16_t>(24)=int16_t(clip.second);
         dll.frameFrac=204;g_headingLevel=0;g_previousBody={};g_dragPrevious=g_dragCurrent=g_dragShown={};
         g_groundEye={};g_groundEye.Apply({0,0,0},0,{0,-700,70},0);
@@ -377,8 +379,9 @@ void TestFirstPersonParity() {
         Check(!g_bodyVisualOffset.x && !g_bodyVisualOffset.z &&
               !std::memcmp(&before,&g_groundEye,sizeof(before)),"landing does not contaminate standing eye/body calibration");
     }
-    Check(!locomotion::IsLandingAnimation(58,99) && !locomotion::IsLandingAnimation(2,11),
-          "TR1 water exit and ordinary idle are not landing poses");
+    Check(!locomotion::IsLandingAnimation(58,99) && !locomotion::IsLandingAnimation(2,11) &&
+          !locomotion::IsLandingAnimation(7,13),
+          "water exit, idle and looping left turn are not landing poses");
     // Repeated mount -> grounded -> free-jump transitions must not leave a
     // zero persistent mask suppressing the unmasked HD body on recovery.
     for (int state:{54,2,3,2,54,2}) {

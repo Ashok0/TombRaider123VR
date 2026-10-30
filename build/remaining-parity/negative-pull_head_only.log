@@ -1,0 +1,5 @@
+locomotion_selftest.cpp
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: one hand, head-only motion, crouching, drift, jitter and invalid tracking cannot pull

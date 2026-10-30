@@ -1,0 +1,6 @@
+locomotion_selftest.cpp
+C:\dev\TombRaider123VR\tests\../src/FirstPerson.cpp(916): warning C4189: 'mask': local variable is initialized but not referenced
+InlineHook.cpp
+Log.cpp
+Generating Code...
+FAIL: mount and water-exit eye draws retain native grip arms without torso

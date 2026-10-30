@@ -1,0 +1,1162 @@
+{
+  "current-retail-verify-tomb123.exe": {
+    "timestamp": 1783331922,
+    "sha256": "1ced64b0cff648976ff9b54624ed5e651889141639ac516a14d74e0bfb97cae3",
+    "symbols": {
+      "inputUpdate": {
+        "old": 18544,
+        "new": 18512,
+        "how": "function match"
+      },
+      "appProcessMessages": {
+        "old": 18128,
+        "new": 18096,
+        "how": "function match"
+      },
+      "isActive": {
+        "old": 4313732,
+        "new": 4317652,
+        "how": "6/6 votes"
+      },
+      "__security_cookie": {
+        "old": 852096,
+        "new": 856192,
+        "how": "126/126 votes"
+      }
+    }
+  },
+  "current-retail-verify-tomb1.dll": {
+    "timestamp": 1783331880,
+    "sha256": "553e4cf7e15d59909f4c7f119de4494b25dc98278ee325fc3b1e6e4e0e863418",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 118288,
+        "new": 118416,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 462864,
+        "new": 464016,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 55440,
+        "new": 55440,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 59936,
+        "new": 59984,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 407536,
+        "new": 407584,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 381248,
+        "new": 381280,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 406144,
+        "new": 406192,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DoFlareLight": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "dynamics": {
+        "old": 3217760,
+        "new": 3221664,
+        "how": "7/7 votes"
+      },
+      "number_dynamics": {
+        "old": 3134952,
+        "new": 3138856,
+        "how": "27/27 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1063572,
+        "new": 1067668,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 425648,
+        "new": 426592,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4317328,
+        "new": 4321232,
+        "how": "1251/1251 votes"
+      }
+    }
+  },
+  "current-retail-verify-tomb2.dll": {
+    "timestamp": 1783331903,
+    "sha256": "e35fdd8d98b9332f0da4699194fa5558247e5eea01cc8f4456626bd01313256a",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 231456,
+        "new": 231264,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 670032,
+        "new": 669824,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "old": 237120,
+        "new": 236928,
+        "how": "function match"
+      },
+      "DrawRooms": {
+        "old": 83808,
+        "new": 83824,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 90496,
+        "new": 90528,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 610624,
+        "new": 609312,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 587584,
+        "new": 586256,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 609232,
+        "new": 607920,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 317088,
+        "new": 317152,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 316336,
+        "new": 316400,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3476128,
+        "new": 3475936,
+        "how": "7/7 votes"
+      },
+      "number_dynamics": {
+        "old": 3393320,
+        "new": 3393128,
+        "how": "25/25 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1305252,
+        "new": 1305252,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "old": 613616,
+        "new": 612320,
+        "how": "function match"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 630144,
+        "new": 629728,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4403696,
+        "new": 4403504,
+        "how": "1335/1336 votes"
+      }
+    }
+  },
+  "current-retail-verify-tomb3.dll": {
+    "timestamp": 1783331895,
+    "sha256": "3f5c838a52c3eb00df500fdaa6d0f76bff944f96617a4d279d9a2b1dadb74a74",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 312224,
+        "new": 312608,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 974368,
+        "new": 981904,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 170528,
+        "new": 170720,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 164784,
+        "new": 164976,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 914800,
+        "new": 921264,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 866976,
+        "new": 873280,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 913408,
+        "new": 919872,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 442832,
+        "new": 443648,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 441856,
+        "new": 442672,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3750272,
+        "new": 3762368,
+        "how": "16/16 votes"
+      },
+      "number_dynamics": {
+        "old": 3667464,
+        "new": 3679560,
+        "how": "134/134 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1628852,
+        "new": 1641140,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 934000,
+        "new": 941344,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4792184,
+        "new": 4804280,
+        "how": "1496/1496 votes"
+      }
+    }
+  },
+  "current-gold-verify-tomb123.exe": {
+    "timestamp": 1783331922,
+    "sha256": "b0c53c7716c674c1a3277c067b8ca35effe802374a9a9f138ffad7766ac7b098",
+    "symbols": {
+      "inputUpdate": {
+        "old": 18544,
+        "new": 18512,
+        "how": "function match"
+      },
+      "appProcessMessages": {
+        "old": 18128,
+        "new": 18096,
+        "how": "function match"
+      },
+      "isActive": {
+        "old": 4313732,
+        "new": 4317652,
+        "how": "6/6 votes"
+      },
+      "__security_cookie": {
+        "old": 852096,
+        "new": 856192,
+        "how": "126/126 votes"
+      }
+    }
+  },
+  "current-gold-verify-tomb1.dll": {
+    "timestamp": 1783331880,
+    "sha256": "36e236dfb9c9028cbefa60e3c8ff6aeaef31853a6957a5de9b647f7c1016f909",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 118288,
+        "new": 118416,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 462864,
+        "new": 464016,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 55440,
+        "new": 55440,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 59936,
+        "new": 59984,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 407536,
+        "new": 407584,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 381248,
+        "new": 381280,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 406144,
+        "new": 406192,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DoFlareLight": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "dynamics": {
+        "old": 3217760,
+        "new": 3221664,
+        "how": "7/7 votes"
+      },
+      "number_dynamics": {
+        "old": 3134952,
+        "new": 3138856,
+        "how": "27/27 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1063572,
+        "new": 1067668,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 425648,
+        "new": 426592,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4317328,
+        "new": 4321232,
+        "how": "1251/1251 votes"
+      }
+    }
+  },
+  "current-gold-verify-tomb2.dll": {
+    "timestamp": 1783331903,
+    "sha256": "23ba618551e8de9bae24e5e969f8b34db95a84a73e92a7aa5626e5f30ea05170",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 231456,
+        "new": 231264,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 670032,
+        "new": 669824,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "old": 237120,
+        "new": 236928,
+        "how": "function match"
+      },
+      "DrawRooms": {
+        "old": 83808,
+        "new": 83824,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 90496,
+        "new": 90528,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 610624,
+        "new": 609312,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 587584,
+        "new": 586256,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 609232,
+        "new": 607920,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 317088,
+        "new": 317152,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 316336,
+        "new": 316400,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3476128,
+        "new": 3475936,
+        "how": "7/7 votes"
+      },
+      "number_dynamics": {
+        "old": 3393320,
+        "new": 3393128,
+        "how": "25/25 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1305252,
+        "new": 1305252,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "old": 613616,
+        "new": 612320,
+        "how": "function match"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 630144,
+        "new": 629728,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4403696,
+        "new": 4403504,
+        "how": "1335/1336 votes"
+      }
+    }
+  },
+  "current-gold-verify-tomb3.dll": {
+    "timestamp": 1783331895,
+    "sha256": "001e2fd100557bd3b18885cfd3ec484cc67f062c73cd1964ffe420cba53916ba",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 312224,
+        "new": 312608,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 974368,
+        "new": 981904,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 170528,
+        "new": 170720,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 164784,
+        "new": 164976,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 914800,
+        "new": 921264,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 866976,
+        "new": 873280,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 913408,
+        "new": 919872,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 442832,
+        "new": 443648,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 441856,
+        "new": 442672,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3750272,
+        "new": 3762368,
+        "how": "16/16 votes"
+      },
+      "number_dynamics": {
+        "old": 3667464,
+        "new": 3679560,
+        "how": "134/134 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1628852,
+        "new": 1641140,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 934000,
+        "new": 941344,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4792184,
+        "new": 4804280,
+        "how": "1496/1496 votes"
+      }
+    }
+  },
+  "current-october-verify-tomb123.exe": {
+    "timestamp": 1788958378,
+    "sha256": "614f9578215a213a0950b0cb1533d7d416fb5eb1daac6e6375da0e08c8e2b729",
+    "symbols": {
+      "inputUpdate": {
+        "old": 18544,
+        "new": 18512,
+        "how": "function match"
+      },
+      "appProcessMessages": {
+        "old": 18128,
+        "new": 18096,
+        "how": "function match"
+      },
+      "isActive": {
+        "old": 4313732,
+        "new": 4321748,
+        "how": "6/6 votes"
+      },
+      "__security_cookie": {
+        "old": 852096,
+        "new": 860288,
+        "how": "125/125 votes"
+      }
+    }
+  },
+  "current-october-verify-tomb1.dll": {
+    "timestamp": 1788958334,
+    "sha256": "979990f9a2db7474e2b18f204d748cecb5aae2b72cec5ed05e0a2353683a1687",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 118288,
+        "new": 119040,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 462864,
+        "new": 466592,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 55440,
+        "new": 55968,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 59936,
+        "new": 60592,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 407536,
+        "new": 410160,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 381248,
+        "new": 383872,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 406144,
+        "new": 408768,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DoFlareLight": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "dynamics": {
+        "old": 3217760,
+        "new": 3229248,
+        "how": "5/5 votes"
+      },
+      "number_dynamics": {
+        "old": 3134952,
+        "new": 3146440,
+        "how": "22/22 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1063572,
+        "new": 1071764,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 425648,
+        "new": 429168,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4317328,
+        "new": 4328816,
+        "how": "1230/1230 votes"
+      }
+    }
+  },
+  "current-october-verify-tomb2.dll": {
+    "timestamp": 1788958358,
+    "sha256": "c91e8fe752d765f0ee6b52bf0cc5016c33ee9d850fe001272f17a302c6253d1a",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 231456,
+        "new": 230016,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 670032,
+        "new": 669408,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "old": 237120,
+        "new": 235680,
+        "how": "function match"
+      },
+      "DrawRooms": {
+        "old": 83808,
+        "new": 82496,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 90496,
+        "new": 89280,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 610624,
+        "new": 608896,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 587584,
+        "new": 585856,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 609232,
+        "new": 607504,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 317088,
+        "new": 316288,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 316336,
+        "new": 315536,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3476128,
+        "new": 3483488,
+        "how": "7/7 votes"
+      },
+      "number_dynamics": {
+        "old": 3393320,
+        "new": 3400680,
+        "how": "23/23 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1305252,
+        "new": 1309348,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "old": 613616,
+        "new": 611904,
+        "how": "function match"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 630144,
+        "new": 629312,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4403696,
+        "new": 4411056,
+        "how": "1321/1322 votes"
+      }
+    }
+  },
+  "current-october-verify-tomb3.dll": {
+    "timestamp": 1788958349,
+    "sha256": "067a18610ea06f28ae63e615d8b0986cf2a87383e2acb61f1faf37a175102e30",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 312224,
+        "new": 312928,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 974368,
+        "new": 985200,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 170528,
+        "new": 170992,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 164784,
+        "new": 165184,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 914800,
+        "new": 924560,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 866976,
+        "new": 876560,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 913408,
+        "new": 923168,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 442832,
+        "new": 444880,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 441856,
+        "new": 443904,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3750272,
+        "new": 3769952,
+        "how": "16/16 votes"
+      },
+      "number_dynamics": {
+        "old": 3667464,
+        "new": 3687144,
+        "how": "131/131 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1628852,
+        "new": 1645236,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 934000,
+        "new": 944640,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4792184,
+        "new": 4811864,
+        "how": "1466/1466 votes"
+      }
+    }
+  },
+  "current-egs-verify-tomb123.exe": {
+    "timestamp": 1788958425,
+    "sha256": "4431586b499a46dbef9d8ccfd7684aedaf212e9429d0d9d67be5f26e83195254",
+    "symbols": {
+      "inputUpdate": {
+        "old": 18544,
+        "new": 18576,
+        "how": "function match"
+      },
+      "appProcessMessages": {
+        "old": 18128,
+        "new": 18160,
+        "how": "function match"
+      },
+      "isActive": {
+        "old": 4313732,
+        "new": 4313732,
+        "how": "6/6 votes"
+      },
+      "__security_cookie": {
+        "old": 852096,
+        "new": 852096,
+        "how": "133/133 votes"
+      }
+    }
+  },
+  "current-egs-verify-tomb1.dll": {
+    "timestamp": 1788958334,
+    "sha256": "979990f9a2db7474e2b18f204d748cecb5aae2b72cec5ed05e0a2353683a1687",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 118288,
+        "new": 119040,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 462864,
+        "new": 466592,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 55440,
+        "new": 55968,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 59936,
+        "new": 60592,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 407536,
+        "new": 410160,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 381248,
+        "new": 383872,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 406144,
+        "new": 408768,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DoFlareLight": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "dynamics": {
+        "old": 3217760,
+        "new": 3229248,
+        "how": "5/5 votes"
+      },
+      "number_dynamics": {
+        "old": 3134952,
+        "new": 3146440,
+        "how": "22/22 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1063572,
+        "new": 1071764,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 425648,
+        "new": 429168,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4317328,
+        "new": 4328816,
+        "how": "1230/1230 votes"
+      }
+    }
+  },
+  "current-egs-verify-tomb2.dll": {
+    "timestamp": 1788958358,
+    "sha256": "c91e8fe752d765f0ee6b52bf0cc5016c33ee9d850fe001272f17a302c6253d1a",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 231456,
+        "new": 230016,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 670032,
+        "new": 669408,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "old": 237120,
+        "new": 235680,
+        "how": "function match"
+      },
+      "DrawRooms": {
+        "old": 83808,
+        "new": 82496,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 90496,
+        "new": 89280,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 610624,
+        "new": 608896,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 587584,
+        "new": 585856,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 609232,
+        "new": 607504,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 317088,
+        "new": 316288,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 316336,
+        "new": 315536,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3476128,
+        "new": 3483488,
+        "how": "7/7 votes"
+      },
+      "number_dynamics": {
+        "old": 3393320,
+        "new": 3400680,
+        "how": "23/23 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1305252,
+        "new": 1309348,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "old": 613616,
+        "new": 611904,
+        "how": "function match"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 630144,
+        "new": 629312,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4403696,
+        "new": 4411056,
+        "how": "1321/1322 votes"
+      }
+    }
+  },
+  "current-egs-verify-tomb3.dll": {
+    "timestamp": 1788958349,
+    "sha256": "067a18610ea06f28ae63e615d8b0986cf2a87383e2acb61f1faf37a175102e30",
+    "symbols": {
+      "DrawPhaseInventory": {
+        "old": 312224,
+        "new": 312928,
+        "how": "function match"
+      },
+      "S_CopyBufferToScreen": {
+        "old": 974368,
+        "new": 985200,
+        "how": "function match"
+      },
+      "DoInventoryBackground": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "DrawRooms": {
+        "old": 170528,
+        "new": 170992,
+        "how": "function match"
+      },
+      "PrintRooms": {
+        "old": 164784,
+        "new": 165184,
+        "how": "function match"
+      },
+      "S_OutputPolyList": {
+        "old": 914800,
+        "new": 924560,
+        "how": "function match"
+      },
+      "S_CmdFlush": {
+        "old": 866976,
+        "new": 876560,
+        "how": "function match"
+      },
+      "S_InitialisePolyList": {
+        "old": 913408,
+        "new": 923168,
+        "how": "function match"
+      },
+      "DoFlareInHand": {
+        "old": 442832,
+        "new": 444880,
+        "how": "function match"
+      },
+      "DoFlareLight": {
+        "old": 441856,
+        "new": 443904,
+        "how": "function match"
+      },
+      "dynamics": {
+        "old": 3750272,
+        "new": 3769952,
+        "how": "16/16 votes"
+      },
+      "number_dynamics": {
+        "old": 3667464,
+        "new": 3687144,
+        "how": "131/131 votes"
+      },
+      "FlareLightIndex": {
+        "old": 1628852,
+        "new": 1645236,
+        "how": "3/3 votes"
+      },
+      "AddTR2Dynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "TriggerDynamic": {
+        "new": 0,
+        "how": "absent from the PDB"
+      },
+      "HD_CollectDynamicLights": {
+        "old": 934000,
+        "new": 944640,
+        "how": "function match"
+      },
+      "app": {
+        "old": 4792184,
+        "new": 4811864,
+        "how": "1466/1466 votes"
+      }
+    }
+  }
+}
