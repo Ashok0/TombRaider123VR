@@ -216,7 +216,8 @@ void TestCollectionIntegration() {
         Check(pad.wButtons==XB_BACK,"fresh unarmed X reaches native inventory");
 
         IKSetup(game);testConfig.firstPersonPhysicalCrouch=true;
-        testViewRise=-.36f;Check(FirstPersonPhysicalDuck()==(game==3),"physical crouch activates only for TR3 at 35 cm drop");
+        testViewRise=-.54f;Check(!FirstPersonPhysicalDuck(),"partial squat retains visible legs before native crouch");
+        testViewRise=-.56f;Check(FirstPersonPhysicalDuck()==(game==3),"physical crouch activates only for TR3 at 55 cm drop");
         testViewRise=-.28f;Check(FirstPersonPhysicalDuck()==(game==3),"physical crouch has release hysteresis");
         if(game==3) {
             g_groundEye.Reset();g_groundEye.Apply({0,0,0},0,{0,-700,0},0);

@@ -1,0 +1,25 @@
+{
+    "status":  "applied-deployed-and-hash-verified",
+    "deployed_at":  "2026-10-30T19:34:35.7208919-04:00",
+    "source_repository":  "C:\\dev\\TombRaider123VR",
+    "source_files":  [
+                         "src/BodyFollower.h",
+                         "src/FirstPerson.cpp",
+                         "src/FirstPerson.h",
+                         "src/Gamepad.cpp",
+                         "src/Config.h",
+                         "src/DefaultIni.h",
+                         "TombRaiderVR.ini",
+                         "README.md",
+                         "tests/body_parity_selftest.cpp",
+                         "tests/collection_integration_selftest.h",
+                         "tests/physical_crouch_tests.cpp",
+                         "tools/verify_physical_crouch_binaries.py"
+                     ],
+    "dll_sha256":  "FCD859569F4F9201E149BF10E5E171194E462EC031CBFF8E758B7B916A3D8B20",
+    "old_ini_sha256":  "D7AEEFA0016D3ABF52196987E7EEAA9A5B6DEA7ED3332F2D5E84368DC6036E96",
+    "ini_sha256":  "F937F9666DFBABC49826DBBA5538DC8293549708B37E68BEBEC2626EEED72930",
+    "backup":  "C:\\dev\\TombRaider456VR\\build\\before-physical-crouch123-20261030-193435",
+    "setting_change":  "FirstPersonPhysicalCrouch=1 added; other installed INI content preserved",
+    "validation":  "Release build and 160 standalone posture/input checks passed; 15 read-only native comparisons passed; full self-test not run; headset unverified"
+}

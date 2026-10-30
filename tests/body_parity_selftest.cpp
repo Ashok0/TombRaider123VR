@@ -90,7 +90,7 @@ void TestBodyFollower() {
     Check(Length(room.Request({.089f,0,0},.033f,settings))==0 && !room.following,"room-scale catch-up stops inside release radius");
     Check(Length(room.Request({3,0,0},.033f,settings))==0,"tracking teleports cannot generate collision movement");
     HeightCrouch crouch;
-    Check(!crouch.Update(true,.34f) && crouch.Update(true,.36f) && crouch.Update(true,.28f) &&
+    Check(!crouch.Update(true,.54f) && crouch.Update(true,.56f) && crouch.Update(true,.28f) &&
           !crouch.Update(true,.22f) && !crouch.Update(false,.5f),"native crouch has separate enter/release thresholds and an opt-out");
     Check(HandsSupportFacing({-.2f,0,.4f},{.2f,0,.4f},{0,0,1},{0,0,1},0),
           "two stationary forward controllers support body facing independent of gaze");

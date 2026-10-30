@@ -3444,6 +3444,16 @@ void ObserveJumpLanding(uint8_t* item) {
         locomotion::IsLandingAnimation(state,animation),(*Ptr<uint32_t>(g_boundDll->input)&0x10u)!=0);
 }
 
+bool PhysicalCrouchEligible(const uint8_t* item) {
+    return Cfg().firstPersonPhysicalCrouch && Cfg().firstPersonFullBodyIK &&
+        Cfg().positionalTracking && Cfg().firstPersonHeadTranslation &&
+        g_boundDll && g_boundBase && g_boundDll->module[4]==L'3' &&
+        g_active && g_haveHeading && Gate() && VR().poseValid() && !InInventory() &&
+        item && item==g_headingItem && item==*Ptr<uint8_t*>(g_boundDll->laraItem) &&
+        LaraWaterStatus()==0 && !InteractionAligning() &&
+        (CanWalk(item) || CanUseCrouchCamera(item));
+}
+
 void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     using namespace locomotion;
     FinishFirstPersonLanding(item);
@@ -3567,6 +3577,13 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     if (g_groundMoveAction) PrepareGroundDirection(item,g_groundMoveAction);
     const bool airborneBefore=item && (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u);
     {
+        // Keep posture ownership through crawl -> duck -> stand, including
+        // native transition frames that cannot accept crawl steering.
+        const bool physicalDuck=g_physicalCrouchCamera && PhysicalCrouchEligible(item);
+        firstperson::PhysicalCrouchInputScope physicalCrouch(
+            physicalDuck ? Ptr<uint32_t>(g_boundDll->input) : nullptr,
+            physicalDuck ? Ptr<uint32_t>(g_boundDll->lara+0x40) : nullptr,
+            physicalDuck && NewControls() && AppFlag(drva::app_off::level_type)!=3,g_heightCrouch.active);
         LedgePullInputScope pull(item,TurnTime());
         CrouchWeaponScope crouchWeapons(item);
         IdleTrackedGunHeadingScope idleGunHeading(item);
@@ -4570,11 +4587,10 @@ bool FirstPersonFlareTip(int32_t (&tip)[3]) {
     return true;
 }
 
-bool FirstPersonPhysicalDuck() {
-    const bool enabled=Cfg().firstPersonPhysicalCrouch && g_boundDll && g_boundDll->module[4]==L'3' &&
-        g_active && g_haveHeading && Gate() && VR().poseValid() && LaraWaterStatus()==0 &&
-        (CanWalk(g_headingItem) || CanSteerCrouch(g_headingItem));
-    const bool crouched=g_heightCrouch.Update(enabled,VR().FirstPersonHeightDrop());
+bool FirstPersonPhysicalDuck(bool allowed) {
+    const bool enabled=allowed && PhysicalCrouchEligible(g_headingItem);
+    // Match leg IK: looking down around the neck is not a physical squat.
+    const bool crouched=g_heightCrouch.Update(enabled,VR().FirstPersonPostureDrop());
     if(crouched) g_physicalCrouchCamera=true;
     return crouched;
 }

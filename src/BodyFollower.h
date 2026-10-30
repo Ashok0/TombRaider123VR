@@ -134,10 +134,41 @@ struct HeightCrouch {
     bool active=false;
     bool Update(bool enabled,float drop) {
         if(!enabled || !std::isfinite(drop)) active=false;
-        else if(!active && drop>=.35f) active=true;
+        // Allow a visible IK squat before native Duck hides the body.
+        else if(!active && drop>=.55f) active=true;
         else if(active && drop<=.23f) active=false;
         return active;
     }
+};
+// TR3 Modern Controls have a built-in crouch toggle (no TR4/5 hold setting).
+// Present physical posture as the native latch during Lara simulation, with
+// no repeated button press that could toggle it back off. Native clearance and
+// crawl/duck/stand animations still own the actual transition.
+struct PhysicalCrouchInputScope {
+    static constexpr uint32_t Duck=uint32_t(1)<<29, Latch=0x40;
+    uint32_t* input=nullptr;
+    uint32_t* flags=nullptr;
+    uint32_t savedDuck=0,savedLatch=0;
+    bool modern=false,held=false;
+    PhysicalCrouchInputScope(uint32_t* nativeInput,uint32_t* nativeFlags,bool modernControls,bool physicalHeld)
+        :input(nativeInput),flags(nativeFlags),modern(modernControls),held(physicalHeld) {
+        if(!input || !flags) { input=flags=nullptr;return; }
+        savedDuck=*input&Duck;savedLatch=*flags&Latch;
+        if(modern) {
+            *flags=(*flags&~Latch)|((held || savedDuck) ? Latch : 0);
+            *input&=~Duck;
+        } else if(held) *input|=Duck;
+    }
+    ~PhysicalCrouchInputScope() {
+        if(!input) return;
+        *input=(*input&~Duck)|savedDuck;
+        // A physical hold must not leave a new toggle behind outside the tick.
+        // Do not undo a native latch clear (fall/crawl-to-hang), or re-latch
+        // after the user stands up. Preserve all unrelated native flag edits.
+        if(modern && held && (*flags&Latch)) *flags=(*flags&~Latch)|savedLatch;
+    }
+    PhysicalCrouchInputScope(const PhysicalCrouchInputScope&)=delete;
+    PhysicalCrouchInputScope& operator=(const PhysicalCrouchInputScope&)=delete;
 };
 // Side/back gaits swing the authored torso even with fixed tracking. Keep the
 // last ordinary ground upper-body reference in Lara's root/yaw frame, then

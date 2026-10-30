@@ -215,7 +215,7 @@ struct Config {
     float firstPersonBodyFollowSpeedMetres = .9f;
     float firstPersonBodyHandYawWeight = .15f;
     float firstPersonBodyScale = 0;
-    bool firstPersonPhysicalCrouch = false; // TR3 only.
+    bool firstPersonPhysicalCrouch = true; // TR3 only; opt out in INI.
     // Base eye clearance always applies; this optionally clamps physical leaning too.
     bool firstPersonWallCollision = false;
     bool worldInventory = true;

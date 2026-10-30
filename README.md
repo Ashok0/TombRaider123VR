@@ -160,8 +160,33 @@ rewrite also has independent maths tests and verifies its newly required
 The [14-gap TR4/5 feature port](docs/collection-parity.md) adds full-body IK,
 physical holsters, pistol pose continuity, held flares, spatial inventory,
 background controller polling and tracking/roomscale improvements. Full-body
-IK and spatial inventory are enabled by default; physical crouch and camera
-wall collision for physical leaning are opt-in. See the port record for controls, settings and validation.
+IK, spatial inventory and TR3 physical crouch are enabled by default; camera
+wall collision for physical leaning is opt-in. See the port record for controls, settings and validation.
+
+### Physical crouch port from TR4/5 (2026-10-30)
+
+In TR3 first person, the visible legs bend during a partial squat before native
+crouch hides the body at a 55 cm drop from calibrated standing height. The trigger
+compensates for looking down around the neck. Rising to within 23 cm of standing
+height releases the physical request through native crawl/duck/stand transitions;
+low ceilings still prevent standing. Recenter while standing upright.
+
+TR3 Modern Controls always toggle crouch, unlike TR4/5's selectable hold mode.
+Physical posture now supplies TR3's native crouch latch during Lara simulation,
+after button debounce, and releases it when the player rises. It no longer sends
+a synthetic LB press. The camera still avoids adding native crouch height to
+the HMD drop. Manual crouch outside a physical cycle retains native behavior.
+
+`FirstPersonPhysicalCrouch=1` is now the template, embedded INI and missing-key
+default. Set it to 0 to disable automatic native crouching. Full-body IK and
+positional head tracking are required. TR1/2 have no native crouch and are excluded;
+third person is unchanged. The crashing full self-test is not run for this port.
+
+Validation: the Release build and 160 standalone checks in
+`tests/physical_crouch_tests.cpp` passed. The read-only
+`tools/verify_physical_crouch_binaries.py` verified the native entry and both exit
+handlers across all five supported TR3 fixtures (15 complete-function comparisons).
+No game DLL code was executed by that check. Headset behavior remains unverified.
 
 ### Crate clearance and VRIK gait stability (2026-10-28)
 

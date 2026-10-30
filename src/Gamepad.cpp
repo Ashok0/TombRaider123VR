@@ -198,7 +198,10 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
 
     // The two-grip gameplay chord is a second Action button. Do not send its
     // constituent Duck/Walk buttons, or they can interrupt a block push.
-    if ((!gripAction && !(holsterGrips&1) && L.grip > 0.5f) || FirstPersonPhysicalDuck()) b |= XB_LEFT_SHOULDER;
+    if (!gripAction && !(holsterGrips&1) && L.grip > 0.5f) b |= XB_LEFT_SHOULDER;
+    // Physical posture enters the native simulation after button debounce.
+    // Sending LB here leaves TR3's Modern Controls crouch toggle latched.
+    FirstPersonPhysicalDuck(gameplay && !gripAction);
 
     // Walk modifier. X is what the game binds Walk to; RIGHT_SHOULDER also
     // keeps the optional RT+RB pitch chord reachable.

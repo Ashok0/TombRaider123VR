@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 38639 bytes, 801 lines.
+// Source: TombRaiderVR.ini, 38977 bytes, 805 lines.
 #pragma once
 
 namespace tr {
@@ -809,14 +809,17 @@ FirstPersonHandOffsetX=0
 FirstPersonHandOffsetY=0
 FirstPersonHandOffsetZ=0
 
-; TR4/5 collection parity: full-body fitting and optional physical duck (TR3).
+; TR4/5 collection parity: full-body fitting and physical duck (TR3 only).
 FirstPersonFullBodyIK=1
 FirstPersonBodyYawSlackDegrees=45
 FirstPersonBodyLeanRadiusMetres=0.15
 FirstPersonBodyFollowSpeedMetres=0.9
 FirstPersonBodyHandYawWeight=0.15
 FirstPersonBodyScale=0
-FirstPersonPhysicalCrouch=0
+; Legs bend during a partial squat; native crouch starts at a 55 cm height drop.
+; Rise within 23 cm of calibrated standing height to release; ceilings still apply.
+; Requires full-body IK above. Set 0 for button-only native crouching.
+FirstPersonPhysicalCrouch=1
 ; Base eye clearance always applies; 0 permits physical leaning through walls, 1 also clamps leaning.
 FirstPersonWallCollision=0
 WorldInventory=1
