@@ -1,0 +1,11 @@
+﻿{
+    "headset_verified":  false,
+    "release_build":  "passed",
+    "movement_camera_checks":  1200323,
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "new_sha256":  "97948BB62F83F17B340A4130CB5FECF61F4B50D67F2F63B8FD68719822F9E1F1",
+    "deployed_at":  "2026-10-30T17:12:10.7083935-04:00",
+    "old_sha256":  "E937227E5E86A1548C106113CD561872BE5212D5CF73D624988FE26CD2BC5177",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\jump-body-centering\\before-20261030-171210",
+    "ini_sha256":  "3E44B99853A4850FE1BC812A6FCE4796F0F3BB62126BD596F913181E3746C0B6"
+}

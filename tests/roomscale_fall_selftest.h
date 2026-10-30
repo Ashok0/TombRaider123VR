@@ -1,4 +1,5 @@
 namespace {
+#include "roomscale_collision_fixtures.h"
 tr::RoomCollision* roomscaleTestNative=nullptr;
 int roomscaleNativeQueries=0;
 int roomscaleObservedDrop=0,roomscaleObservedFlags=0;
@@ -20,10 +21,13 @@ void __cdecl RoomscaleTerrain(tr::RoomCollision* coll,int32_t x,int32_t,int32_t,
 void __cdecl RoomscaleRoom(uint8_t*,int32_t) {}
 void __cdecl RoomscaleNativeStop(uint8_t* target,void* raw) {
     using namespace tr;
-    Check(target==item && raw==roomscaleTestNative,"native collision receives the original item and object");
+    Check(target==item,"native collision receives Lara");
+    // Native LaraAboveWater ignores incoming RDX and uses global laracoll.
+    // It may be null or unrelated; never use it as the collision record.
+    (void)raw;
     auto& pos=Field<PHD_3DPOS>(off::item_pos);
     if(Field<uint16_t>(off::item_flags)&8) { Field<int16_t>(36)+=6;pos.y_pos+=Field<int16_t>(36);return; }
-    auto* coll=static_cast<RoomCollision*>(raw);
+    auto* coll=roomscaleTestNative;
     coll->radius=100;coll->badPos=384;coll->badNeg=-384;coll->badCeiling=0;coll->flags=5;
     coll->facing=pos.y_rot;
     coll->old[0]=pos.x_pos;coll->old[1]=pos.y_pos;coll->old[2]=pos.z_pos;
@@ -52,22 +56,42 @@ void RoomscaleFixture(int game,bool fullBody) {
     Field<PHD_3DPOS>(off::item_pos).y_rot=16384;testHeadYaw=locomotion::Pi*.5f;
     testConfig.firstPersonRoomscaleMove=true;testConfig.firstPersonFullBodyIK=fullBody;
     g_dragCurrent=g_dragPrevious=g_dragShown={};roomscaleNativeQueries=0;roomscaleTestWall=false;
+    testViewRight=testViewForward=0;
 }
 void TestRoomscaleNativeFall() {
     using namespace tr;
-    for(int game:{1,2,3}) for(bool fullBody:{false,true}) for(bool patched:{false,true}) {
-        RoomscaleFixture(game,fullBody);RoomCollision coll{};roomscaleTestNative=&coll;
+    for(const auto& fixture:kNativeCollisionFixtures) {
+        const auto resolved=ResolveNativeLaraCollision(fixture.code,fixture.game);
+        Check(reinterpret_cast<intptr_t>(resolved)==reinterpret_cast<intptr_t>(fixture.code)+fixture.delta,
+            "production resolver finds global laracoll in every supported native DLL entry");
+        const int x=fixture.game==1 ? 0x15 : fixture.game==2 ? 0x10 : 0x1f;
+        const int y=x+(fixture.game==3 ? 18 : 11),z=y+9;
+        for(int at:{x-6,x,y,y+2,z,z+2}) {
+            uint8_t damaged[64];std::memcpy(damaged,fixture.code,sizeof(damaged));damaged[at]^=1;
+            Check(!ResolveNativeLaraCollision(damaged,fixture.game),"mismatched instructions or collision coordinates fail closed");
+        }
+    }
+    Check(!ResolveNativeLaraCollision(nullptr,1) && !ResolveNativeLaraCollision(kNativeCollisionFixtures[0].code,0) &&
+          !ResolveNativeLaraCollision(kNativeCollisionFixtures[0].code,4),"unsupported collision binding is rejected");
+    for(int game:{1,2,3}) for(bool fullBody:{false,true}) for(bool patched:{false,true})
+    for(int argument:{0,1,2}) for(bool stabilized:{false,true}) {
+        RoomscaleFixture(game,fullBody);RoomCollision coll{},unrelated{};roomscaleTestNative=&coll;
+        testConfig.firstPersonMovementStabilization=stabilized;
+        g_nativeLaraCollision=&coll;
+        void* incoming=argument==0 ? nullptr : argument==1 ? &unrelated : &coll;
         if(!patched) dll.getCollisionInfo=uint32_t(reinterpret_cast<uint64_t>(&RoomscaleTerrain)-g_boundBase);
         for(int tick=0;tick<30 && !(Field<uint16_t>(off::item_flags)&8);++tick) {
             // Pause after every small physical step. A zero-drag standing
             // query must not undo the preceding accepted step at the lip.
             const bool pause=tick%2!=0;
             testFloorRight=pause ? 0.f : fullBody ? .22f : .05f;
+            testViewRight=testFloorRight;
+            if(fullBody && stabilized) testFloorRight=0; // looking down: rendered body owns the displacement
             g_dragShown=g_dragCurrent;
             LARGE_INTEGER frequency{};QueryPerformanceFrequency(&frequency);QueryPerformanceCounter(&g_roomscaleFollowTime);
             g_roomscaleFollowTime.QuadPart-=frequency.QuadPart/30;
             const int before=Field<PHD_3DPOS>(off::item_pos).x_pos;
-            Detour_LaraAboveWater(item,&coll);
+            Detour_LaraAboveWater(item,incoming);
             Check(Field<PHD_3DPOS>(off::item_pos).x_pos>=before,"standing collision must not pull physical steps back from the ledge");
         }
         if(!patched) {
@@ -79,12 +103,13 @@ void TestRoomscaleNativeFall() {
             (Field<uint16_t>(off::item_flags)&8),"slow physical steps reach native falling state in TR1, TR2 and TR3");
         Check(Field<PHD_3DPOS>(off::item_pos).y_pos==0,"roomscale hands off to gravity without snapping to the lower floor");
         const int x=Field<PHD_3DPOS>(off::item_pos).x_pos;
-        Detour_LaraAboveWater(item,&coll);
+        Detour_LaraAboveWater(item,incoming);
         Check(Field<PHD_3DPOS>(off::item_pos).y_pos>0 && Field<PHD_3DPOS>(off::item_pos).x_pos==x,
             "native gravity continues on the following tick without airborne roomscale dragging");
     }
-    for(int game:{1,2,3}) for(int guard=0;guard<15;++guard) {
+    for(int game:{1,2,3}) for(int guard=0;guard<16;++guard) {
         RoomscaleFixture(game,true);RoomCollision coll{},other{};
+        g_nativeLaraCollision=&coll;
         coll.badPos=other.badPos=384;coll.flags=other.flags=0x1f;
         if(guard==1) testConfig.firstPersonRoomscaleMove=false;
         if(guard==2) testConfig.positionalTracking=false;
@@ -100,8 +125,9 @@ void TestRoomscaleNativeFall() {
         if(guard==12) g_active=false;
         if(guard==13) testVR.m_poseValid=false;
         if(guard==14) Field<int16_t>(off::item_anim_state)=3;
+        if(guard==15) g_nativeLaraCollision=nullptr;
         {
-            RoomscaleCollisionScope scope(item,&coll);
+            RoomscaleCollisionScope scope(item);
             Detour_GetCollisionInfo(&other,60,0,0,0,762);
             Check(roomscaleObservedDrop==384 && roomscaleObservedFlags==0x1f,"other objects and private camera/sweep queries keep native policy");
             Detour_GetCollisionInfo(&coll,60,0,0,0,100);
@@ -114,13 +140,14 @@ void TestRoomscaleNativeFall() {
         Check(!g_roomscaleNativeCollision && !g_roomscaleNativeItem,"collision scope is cleared after every native tick");
     }
     RoomscaleFixture(1,true);RoomCollision coll{};roomscaleTestNative=&coll;roomscaleTestWall=true;
-    testFloorRight=.22f;LARGE_INTEGER frequency{};QueryPerformanceFrequency(&frequency);QueryPerformanceCounter(&g_roomscaleFollowTime);
+    g_nativeLaraCollision=&coll;
+    testFloorRight=testViewRight=.22f;LARGE_INTEGER frequency{};QueryPerformanceFrequency(&frequency);QueryPerformanceCounter(&g_roomscaleFollowTime);
     g_roomscaleFollowTime.QuadPart-=frequency.QuadPart/30;
     Detour_LaraAboveWater(item,&coll);
     Check(Field<PHD_3DPOS>(off::item_pos).x_pos==0 && !(Field<uint16_t>(off::item_flags)&8),"solid walls still block the complete roomscale/native collision pipeline");
     Field<uint16_t>(off::item_flags)|=8;roomscaleTestWall=false;
     const auto airborneDrag=DragBody(item);
     Check(airborneDrag.x==0 && airborneDrag.z==0,"gravity already enabled prevents dragging even if the animation still says STOP");
-    roomscaleTestNative=nullptr;testHeadYaw=0;
+    roomscaleTestNative=g_nativeLaraCollision=nullptr;testHeadYaw=0;testViewRight=testViewForward=0;
 }
 }

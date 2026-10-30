@@ -1,0 +1,13 @@
+﻿{
+    "binary_fixtures":  15,
+    "release_build":  "passed",
+    "movement_camera_checks":  1160953,
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "new_sha256":  "E937227E5E86A1548C106113CD561872BE5212D5CF73D624988FE26CD2BC5177",
+    "deployed_at":  "2026-10-30T16:46:53.5586406-04:00",
+    "headset_verified":  false,
+    "old_sha256":  "E1DB73F8312BB3959078D50FBA40581BF35AC0F2D001327E4B7E63AD87E1B657",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\roomscale-ledge-fix\\before-20261030-164653",
+    "unique_dll_builds":  9,
+    "ini_sha256":  "3E44B99853A4850FE1BC812A6FCE4796F0F3BB62126BD596F913181E3746C0B6"
+}

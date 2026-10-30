@@ -525,6 +525,18 @@ bool CanFitStandingBody(const uint8_t* item) {
         *reinterpret_cast<const int16_t*>(item+off::item_anim_state)==12);
 }
 
+// A jump uses native limb animation, but its rendered footprint must keep the
+// same remaining physical displacement that standing full-body IK follows.
+// This permits horizontal render placement only, not grounded IK or dragging
+// Lara's airborne collision root toward the headset.
+bool CanFitAirborneBody(const uint8_t* item) {
+    return g_active && g_haveHeading && Cfg().firstPersonFullBodyIK &&
+        Cfg().firstPersonMovementStabilization && Cfg().positionalTracking &&
+        Cfg().firstPersonHeadTranslation && VR().poseValid() && g_groundEye.valid && GroundBodyAvailable(item) &&
+        (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u) &&
+        locomotion::IsJumpOrFallState(*reinterpret_cast<const int16_t*>(item+off::item_anim_state));
+}
+
 bool IsLadder(const uint8_t* item) {
     return item && g_boundDll && locomotion::IsLadderState(g_boundDll->module[4]-L'0',
         *reinterpret_cast<const int16_t*>(item+off::item_anim_state));
@@ -1289,12 +1301,36 @@ void TurnBodyToHead(uint8_t* item, float dt) {
 
 thread_local RoomCollision* g_roomscaleNativeCollision=nullptr;
 thread_local uint8_t* g_roomscaleNativeItem=nullptr;
+RoomCollision* g_nativeLaraCollision=nullptr;
+
+RoomCollision* ResolveNativeLaraCollision(const uint8_t* movement,int game) {
+    if(!movement || game<1 || game>3) return nullptr;
+    // LaraAboveWater stores Lara's X/Y/Z into global laracoll.old. Incoming
+    // RDX is not that record. Verify all three RIP-relative stores and their
+    // position loads before resolving it, as in the TR4/5 roomscale fix.
+    // All supported builds are checked by verify_roomscale_collision.py.
+    const int x=game==1 ? 0x15 : game==2 ? 0x10 : 0x1f;
+    const int y=x+(game==3 ? 18 : 11),z=y+9;
+    const uint8_t loadX[]={0x8b,0x41,0x58},loadY[]={0x8b,0x41,0x5c},loadZ[]={0x8b,0x41,0x60};
+    if(std::memcmp(movement+x-6,loadX,3) ||
+       std::memcmp(movement+y-(game==3 ? 6 : 3),loadY,3) ||
+       std::memcmp(movement+z-3,loadZ,3)) return nullptr;
+    intptr_t targets[3]{};int n=0;
+    for(int at:{x,y,z}) {
+        if(movement[at]!=0x89 || movement[at+1]!=0x05) return nullptr;
+        int32_t displacement=0;std::memcpy(&displacement,movement+at+2,4);
+        targets[n++]=reinterpret_cast<intptr_t>(movement+at+6)+displacement;
+    }
+    if(targets[1]!=targets[0]+4 || targets[2]!=targets[0]+8) return nullptr;
+    return reinterpret_cast<RoomCollision*>(targets[0]-offsetof(RoomCollision,old));
+}
+
 struct RoomscaleCollisionScope {
     RoomCollision* previous=g_roomscaleNativeCollision;
     uint8_t* previousItem=g_roomscaleNativeItem;
-    RoomscaleCollisionScope(uint8_t* item,void* nativeCollision) {
+    explicit RoomscaleCollisionScope(uint8_t* item) {
         g_roomscaleNativeCollision=nullptr;g_roomscaleNativeItem=nullptr;
-        if(!nativeCollision || !item || item!=g_headingItem || !g_active || !g_haveHeading || !Gate() ||
+        if(!g_nativeLaraCollision || !item || item!=g_headingItem || !g_active || !g_haveHeading || !Gate() ||
            !CanWalk(item) || g_shifted || g_jumpPressed || !VR().poseValid() ||
            (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8) ||
            !Cfg().firstPersonRoomscaleMove || !Cfg().positionalTracking || !Cfg().firstPersonHeadTranslation ||
@@ -1304,7 +1340,7 @@ struct RoomscaleCollisionScope {
         // and undoes the preceding roomscale sweep. Retain the allowance when
         // pausing between physical steps; native collision still chooses the
         // falling animation/gravity when the root loses support.
-        g_roomscaleNativeCollision=static_cast<RoomCollision*>(nativeCollision);
+        g_roomscaleNativeCollision=g_nativeLaraCollision;
         g_roomscaleNativeItem=item;
     }
     ~RoomscaleCollisionScope() {
@@ -1333,6 +1369,11 @@ locomotion::Vec DragBody(uint8_t* item) {
     if(*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8) return {};
     Vec pending;
     VR().HeadFloorOffset(pending.x, pending.z);
+    // Full-body fitting follows the stabilized eye. Use the same physical
+    // displacement here so looking down at an edge cannot leave the collision
+    // root behind the rendered body through neck-pivot compensation.
+    if(Cfg().firstPersonFullBodyIK && Cfg().firstPersonMovementStabilization)
+        VR().FirstPersonViewOffset(pending.x,pending.z);
     const float scale = LiveWorldUnitsPerMetre();
     if (!std::isfinite(scale) || scale <= 1) return {};
     // Exclude motion already simulated but not yet displayed by interpolation.
@@ -1749,7 +1790,8 @@ void __cdecl Detour_DrawGunFlash(int32_t weapon,int32_t unused,int32_t joint) {
 bool BodyVisualOffsetApplies(const uint8_t* item) {
     return g_active && g_scenePoseValid && g_boundDll && g_boundBase &&
         item && item==g_headingItem && item==*Ptr<uint8_t*>(g_boundDll->laraItem) &&
-        ((CanFitStandingBody(item) && !UseLandingCamera(item)) || g_bodyWallOffset.x!=0 || g_bodyWallOffset.z!=0);
+        ((CanFitStandingBody(item) && !UseLandingCamera(item)) || CanFitAirborneBody(item) ||
+         g_bodyWallOffset.x!=0 || g_bodyWallOffset.z!=0);
 }
 
 locomotion::Vec BodyRenderOffset() {
@@ -1969,6 +2011,7 @@ bool ApplyFullBodyIK(uint8_t* item,float* joints,int count) {
     const Vec fit=BodyVisualOffsetApplies(item) ? Vec{offset.x,0,offset.z} : Vec{};
     Frame paletteHead{};
     if(!ReadIKJoint(obj,joints,count,bones,mapping,poses,14,paletteHead)) return false;
+    paletteHead.origin=Sub(paletteHead.origin,fit);
     const Vec paletteCamera=BodyPaletteCameraOrigin(item,paletteHead);
     for(int joint=0;joint<15;++joint) {
         if(!ReadIKJoint(obj,joints,count,bones,mapping,poses,joint,original[joint])) {
@@ -2273,8 +2316,13 @@ bool ApplyArmIK(uint8_t* item, float* joints, int count, bool shadow=false) {
         }
         if(!shadow) {
             motiongun::Frame head{};
-            if(ReadIKJoint(obj,joints,count,bones,mapping,poses,14,head))
+            if(ReadIKJoint(obj,joints,count,bones,mapping,poses,14,head)) {
+                if(BodyVisualOffsetApplies(item)) {
+                    const auto offset=BodyRenderOffset();
+                    head.origin=Sub(head.origin,{offset.x,0,offset.z});
+                }
                 target.origin=motiongun::Sub(trackedOrigin,BodyPaletteCameraOrigin(item,head));
+            }
         }
         const float heading=locomotion::Radians(reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos)->y_rot);
         const float side=hand ? 1.f : -1.f;
@@ -3523,7 +3571,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
         CrouchWeaponScope crouchWeapons(item);
         IdleTrackedGunHeadingScope idleGunHeading(item);
         DirectionalJumpAxesScope jumpAxes(item);
-        RoomscaleCollisionScope roomscaleCollision(item,nativeCollision);
+        RoomscaleCollisionScope roomscaleCollision(item);
         g_hLaraAboveWater.Original<Fn_LaraAboveWater>()(item, nativeCollision);
     }
     ObserveJumpLanding(item);
@@ -3901,7 +3949,8 @@ void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose,
     g_bodyVisualOffset={};
     g_bodyWallOffset={};
     if (UseLandingCamera(item)) { g_mountBodyTransition.Reset(); return; }
-    if (!CanFitStandingBody(item)) {
+    const bool airborne=CanFitAirborneBody(item);
+    if (!CanFitStandingBody(item) && !airborne) {
         const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
         if (IsLedgeMountState(state,BoundGame())) g_mountBodyTransition.Begin();
         else g_mountBodyTransition.Reset();
@@ -3915,12 +3964,17 @@ void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose,
         VR().FirstPersonViewOffset(view.x,view.z);
         VR().HeadFloorOffset(floor.x,floor.z);
     }
+    // Grounded full-body IK adds the residual tracking displacement itself.
+    // Airborne frames bypass that solver, so carry it in the shared palette
+    // placement instead. Recompute from the live eye/root every render: no
+    // stale takeoff offset, accumulation between eyes, or physical recenter.
+    if(airborne) floor={};
     const float bodyYaw=Radians(prev.y_rot)+Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f);
     const Vec eyeFromRoot{float(pose.x_pos-Lerp(prev.x_pos,pos.x_pos,frac)),
                           float(pose.z_pos-Lerp(prev.z_pos,pos.z_pos,frac))};
     g_bodyVisualOffset=g_groundEye.BodyOffsetAtEye(g_heading.base,bodyYaw,
         view,floor,LiveWorldUnitsPerMetre(),eyeFromRoot);
-    if (Cfg().firstPersonMovementStabilization && g_groundEye.valid) {
+    if (!airborne && Cfg().firstPersonMovementStabilization && g_groundEye.valid) {
         // The state/root can become grounded before the interpolated skeleton.
         // Fit that residual pose without changing the persistent standing eye.
         const Vec animatedFromRoot{
@@ -4111,6 +4165,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
 }
 
 bool Install(const GameDllLayout& d, uint64_t base) {
+    g_nativeLaraCollision=nullptr;
     g_nativeJumpCompression=nullptr;
     for(const auto& jump:kJumpDlls) if(jump.timestamp==d.timestamp &&
         !std::memcmp(reinterpret_cast<const void*>(base+jump.compress),jump.signature,sizeof(jump.signature)))
@@ -4124,6 +4179,12 @@ bool Install(const GameDllLayout& d, uint64_t base) {
         return false;
     const uint8_t movementPrologue[] = {0x48, 0x89, 0x5C, 0x24,
         static_cast<uint8_t>(d.module[4] == L'1' ? 0x08 : d.module[4] == L'2' ? 0x10 : 0x18)};
+    g_nativeLaraCollision=ResolveNativeLaraCollision(
+        reinterpret_cast<const uint8_t*>(base+d.laraAboveWater),d.module[4]-L'0');
+    if(!g_nativeLaraCollision) {
+        Log("firstperson: native Lara collision record could not be verified");
+        return false;
+    }
     if (!g_hLaraAboveWater.Install(reinterpret_cast<void*>(base + d.laraAboveWater),
             reinterpret_cast<void*>(&Detour_LaraAboveWater), 5,
             movementPrologue, sizeof(movementPrologue), "LaraAboveWater")) return false;
@@ -4342,6 +4403,7 @@ void Remove() {
     g_calibrationActive=false;
     g_hLaraAboveWater.Remove();
     g_hGetCollisionInfo.Remove();
+    g_nativeLaraCollision=nullptr;
     g_roomscaleNativeCollision=nullptr;g_roomscaleNativeItem=nullptr;
     g_hLaraGun.Remove();
     g_hAnimateLara.Remove();

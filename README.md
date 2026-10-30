@@ -3,6 +3,50 @@
 Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered*
 (`tomb123.exe`), covering all three games.
 
+### Body centering after roomscale jumps (2026-10-30)
+
+First-person full-body rendering now keeps Lara centered on the player's
+physical position through jumps and falls after roomscale walking. Standing
+IK follows the residual headset displacement that remains after collision-root
+movement; the airborne path previously discarded that placement and returned
+the mesh to the collision root. Airborne rendering now carries the same
+horizontal displacement, recomputed from the live eye and interpolated root
+for each frame. Native limb rotations, vertical animation and jump physics
+remain unchanged, and landing returns to ordinary standing IK.
+
+Controller targets use the unshifted camera origin, including the fallback
+joint-based camera calculation, so body placement does not shift the hands a
+second time. The change uses existing full-body IK, movement stabilization and
+positional tracking settings; no default INI changes are required.
+
+Validation: the regression reproduces the old centering failure and covers
+TR1/2/3, armed/unarmed bodies, roomscale offsets, artificial headings, moving
+roots, live physical movement in the air, both eye passes, forward/up/side/back
+jumps, falls and landing. The full movement/camera suite passes 1,200,323
+checks. Headset confirmation remains pending.
+
+### Roomscale ledge fall correction (2026-10-30)
+
+Physical walking can now carry Lara off a ledge into the native falling state
+in TR1, TR2 and TR3, matching TR4/5. The previous port treated the incoming
+second argument of `LaraAboveWater` as its collision record. The engine actually
+uses global `laracoll`, so its standing collision check kept pushing Lara back
+from the edge. The fix resolves that global from verified native instructions
+and applies the roomscale drop allowance to the record the engine really uses.
+
+With full-body IK and movement stabilization, physical movement also uses the
+same headset displacement as the rendered body, matching TR4/5. Neck-pivot
+compensation no longer leaves the collision root behind while looking down at
+an edge. Native gravity, falling animations, floor settling and wall collision
+still own the result; stick/Walk input retains its usual collision policy.
+
+Validation: the corrected native-call fixture reproduces the old barrier, and
+the movement suite passes 1,160,953 checks. Coverage includes all three games,
+full-body/stabilization settings, unrelated/null incoming arguments, pauses at
+the lip, continued gravity and solid walls. The production collision resolver
+passes native instruction fixtures from nine unique DLL builds, verified
+against all 15 installed binary fixtures. Headset confirmation remains pending.
+
 ### First-person jump dip correction (2026-10-30)
 
 The jump port's vehicle guard incorrectly treated TR1's unused, zero-valued

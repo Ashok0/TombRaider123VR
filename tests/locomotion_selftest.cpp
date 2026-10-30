@@ -363,6 +363,7 @@ void TestResponsiveEntry() {
 #include "collection_integration_selftest.h"
 #include "directional_jump_selftest.h"
 #include "remaining_parity_selftest.h"
+#include "jump_body_centering_selftest.h"
 #include "roomscale_fall_selftest.h"
 #include "tracked_shadow_selftest.h"
 #include "monkey_shadow_selftest.h"
@@ -502,6 +503,7 @@ int main() {
     TestTrackedShadows();
     TestPhysicalSwitch();
     TestRemainingParity();
+    TestJumpBodyCentering();
     std::printf("PASS: %d locomotion, gun-control and camera hook checks\n",checks);
     return 0;
 }
