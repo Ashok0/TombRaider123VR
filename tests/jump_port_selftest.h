@@ -85,6 +85,9 @@ void PortSetup(int game,int state,Vec direction,float heading=0) {
     g_hAnimateLara.m_trampoline=reinterpret_cast<void*>(&PortAnimate);
     g_hLaraAboveWater.m_trampoline=reinterpret_cast<void*>(&PortAboveWater);
     testConfigFlags=2;testConfig.gamepadEnabled=true;
+    // TR1 retains the struct slot but does not initialize/use skidoo. TR2/3
+    // initialize it to -1 and dispatch vehicle control when it is an item ID.
+    *Ptr<int16_t>(dll.lara+40)=game==1 ? 0 : -1;
     Field<int16_t>(24)=state==1?0:state==15?73:103;
     Field<int16_t>(26)=animationTable[Field<int16_t>(24)].first;
     Field<int16_t>(20)=int16_t(state);
@@ -93,6 +96,35 @@ void PortSetup(int game,int state,Vec direction,float heading=0) {
 }
 void TestJumpPort() {
     using namespace tr;using namespace tr::locomotion;
+    for(int game:{1,2,3}) for(int fraction:{0,64,128,192,256}) {
+        PortSetup(game,2,{});
+        dll.frameFrac=0x10000000+204;*Ptr<int32_t>(dll.frameFrac)=fraction;
+        g_groundEye.Reset();g_groundEye.Apply({0,0,0},0,{0,-700,80},0);
+        g_previousBody={};g_lastClimbCameraState=-1;
+        for(const auto entry:std::array<std::array<int,2>,8>{{
+            {15,73},{3,16},{3,18},{3,76},{25,74},{26,80},{27,78},{28,91}}}) {
+            Field<int16_t>(18)=int16_t(entry[0]);Field<int16_t>(24)=int16_t(entry[1]);
+            Field<uint16_t>(off::item_flags)=0;
+            Check(StandingJumpPreparation(item),"TR1-3 grounded compression/takeoff keeps upright body fitting");
+            PHD_3DPOS eye{30,-400,20}; // native neck is 300 units below standing
+            UpdateLocomotion(eye);
+            Check(eye.y_pos==-700,"grounded jump preparation cannot dip the calibrated camera");
+        }
+        for(int state:{3,25,26,27,28}) for(int rise:{-104,-50,40}) {
+            Field<int16_t>(18)=int16_t(state);Field<uint16_t>(off::item_flags)=8;
+            Field<PHD_3DPOS>(off::item_pos_prev).y_pos=0;
+            Field<PHD_3DPOS>(off::item_pos).y_pos=rise;
+            const int rootY=Lerp(0,rise,fraction);
+            PHD_3DPOS eye{30,rootY-400,20};
+            UpdateLocomotion(eye);
+            Check(eye.y_pos==rootY-700,"forward/up/side/back camera follows native arc without takeoff neck dip");
+            Check(!StandingJumpPreparation(item),"airborne feet retain their native pose");
+            Check(Field<PHD_3DPOS>(off::item_pos).y_pos==rise,"camera stabilization never changes jump physics");
+        }
+        testConfig.firstPersonMovementStabilization=false;
+        PHD_3DPOS eye{30,-400,20};UpdateLocomotion(eye);
+        Check(eye.y_pos==-400,"disabled stabilization retains the animated jump camera");
+    }
     for(int game:{1,2,3}) for(bool first:{false,true}) for(bool armed:{false,true})
     for(int start:{2,15}) for(Vec direction:{Vec{},Vec{0,1},Vec{0,-1},Vec{-1,0},Vec{1,0}})
     for(float heading:{0.f,.7f,-2.9f}) {
@@ -138,7 +170,10 @@ void TestJumpPort() {
         if(blocker==3) Field<uint16_t>(off::item_flags)=8;
         if(blocker==4) Field<int16_t>(22)=19;
         if(blocker==5) testWater=1;
-        if(blocker==6) *Ptr<int16_t>(dll.lara+40)=1;
+        if(blocker==6) {
+            if(game==1) continue; // TR1 has no vehicle ownership in this slot.
+            *Ptr<int16_t>(dll.lara+40)=1;
+        }
         if(blocker==7) animationTable[74].commands=0;
         if(blocker==8) g_active=false;
         if(blocker==9) g_nativeJumpCompression=nullptr;
@@ -184,7 +219,9 @@ void TestJumpPort() {
             if(camera==1 || camera==5) Check(testConfigFlags&2,"playable fixed/heavy override retains owned Modern Controls");
             *Ptr<int32_t>(dll.camera+off::camera_type)=0;g_haveHeading=false;g_previousBody={};
             dll.frameFrac=0x10000000+204;*Ptr<int32_t>(dll.frameFrac)=256;
+            testAllowRecenter=true;
             PHD_3DPOS eye{0,-700,80};UpdateLocomotion(eye);g_active=true;
+            testAllowRecenter=false;
             Check(g_groundJump.edgeWaiting && g_groundJump.held,"same-body camera recovery preserves expired-tap long hold");
             testConfigFlags=2;
             for(int tick=0;tick<110 && autoJumpLaunch<0;++tick) {AutoJumpPoll();Detour_LaraAboveWater(item,nullptr);}

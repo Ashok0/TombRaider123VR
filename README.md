@@ -3,6 +3,27 @@
 Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered*
 (`tomb123.exe`), covering all three games.
 
+### First-person jump dip correction (2026-10-30)
+
+The jump port's vehicle guard incorrectly treated TR1's unused, zero-valued
+`skidoo` field as an active vehicle. This disabled immediate takeoff, upright
+preparation and soft-landing recovery in actual TR1 gameplay; the old test
+fixture hid it by setting the field to TR2/3's `-1` sentinel. The guard now
+applies only to TR2/3, which actually use the field for vehicle ownership.
+
+All three games also retain the standing eye through grounded takeoff clips
+and forward/up jumps, extending the existing side/back jump camera handling.
+The camera follows the interpolated collision root instead of inheriting a
+crouched neck at takeoff. Native jump physics and airborne body animation
+remain intact. This uses the existing `FirstPersonMovementStabilization=1`
+setting; no INI change is needed with the default configuration.
+
+The realistic TR1 fixture reproduces the old takeoff failure. The corrected
+movement suite passes 1,157,214 checks, including preparation and jump camera
+height across TR1/2/3 and five interpolation fractions. The previously aborted
+camera-handoff fixture now permits its expected recenter call. Headset
+confirmation of this correction remains pending.
+
 ### Jump parity with TR4/5 (2026-10-30)
 
 The nine October 30 jump differences now have implementations for TR1, TR2

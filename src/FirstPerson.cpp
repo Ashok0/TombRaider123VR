@@ -499,15 +499,25 @@ bool CanWalk(const uint8_t* item) {
 }
 
 bool GroundBodyAvailable(const uint8_t* item) {
+    // Only TR2/3 initialize and use skidoo as a vehicle item / -1 sentinel.
+    // TR1 leaves this shared struct slot zero. Treating it as a vehicle there
+    // disables instant takeoff, upright preparation and soft-landing recovery.
     return item && g_boundDll && g_boundBase && !InteractionAligning() && LaraWaterStatus()==0 &&
         *reinterpret_cast<const int16_t*>(item+off::item_hit_points)>0 &&
-        *reinterpret_cast<const int16_t*>(g_boundBase+g_boundDll->lara+40)<0 &&
+        (BoundGame()==1 || *reinterpret_cast<const int16_t*>(g_boundBase+g_boundDll->lara+40)<0) &&
         !(BoundGame()==3 && (*reinterpret_cast<const uint16_t*>(g_boundBase+g_boundDll->lara+60)&4u));
 }
 bool StandingJumpPreparation(const uint8_t* item) {
-    return g_active && Cfg().firstPersonMovementStabilization && g_groundEye.valid &&
-        GroundBodyAvailable(item) && *reinterpret_cast<const int16_t*>(item+off::item_anim_state)==15 &&
-        !(*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u);
+    if(!g_active || !Cfg().firstPersonMovementStabilization || !g_groundEye.valid ||
+       !GroundBodyAvailable(item) || (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u)) return false;
+    const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    const int clip=*reinterpret_cast<const int16_t*>(item+off::item_anim_number);
+    // The short takeoff clips already report jump states while Lara is still
+    // grounded. Keep their crouch out of the view/body too when clearance or
+    // input ownership requires native takeoff timing.
+    return state==15 || (state==3 && (clip==16 || clip==18 || clip==76)) ||
+        (state==25 && clip==74) || (state==26 && clip==80) ||
+        (state==27 && clip==78) || (state==28 && clip==91);
 }
 bool CanFitStandingBody(const uint8_t* item) {
     return CanWalk(item) || StandingJumpPreparation(item) || (item && !InteractionAligning() && LaraWaterStatus()==0 &&
@@ -3585,11 +3595,13 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         VR().PivotHeadFloorOffset(turn);
     }
     const bool crouch=CanUseCrouchCamera(item);
-    if (Cfg().firstPersonMovementStabilization && state>=25 && state<=27 &&
+    if (Cfg().firstPersonMovementStabilization && (state==3 || (state>=25 && state<=28)) &&
         LaraWaterStatus()==0 && g_groundEye.valid) {
-        // Back/side jump neck animation adds a second rise or lateral sway.
-        // Follow the interpolated collision arc with the calibrated standing
-        // eye, as in TR4/5. Real HMD motion is still applied separately.
+        // Keep the calibrated eye through takeoff and the whole ordinary jump,
+        // including forward/up jumps. Their interpolated neck can still carry
+        // the crouched takeoff pose after the state becomes airborne. Follow
+        // the collision arc, as for TR4/5's directional jumps; HMD motion is
+        // applied separately, without filtering native ascent or descent.
         const Vec flat=Rotate({g_groundEye.local.x,g_groundEye.local.z},g_heading.base);
         pose.x_pos=int32_t(std::lround(body.x+flat.x));
         pose.y_pos=Lerp(prev.y_pos,pos.y_pos,frac)+int32_t(std::lround(g_groundEye.local.y));
