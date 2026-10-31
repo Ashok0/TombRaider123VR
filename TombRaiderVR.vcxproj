@@ -125,6 +125,8 @@
     <ClCompile Include="src\DynamicBones.cpp" />
     <ClCompile Include="src\BoneSkin.cpp" />
     <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\VRMenu.cpp" />
+    <ClCompile Include="src\VRNativeMenu.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\EnhancedEffects.cpp" />
@@ -150,6 +152,15 @@
     <ClInclude Include="src\HandSkin.h" />
     <ClInclude Include="src\WristCap.h" />
     <ClInclude Include="src\Config.h" />
+    <ClInclude Include="src\VRMenu.h" />
+    <ClInclude Include="src\VRNativeMenu.h" />
+    <ClInclude Include="src\VRNativeMenuModel.h" />
+    <ClInclude Include="src\VRNativeMenuAddresses.inl" />
+    <ClInclude Include="src\VRNativeMenuExtra.inl" />
+    <ClInclude Include="src\VRMenuModel.h" />
+    <ClInclude Include="src\VRMenuSettings.h" />
+    <ClInclude Include="src\VRMenuSettings.inl" />
+
     <ClInclude Include="src\DefaultIni.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\EnhancedEffects.h" />

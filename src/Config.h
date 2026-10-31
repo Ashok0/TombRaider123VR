@@ -519,6 +519,8 @@ struct Config {
     float dpadShiftDeadzone = 0.5f;
 
     bool  gamepadLogButtons = false;
+    // Dark preserves the original VR presentation; Brighter enables native sRGB render targets.
+    bool vrBrighterColors = false;
     // Opt-in native Index actions; requires shipped TombRaiderVRBindings files.
     bool  valveIndexControllers = false;
     float valveIndexGripPress = .55f;

@@ -1,3 +1,4 @@
+#include "VRMenu.h"
 // Hooks.cpp -- the stereo injection layer for Tomb Raider I-III Remastered.
 //
 // Six hooks. Two do the VR work; four are plumbing that stereo cannot function
@@ -1386,6 +1387,7 @@ void __cdecl Detour_ogl_present() {
     // the player moves between games from the title screen, so this is not a
     // one-time bind.
     GameDllUpdate();
+    VRMenuUpdate();
     DynamicBonesUpdate();
 
     // Install or drop the culling hooks to match. Must follow GameDllUpdate:

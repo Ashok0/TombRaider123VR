@@ -1,3 +1,4 @@
+#include "VRMenu.h"
 #include "VRSystem.h"
 #include "HeadHeightClamp.h"
 #include "Config.h"
@@ -243,6 +244,7 @@ bool VRSystem::Init() {
 }
 
 void VRSystem::Shutdown() {
+    VRMenuShutdown();
     m_gunHaptics.Reset();
     m_input=nullptr;m_indexInput.Reset();m_indexReadError=vr::VRInputError_None;
     if (m_system && g_shutdownInternal) g_shutdownInternal();
@@ -832,6 +834,9 @@ void VRSystem::Submit(GLuint tex, uint32_t, uint32_t) {
     vr::Texture_t t{};
     t.handle      = reinterpret_cast<void*>(static_cast<uintptr_t>(tex));
     t.eType       = vr::TextureType_OpenGL;
+    // Both schemes submit display-ready pixels. Brighter restores the native
+    // sRGB eye/scratch texture format; a compositor flag alone did not produce
+    // the earlier brighter result on the user's headset.
     t.eColorSpace = vr::ColorSpace_Gamma;
 
     // One double-wide texture, split by UV bounds -- avoids a second FBO and a

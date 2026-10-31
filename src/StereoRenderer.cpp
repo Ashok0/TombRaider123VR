@@ -1,4 +1,5 @@
 #include "StereoRenderer.h"
+#include "Config.h"
 #include "Log.h"
 
 namespace tr {
@@ -27,7 +28,8 @@ bool StereoRenderer::Create(uint32_t eyeW, uint32_t eyeH) {
 
     glGenTextures(1, &m_tex);
     glBindTexture(GL_TEXTURE_2D, m_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    m_srgb=Cfg().vrBrighterColors;
+    glTexImage2D(GL_TEXTURE_2D, 0, m_srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -71,10 +73,35 @@ void StereoRenderer::Destroy() {
     if (m_depth) { gl::DeleteRenderbuffers(1, &m_depth); m_depth = 0; }
     if (m_tex)   { glDeleteTextures(1, &m_tex);          m_tex = 0; }
     m_eyeW = m_eyeH = 0;
+    m_srgb=m_monoSrgb=false;
+}
+
+void StereoRenderer::UpdateColorScheme() {
+    const bool brighter=Cfg().vrBrighterColors;
+    if(m_srgb==brighter && (!m_monoTex || m_monoSrgb==brighter)) return;
+    GLint previousTexture=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&previousTexture);
+    // Restore the October 26 correction as an opt-in format choice. Native
+    // remastered draws enable FRAMEBUFFER_SRGB; only an sRGB attachment can
+    // encode their linear output. Dark keeps the old RGBA8 pixels unchanged.
+    // Reallocate storage in place so engine FBO references remain valid.
+    const GLint format=brighter ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+    if(m_tex && m_srgb!=brighter) {
+        glBindTexture(GL_TEXTURE_2D,m_tex);
+        glTexImage2D(GL_TEXTURE_2D,0,format,m_eyeW*2,m_eyeH,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        m_srgb=brighter;
+    }
+    if(m_monoTex && m_monoSrgb!=brighter) {
+        glBindTexture(GL_TEXTURE_2D,m_monoTex);
+        glTexImage2D(GL_TEXTURE_2D,0,format,m_monoW,m_monoH,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+        m_monoSrgb=brighter;
+    }
+    glBindTexture(GL_TEXTURE_2D,GLuint(previousTexture));
+    LogF("stereo: Color Scheme applied: %s",brighter ? "Brighter (native sRGB targets)" : "Dark (original RGBA8 targets)");
 }
 
 void StereoRenderer::BeginFrame() {
     if (!m_fbo) return;
+    UpdateColorScheme();
     gl::BindFramebuffer(GL_FRAMEBUFFER, m_fbo);
     glViewport(0, 0, static_cast<GLsizei>(m_eyeW * 2), static_cast<GLsizei>(m_eyeH));
     glDisable(GL_SCISSOR_TEST);
@@ -100,7 +127,8 @@ bool StereoRenderer::CreateMono(uint32_t w, uint32_t h) {
 
     glGenTextures(1, &m_monoTex);
     glBindTexture(GL_TEXTURE_2D, m_monoTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, (GLsizei)w, (GLsizei)h, 0,
+    m_monoSrgb=Cfg().vrBrighterColors;
+    glTexImage2D(GL_TEXTURE_2D, 0, m_monoSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, (GLsizei)w, (GLsizei)h, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

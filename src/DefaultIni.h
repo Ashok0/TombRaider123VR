@@ -1,14 +1,14 @@
 // DefaultIni.h -- the stock TombRaiderVR.ini, embedded.
 //
 // GENERATED FILE. Do not edit by hand: change TombRaiderVR.ini in the repo root
-// and run  python tools\gen_default_ini.py
+// and run  python tools\\gen_default_ini.py
 //
 // The DLL writes this out when no ini exists beside it, so a fresh install gets
 // the documented, working configuration rather than bare struct defaults -- the
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 39793 bytes, 819 lines.
+// Source: TombRaiderVR.ini, 39199 bytes, 823 lines.
 #pragma once
 
 namespace tr {
@@ -178,7 +178,8 @@ CullObjects=1
 ; glitch, because it turns "that wall is missing" into a room number.
 CullDumpKey=0
 
-; TR world units per metre -- the main scale control.
+)INI"
+           R"INI(; TR world units per metre -- the main scale control.
 ;
 ; RAISE IT if the world feels too big and depth feels flat. Those are the same
 ; symptom: your IPD is fixed, so a world rendered too large leaves the eye
@@ -227,6 +228,11 @@ SwapEyes=0
 ;   upside down in the HMD but fine on the monitor .. set this to 1
 ;   upside down in BOTH ......................... change FlipProjectionY instead
 FlipSubmitV=0
+
+; VR Options > Color Scheme: 0=Dark (original VR look), 1=Brighter.
+; Brighter restores native sRGB rendering, as in the October 26 color fix.
+; Takes effect on the next frame when changed in VR Options.
+VRBrighterColors=0
 
 ; --- per-eye rendering ------------------------------------------------------
 
@@ -326,8 +332,7 @@ FirstPersonYawFromLara=0
 FirstPersonHeadTranslation=1
 FirstPersonRecenterKey=0x23
 
-)INI"
-           R"INI(; Body following is limited to ground locomotion so interactions retain their
+; Body following is limited to ground locomotion so interactions retain their
 ; authored facing. Zero deadzone keeps Lara aligned to the HMD. The legacy
 ; per-frame rate is interpreted at 60 Hz and scaled by elapsed time.
 FirstPersonBodyFollowsHead=1
@@ -343,7 +348,8 @@ FirstPersonTurnDeadzone=0.25
 FirstPersonMovementStabilization=1
 ; Ease the camera handoff from a crate/ledge mount to standing, in seconds.
 ; Only the animation offset is blended; head tracking and movement stay live.
-; 0 disables; positive values are limited to 0.03..0.40 seconds.
+)INI"
+           R"INI(; 0 disables; positive values are limited to 0.03..0.40 seconds.
 FirstPersonMountSmoothingSeconds=0.16
 
 ; HD motion guns are enabled by default. Each controller places its hand; shots
@@ -501,7 +507,8 @@ ProjOffsetScale=1.0
 ; test has) such a pass looks world-space. Handing it a perspective frustum
 ; would divide an ortho layout by a depth it was never built for.
 ;
-; Unlike PreserveProjOffset above, this one IS expected to fire here:
+)INI"
+           R"INI(; Unlike PreserveProjOffset above, this one IS expected to fire here:
 ; vid_setOrtho3D is a real 78-byte function in tomb123.exe (RVA 0x0000A590) and
 ; the game calls it. On TR4-6 the equivalent path never fired once across a TR4
 ; and a TR5 session. The ortho3D= counter in the health report says what it is
@@ -620,8 +627,7 @@ ValveIndexGripRelease=0.35
 GamepadLogButtons=0
 
 ; Right stick turns only. Its vertical axis is dropped, so the game camera never
-)INI"
-           R"INI(; pitches from the stick. 1 = on and the default; 0 = the stock two-axis stick.
+; pitches from the stick. 1 = on and the default; 0 = the stock two-axis stick.
 ;
 ; In VR the headset already owns pitch: you look up by looking up. Stick pitch is
 ; then a second source for the same axis, fighting the first, and it is the
@@ -653,7 +659,8 @@ DecoupledPitch=1
 ; setting instead, which made the same chord decouple pitch or restore it
 ; depending on a value you cannot see while playing.
 ;
-; KNOW WHAT RB IS HERE. Touch has no physical shoulder buttons: the RIGHT GRIP
+)INI"
+           R"INI(; KNOW WHAT RB IS HERE. Touch has no physical shoulder buttons: the RIGHT GRIP
 ; synthesises XB_X and XB_RIGHT_SHOULDER together, because X is what the game
 ; binds Walk to and RIGHT_SHOULDER is what makes this pitch chord reachable.
 ; So this chord is right grip + right trigger, which in play reads as

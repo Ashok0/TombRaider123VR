@@ -1,0 +1,12 @@
+﻿{
+    "dll":  "2a33d170071a7989ac696c9de547f1a1260b9c7403c19fcc2ecc46aa2d37fb43",
+    "change":  "Plain-text Controller Type and Color Scheme values; avoid native icon token parsing",
+    "full_suite_run":  false,
+    "verified_game_layouts":  9,
+    "headset_tested":  false,
+    "native_options_checks":  109,
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\vr-options\\before-visible-options-20261031-194213",
+    "ini_unchanged":  "3332645249570D28A18EB0D35FA74259A2A183F8A239470447EAD1151CA4ADBF",
+    "settings_checks":  55,
+    "deployed":  "2026-10-31T19:42:13.8918796-04:00"
+}

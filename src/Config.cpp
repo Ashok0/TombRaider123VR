@@ -1,4 +1,5 @@
 #include "Config.h"
+#include "VRMenuSettings.h"
 #include "DefaultIni.h"
 #include "Log.h"
 
@@ -355,6 +356,7 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.dpadShift           = GetBool (L"DpadShift",           g_cfg.dpadShift,          ini);
     g_cfg.dpadShiftDeadzone   = GetFloat(L"DpadShiftDeadzone",   g_cfg.dpadShiftDeadzone,  ini);
     g_cfg.gamepadLogButtons   = GetBool (L"GamepadLogButtons",  g_cfg.gamepadLogButtons,  ini);
+    g_cfg.vrBrighterColors = GetBool(L"VRBrighterColors",false,ini);
     g_cfg.valveIndexControllers = GetBool(L"ValveIndexControllers",g_cfg.valveIndexControllers,ini);
     g_cfg.valveIndexGripPress = GetFloat(L"ValveIndexGripPress",g_cfg.valveIndexGripPress,ini);
     g_cfg.valveIndexGripRelease = GetFloat(L"ValveIndexGripRelease",g_cfg.valveIndexGripRelease,ini);
@@ -510,5 +512,7 @@ void LoadConfig(const wchar_t* ini) {
              g_cfg.traceFrames, g_cfg.traceKey);
     }
 }
+
+#include "VRMenuSettings.inl"
 
 } // namespace tr

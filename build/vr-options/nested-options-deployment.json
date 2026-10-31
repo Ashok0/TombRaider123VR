@@ -1,0 +1,12 @@
+﻿{
+    "dll":  "6a3cbb6575303086ab633f97ebe21ed01a978eac339fde0b68d3d1bb5834b200",
+    "change":  "Original Options \u003e VR Options; no ring hooks or additional objects",
+    "full_suite_run":  false,
+    "verified_game_layouts":  9,
+    "headset_tested":  false,
+    "native_options_checks":  85,
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\vr-options\\before-nested-options-20261031-193341",
+    "ini_unchanged":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88",
+    "settings_checks":  55,
+    "deployed":  "2026-10-31T19:33:41.9253742-04:00"
+}

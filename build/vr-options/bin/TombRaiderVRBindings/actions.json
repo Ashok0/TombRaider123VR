@@ -1,0 +1,106 @@
+{
+  "action_sets": [
+    {
+      "name": "/actions/game",
+      "usage": "leftright"
+    }
+  ],
+  "actions": [
+    {
+      "name": "/actions/game/in/left_stick",
+      "type": "vector2",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/left_trigger",
+      "type": "vector1",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/left_grip",
+      "type": "vector1",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/left_lower",
+      "type": "boolean",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/left_upper",
+      "type": "boolean",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/left_stickclick",
+      "type": "boolean",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/out/left_haptic",
+      "type": "vibration",
+      "requirement": "optional"
+    },
+    {
+      "name": "/actions/game/in/right_stick",
+      "type": "vector2",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/right_trigger",
+      "type": "vector1",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/right_grip",
+      "type": "vector1",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/right_lower",
+      "type": "boolean",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/right_upper",
+      "type": "boolean",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/in/right_stickclick",
+      "type": "boolean",
+      "requirement": "suggested"
+    },
+    {
+      "name": "/actions/game/out/right_haptic",
+      "type": "vibration",
+      "requirement": "optional"
+    }
+  ],
+  "default_bindings": [
+    {
+      "controller_type": "knuckles",
+      "binding_url": "bindings_index.json"
+    }
+  ],
+  "localization": [
+    {
+      "language_tag": "en_US",
+      "/actions/game": "Tomb Raider controls",
+      "/actions/game/in/left_stick": "left: Move / menu navigation",
+      "/actions/game/in/left_trigger": "left: Left trigger / equip / left fire",
+      "/actions/game/in/left_grip": "left: Grip force / crouch / holster",
+      "/actions/game/in/left_lower": "left: A / inventory",
+      "/actions/game/in/left_upper": "left: B / action / view chords",
+      "/actions/game/in/left_stickclick": "left: Stick click / sprint",
+      "/actions/game/out/left_haptic": "left: haptics",
+      "/actions/game/in/right_stick": "right: Turn / D-pad modifier",
+      "/actions/game/in/right_trigger": "right: Right trigger / fire",
+      "/actions/game/in/right_grip": "right: Grip force / walk / holster",
+      "/actions/game/in/right_lower": "right: A / jump",
+      "/actions/game/in/right_upper": "right: B / roll",
+      "/actions/game/in/right_stickclick": "right: Stick click / D-pad shift",
+      "/actions/game/out/right_haptic": "right: haptics"
+    }
+  ]
+}

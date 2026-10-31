@@ -124,6 +124,29 @@ so almost none of this was reverse engineering in the usual sense. Where the
 TR4-6 work read a decompiler, this reads the compiler's own symbols and type
 information.
 
+
+## VR Options
+
+Open the original **Options** item in the title inventory ring, scroll to the
+bottom of its settings, and select **VR Options**. The ring retains its five
+original items; no extra ring object is added. This uses the game's native menu, with no popup.
+Use Up/Down to select a row, Left/Right or Select to change it, and Back to return.
+
+- **Controller Type:** Meta Touch or Valve Index. Changes apply after restarting.
+- **Color Scheme:** Dark (default) or Brighter. Changes apply immediately in the headset.
+  Dark retains the original VR presentation. Brighter restores the native sRGB eye and scratch render targets from the
+  October 26 color correction. This lets remastered rendering apply its normal
+  color conversion before submission. Classic rendering retains its native
+  conversion state. This changes neither game lighting nor saturation; final
+  headset appearance still depends on the display.
+
+Changes save automatically to `ValveIndexControllers` and `VRBrighterColors` in the
+installed INI. Existing INIs without a color setting keep Dark; new INIs include
+`VRBrighterColors=0`. Other settings stay unchanged, and the previous INI is backed
+up as `TombRaiderVR.ini.vr-options.bak`. Index mode uses the existing
+`TombRaiderVRBindings` files beside the DLL.
+
+
 ## AI Usage
 
 The original stereo, culling, first-person camera and initial roomscale work was

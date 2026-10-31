@@ -1,7 +1,8 @@
 // StereoRenderer.h -- one double-wide eye target and the viewport bookkeeping
 // around it.
 //
-// Layout is a single 2W x H RGBA8 texture: left eye occupies [0,W), right eye
+// Layout is a single 2W x H texture (RGBA8 for Dark, SRGB8_ALPHA8 for Brighter):
+// left eye occupies [0,W), right eye
 // [W,2W). Submitting is then two Submit() calls differing only in UV bounds,
 // with no second FBO and no attachment switch between eyes.
 //
@@ -81,6 +82,10 @@ public:
     void MarkEyes();
 
 private:
+    // Menu changes are applied at the next full frame clear, never midway
+    // through drawing/submitting an image. Keep texture/FBO identities stable.
+    void UpdateColorScheme();
+    bool m_srgb=false, m_monoSrgb=false;
     GLuint   m_monoFbo   = 0;
     GLuint   m_monoTex   = 0;
     GLuint   m_monoDepth = 0;

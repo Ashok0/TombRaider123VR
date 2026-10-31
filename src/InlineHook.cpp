@@ -193,4 +193,9 @@ void InlineHook::Remove() {
     LogF("hook[%s]: removed", m_name);
 }
 
+void InlineHook::Abandon() {
+    if (m_bridge) VirtualFree(m_bridge, 0, MEM_RELEASE);
+    m_installed=false;m_target=nullptr;m_trampoline=nullptr;m_bridge=nullptr;
+}
+
 } // namespace hook

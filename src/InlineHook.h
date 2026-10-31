@@ -55,6 +55,9 @@ public:
                  size_t ripCount = 0);
 
     void Remove();
+    // The owning game DLL has already unloaded; release the trampoline without
+    // writing saved instructions into an unmapped or reused address.
+    void Abandon();
 
     // Call this to invoke the original function.
     template <typename Fn>
