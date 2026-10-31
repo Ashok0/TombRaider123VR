@@ -3484,14 +3484,27 @@ struct IdleTrackedGunHeadingScope {
 // the digital side/back jump. The VR hook already supplied head-relative
 // facing and direction, so that second rotation would skew the launch.
 struct DirectionalJumpAxesScope {
-    int16_t* axes=nullptr;int16_t saved[2]{};
+    int16_t* axes=nullptr;int16_t saved[4]{};
+    bool lockHeading=false;
     explicit DirectionalJumpAxesScope(uint8_t* item) {
         if(!item || item!=g_headingItem || !g_active || !g_haveHeading || !Gate() ||
            !Cfg().gamepadEnabled || !NewControls() || !g_haveManualInput || g_shifted ||
            AppFlag(drva::app_off::level_type)==3 || LaraWaterStatus()!=0 ||
            *reinterpret_cast<const int16_t*>(item+off::item_hit_points)<=0) return;
         const auto direction=locomotion::MovementAction(g_manualLocal,true)&locomotion::Directions;
-        if(direction!=locomotion::Left && direction!=locomotion::Right && direction!=locomotion::Back) return;
+        const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+        if(direction==0 || direction==locomotion::Forward) {
+            const uint32_t input=*Ptr<uint32_t>(g_boundDll->input);
+            if(state!=15 && (state!=2 || !(input&0x10u))) return;
+            // Neutral tracked sticks must not erase keyboard/D-pad movement.
+            if(direction==0 && (input&locomotion::Directions)) return;
+            // ModernControlsGunRotation calls atan2 even for (0,0), then
+            // adds camTurn. Physical body-follow yaw slack can therefore
+            // inject Left/Right into a neutral jump. We already selected the
+            // digital jump direction and body heading above; keep native
+            // STOP/compression in that same frame, including forward jumps.
+            lockHeading=true;
+        } else if(direction!=locomotion::Left && direction!=locomotion::Right && direction!=locomotion::Back) return;
         const int status=*Ptr<int16_t>(g_boundDll->lara+2),weapon=CurrentMotionWeapon();
         const int game=g_boundDll->module[4]-L'0';
         // Verified ModernControlsTankyGuns rules: TR1 has no flare; TR2's
@@ -3499,13 +3512,21 @@ struct DirectionalJumpAxesScope {
         // Armed STOP injects turn bits toward the stick before compression;
         // those bits take priority over Back in native jump selection.
         const bool armed=status==4 || (status==2 && (game==1 || weapon!=(game==2 ? 8 : 9)));
-        const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
-        if(state==15) { if(armed) return; }
-        else if(!armed || !CanWalk(item) || !(*Ptr<uint32_t>(g_boundDll->input)&0x10u)) return;
+        if(!lockHeading) {
+            if(state==15) { if(armed) return; }
+            else if(!armed || !CanWalk(item) || !(*Ptr<uint32_t>(g_boundDll->input)&0x10u)) return;
+        }
         axes=Ptr<int16_t>(g_boundDll->analogInput);
-        saved[0]=axes[0];saved[1]=axes[1];axes[0]=axes[1]=0;
+        for(int i=0;i<4;++i) saved[i]=axes[i];
+        axes[0]=axes[1]=0;
+        if(lockHeading) axes[2]=axes[3]=reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos)->y_rot;
     }
-    ~DirectionalJumpAxesScope() { if(axes) { axes[0]=saved[0];axes[1]=saved[1]; } }
+    ~DirectionalJumpAxesScope() {
+        if(axes) {
+            axes[0]=saved[0];axes[1]=saved[1];
+            if(lockHeading) { axes[2]=saved[2];axes[3]=saved[3]; }
+        }
+    }
 };
 
 #include "JumpParity.inl"

@@ -52,7 +52,9 @@ void __cdecl PortAboveWater(uint8_t* target,void*) {
     const bool armed=status==4 || (status==2 && (game==1 || weapon!=(game==2?8:9)));
     // Verified in native TR1/2/3: STOP's armed steering injects a turn bit
     // before compression, which prioritizes Left/Right over Back.
-    if(state==2 && armed && (axes[0] || axes[1])) {
+    // Native gun rotation evaluates atan2(0,0) too: body-follow yaw slack
+    // must not be mistaken for a side-jump request from a centered stick.
+    if(state==2 && armed) {
         const float delta=Wrap(std::atan2(float(axes[0]),float(axes[1]))+
             Radians(axes[2])-Radians(Field<PHD_3DPOS>(off::item_pos).y_rot));
         if(std::fabs(delta)>.02f) bits|=delta>0?Right:Left;
@@ -96,6 +98,33 @@ void PortSetup(int game,int state,Vec direction,float heading=0) {
 }
 void TestJumpPort() {
     using namespace tr;using namespace tr::locomotion;
+    for(int game:{1,2,3}) for(bool physical:{false,true}) for(int status:{0,2,4})
+    for(float heading:{-.8f,.8f,-1.7f,1.7f,-3.1f,3.1f}) for(float forward:{0.f,.3f,1.f}) {
+        PortSetup(game,2,{});
+        g_heading.base=physical ? 0 : heading;testHeadYaw=physical ? heading : 0;
+        *Ptr<int16_t>(dll.lara+2)=int16_t(status);*Ptr<int16_t>(dll.lara+4)=1;
+        // The body follower may still face the pre-turn direction; native
+        // camera-relative XInput decoding also uses the previous camTurn.
+        Field<PHD_3DPOS>(off::item_pos).y_rot=0;
+        auto* axes=Ptr<int16_t>(dll.analogInput);axes[2]=axes[3]=0;
+        float x=0,z=forward,turn=0;FirstPersonInput(x,z,turn,false,true);
+        axes[0]=int16_t(std::lround(x*32767));axes[1]=int16_t(std::lround(z*32767));
+        *Ptr<uint32_t>(dll.input)=0x80000010u|MovementAction({x,z},true);
+        Detour_LaraAboveWater(item,nullptr);
+        const auto& pos=Field<PHD_3DPOS>(off::item_pos);
+        Check(Field<int16_t>(off::item_anim_number)==(forward>0 ? 77 : 28),
+            "physical and stick turns select the same neutral/forward takeoff, armed or unarmed");
+        if(forward>0) {
+            Check(std::fabs(Wrap(Radians(*Ptr<int16_t>(dll.lara+254))-heading))<.0002f &&
+                std::fabs(pos.x_pos-50*std::sin(heading))<2 && std::fabs(pos.z_pos-50*std::cos(heading))<2,
+                "forward stick after physical rotation launches along the current headset heading");
+        } else Check(std::hypot(float(pos.x_pos),float(pos.z_pos))<3,
+            "centered stick after physical rotation retains native up-jump instead of a sideways launch");
+        Check(axes[2]==Angle(heading) && axes[3]==Angle(heading) && testHeadYaw==(physical ? heading : 0),
+            "jump heading scope restores camera input and leaves physical tracking untouched");
+        Check(ticks==1 && collisions==1 && portCommands==1 && (*Ptr<uint32_t>(dll.input)&0x80000000u),
+            "turn/jump correction retains one native physics tick and unrelated input");
+    }
     for(int game:{1,2,3}) for(int fraction:{0,64,128,192,256}) {
         PortSetup(game,2,{});
         dll.frameFrac=0x10000000+204;*Ptr<int32_t>(dll.frameFrac)=fraction;

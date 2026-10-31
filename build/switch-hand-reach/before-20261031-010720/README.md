@@ -1,0 +1,3024 @@
+## Tomb Raider I-III Remastered VR Mod
+
+Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered*
+(`tomb123.exe`), covering all three games.
+
+### Jump direction after physical turns (2026-10-31)
+
+Neutral first-person jumps now retain the native up-jump after physical turning,
+including with guns drawn. Native armed steering previously treated the gap
+between headset yaw and Lara's slower body-follow yaw as a Left/Right request,
+even with zero stick axes. Standing forward jumps also use the jump direction
+and body heading already chosen from the original left-stick input.
+
+During native standing/compression dispatch, the hook temporarily suppresses
+the redundant analog rotation and matches its camera heading to Lara's heading.
+The live analog values are restored afterwards. Native jump clearance, speeds,
+gravity, running jumps and physical headset tracking remain unchanged.
+
+The regression replay covers physical and artificial turns, centered and
+forward sticks, armed/unarmed states and TR1/2/3. Running the original native
+routines on private fixture memory reproduces 36 neutral-to-side misdirections
+across the three games; all 792 native direction/clearance cases and 1,215,548
+hook regression checks pass. Release/x64 builds successfully. Headset
+confirmation remains pending.
+
+### Body centering after roomscale jumps (2026-10-30)
+
+First-person full-body rendering now keeps Lara centered on the player's
+physical position through jumps and falls after roomscale walking. Standing
+IK follows the residual headset displacement that remains after collision-root
+movement; the airborne path previously discarded that placement and returned
+the mesh to the collision root. Airborne rendering now carries the same
+horizontal displacement, recomputed from the live eye and interpolated root
+for each frame. Native limb rotations, vertical animation and jump physics
+remain unchanged, and landing returns to ordinary standing IK.
+
+Controller targets use the unshifted camera origin, including the fallback
+joint-based camera calculation, so body placement does not shift the hands a
+second time. The change uses existing full-body IK, movement stabilization and
+positional tracking settings; no default INI changes are required.
+
+Validation: the regression reproduces the old centering failure and covers
+TR1/2/3, armed/unarmed bodies, roomscale offsets, artificial headings, moving
+roots, live physical movement in the air, both eye passes, forward/up/side/back
+jumps, falls and landing. The full movement/camera suite passes 1,200,323
+checks. Headset confirmation remains pending.
+
+### Roomscale ledge fall correction (2026-10-30)
+
+Physical walking can now carry Lara off a ledge into the native falling state
+in TR1, TR2 and TR3, matching TR4/5. The previous port treated the incoming
+second argument of `LaraAboveWater` as its collision record. The engine actually
+uses global `laracoll`, so its standing collision check kept pushing Lara back
+from the edge. The fix resolves that global from verified native instructions
+and applies the roomscale drop allowance to the record the engine really uses.
+
+With full-body IK and movement stabilization, physical movement also uses the
+same headset displacement as the rendered body, matching TR4/5. Neck-pivot
+compensation no longer leaves the collision root behind while looking down at
+an edge. Native gravity, falling animations, floor settling and wall collision
+still own the result; stick/Walk input retains its usual collision policy.
+
+Validation: the corrected native-call fixture reproduces the old barrier, and
+the movement suite passes 1,160,953 checks. Coverage includes all three games,
+full-body/stabilization settings, unrelated/null incoming arguments, pauses at
+the lip, continued gravity and solid walls. The production collision resolver
+passes native instruction fixtures from nine unique DLL builds, verified
+against all 15 installed binary fixtures. Headset confirmation remains pending.
+
+### First-person jump dip correction (2026-10-30)
+
+The jump port's vehicle guard incorrectly treated TR1's unused, zero-valued
+`skidoo` field as an active vehicle. This disabled immediate takeoff, upright
+preparation and soft-landing recovery in actual TR1 gameplay; the old test
+fixture hid it by setting the field to TR2/3's `-1` sentinel. The guard now
+applies only to TR2/3, which actually use the field for vehicle ownership.
+
+All three games also retain the standing eye through grounded takeoff clips
+and forward/up jumps, extending the existing side/back jump camera handling.
+The camera follows the interpolated collision root instead of inheriting a
+crouched neck at takeoff. Native jump physics and airborne body animation
+remain intact. This uses the existing `FirstPersonMovementStabilization=1`
+setting; no INI change is needed with the default configuration.
+
+The realistic TR1 fixture reproduces the old takeoff failure. The corrected
+movement suite passes 1,157,214 checks, including preparation and jump camera
+height across TR1/2/3 and five interpolation fractions. The previously aborted
+camera-handoff fixture now permits its expected recenter call. Headset
+confirmation of this correction remains pending.
+
+### Jump parity with TR4/5 (2026-10-30)
+
+The nine October 30 jump differences now have implementations for TR1, TR2
+and TR3: upright first-person preparation, immediate standing/directional and
+running takeoff, matching ledge-auto-jump timing, immediate soft-landing
+recovery, auto-jump through playable fixed/heavy cameras, held-jump preservation
+on camera recovery, retention of Modern Controls during those overrides,
+stable sideways-jump cameras, and armed directional-takeoff protection.
+
+Native animation commands still supply airborne clips, velocity and gravity;
+floor/ceiling checks, hard landings, actual cinematics and third-person takeoff
+timing remain native. The armed backward-to-side misdirection was reproduced
+in all three games' native code before adapting the fix. Existing hands-only
+side/back jump visibility is retained. No INI change is needed.
+
+Validation: Release x64 builds successfully. Read-only checks cover all 140
+installed gameplay animation banks (3,920 takeoff/landing assertions) and
+compression dispatch across 15 binary fixtures / nine unique DLL builds.
+The native direction probe passed 360 cases. The existing movement suite passed
+1,152,967 checks before the expanded jump suite was introduced. That expanded
+self-test crashed in its synthetic camera fixture; further self-test runs were
+stopped at the user's request. Its fixture pointer was corrected but not rerun.
+The final port therefore does not claim a completed self-test suite or headset
+gameplay validation. Build and deployment evidence is in `build/jump-parity-port`.
+
+The [remaining nine gameplay parity corrections](docs/remaining-parity-port.md)
+cover body transitions, TR3 crouch/sprint, water exits, physical pull-ups,
+ledge/holster feedback, costume cuffs and ordinary-jump landings.
+
+This is a port of the [TR4-6 VR mod](https://github.com/Ashok0/TombRaider456VR)
+to the earlier remaster. The stereo architecture is the same one; what is new is
+that Tomb Raider I-III Remastered **ships private PDBs next to the executable**,
+so almost none of this was reverse engineering in the usual sense. Where the
+TR4-6 work read a decompiler, this reads the compiler's own symbols and type
+information.
+
+## AI Usage
+
+The original stereo, culling, first-person camera and initial roomscale work was
+written with Claude Code (Opus 5). The final roomscale/rotation rewrite was
+implemented with OpenAI Codex (GPT-6), using `README2.md` as the failure handoff
+and BeefRaider XR as reference for keeping artificial rotation separate from
+tracked HMD rotation. `README2.md` is retained as historical debugging context;
+its "where it stands" section describes the failed predecessor, not this tree.
+
+For the original build, every address, struct offset and function signature in
+`src/Engine.h` and `src/GameDll.cpp` was extracted from the shipped PDBs by the
+tools in `tools\`. The current Aspyr retail build shipped without PDBs, so its
+addresses were carried across by `tools\port_build.py`.
+`tools\verify_addresses.py` checks the PDB build, earlier Aspyr retail and
+Tomb Raider Gold, plus the retail update with PE timestamp `0x6AA156AA` and EGS executable
+`0x6AA156D9`, and
+fails if any disagrees. The locomotion
+rewrite also has independent maths tests and verifies its newly required
+`analogInput` address directly from the input-update instruction stream.
+
+## VR Mod Features
+
+- Native stereo 3D, 6DOF head tracking, per-eye asymmetric frustums.
+- All three games (TR1, TR2, TR3) through one build.
+- Built-in effect enhancement using stock textures: warmer muzzle flashes and
+  flames, brighter glow details and TR1 particles, and clearer TR3 bubbles.
+  No separate EffectRetex DDS pack is required; see below.
+- HD Lara chest physics ported from TR4/5, with the same landing response and
+  tuning controls. Enabled by default; see [chest physics](docs/chest-physics.md).
+- Head-driven room culling, so geometry does not vanish when you look away
+  from the game camera.
+- World-locked HUD and inventory rather than a flat overlay pinned to your face.
+- FMV cutscenes captured offscreen and replayed as real geometry, so they
+  keystone and roll correctly instead of sitting flat.
+- Touch controllers presented to the game as an Xbox pad, with optional
+  decoupled stick pitch and a two-grip Action chord for blocks.
+- Ceiling clearance clamp, so standing up in a crawlspace does not put your head
+  through the ceiling.
+- Sky at optical infinity, so the HD dome does not sit a few metres away in
+  stereo or paint over distant geometry.
+- First person: the camera rides Lara's animated head instead of the chase
+  camera, interpolated so it does not judder against the world, with her head
+  hidden and the rest of her body still visible. Base-camera wall collision
+  protects the forward eye offset while walking or jumping; optional tracked
+  collision also limits physical leaning. Push/pull cameras follow
+  the block horizontally and Lara's torso vertically, with clearance for headset
+  leaning; other interaction animations retract the forward eye offset.
+- Roomscale: leaning and ducking move the viewpoint, turning round turns Lara,
+  and walking about the room walks her through the engine's own collision.
+- First-person movement smoothing, wall/jump clearance, camera recentering on
+  view changes, native Action prompts, and optional tracked HD gun hands.
+- Live IPD and world-scale tuning on the numpad.
+
+The [14-gap TR4/5 feature port](docs/collection-parity.md) adds full-body IK,
+physical holsters, pistol pose continuity, held flares, spatial inventory,
+background controller polling and tracking/roomscale improvements. Full-body
+IK, spatial inventory and TR3 physical crouch are enabled by default; camera
+wall collision for physical leaning is opt-in. See the port record for controls, settings and validation.
+
+### Climbing arm appearance
+
+Ledge hanging, pull-ups and all TR3 monkey-bar movement states now share the
+grip arm solver. Previously the moving monkey states (76-79) bypassed the
+fitting and arms-only visibility used for stationary hanging, causing a change
+of rendering behavior during traversal.
+
+Headset-driven shoulder movement is limited to the native arm's reach. Upper
+arms and forearms retain their lengths, and the hands keep the native animation's
+exact contact position and orientation. Nearly straight elbows blend toward a
+body-relative bend direction instead of letting tiny animation noise choose an
+arbitrary plane. Game collision, movement, grip timing and native shadow poses
+remain authoritative.
+
+The Release build and 1,210,602 regression checks passed, including large head
+offsets, stationary-to-moving monkey states, classic and remapped HD skeletons,
+both eye passes, fixed hand contacts, rigid arm lengths and untouched simulation
+data. Headset testing is still needed to judge the visual result.
+
+### Valve Index controllers
+
+Set these keys under `[VR]` in the installed `TombRaiderVR.ini`, then restart:
+
+```ini
+ValveIndexControllers=1
+ValveIndexGripPress=0.55
+ValveIndexGripRelease=0.35
+```
+
+Keep the shipped `TombRaiderVRBindings` folder beside `TombRaiderVR.dll`.
+Builds copy these files to the output and deployment folders. Index mode uses
+SteamVR Input actions with a `knuckles` default binding. The old legacy default
+can alias Index A and grip squeeze to the same button; this mode separates them
+and leaves trackpads unbound so they cannot interfere with thumbsticks.
+
+| Index input | Game control |
+| --- | --- |
+| Left thumbstick / click | Move / Sprint |
+| Right thumbstick / click | Turn / D-pad shift with left stick |
+| Right A / B | Jump / Roll |
+| Left A / B | Inventory / Action (also the existing view/graphics chords) |
+| Left / right trigger | Existing equip and per-hand shooting controls |
+| Left / right squeeze | Crouch or stand / Walk; existing physical holster gestures |
+| Both squeezes | Action, when not claimed by a holster gesture |
+| Both stick clicks | Photo Mode |
+
+Grip uses squeeze **force**, not resting finger contact. Lower
+`ValveIndexGripPress` for a lighter squeeze, keeping `ValveIndexGripRelease`
+below it to prevent repeated presses near the threshold. The supplied values
+are starting points, not hardware-calibrated recommendations.
+
+`ValveIndexControllers=0` is the default and retains legacy input for Touch-style
+controllers. Index mode supplies an Index profile only. While the game is running,
+SteamVR's controller binding editor can customize its named actions; choose the
+default **Tomb Raider Index** binding if an older custom binding conflicts.
+`TombRaiderVR.log` reports `Index actions ready` on successful initialization.
+Missing manifests or failed actions produce neutral input and diagnostics instead
+of falling back to conflicting legacy controls. `GamepadLogButtons=1` reports
+mapped button masks in Index mode.
+
+Validation includes the Release build, the full movement/controller regression
+suite, and `tests/validate_index_bindings.py`. The latter also accepts
+`--steamvr <installation path>` to check the binding against Valve's installed
+Index driver profile and force-sensor example. Physical Index hardware testing
+is still required. Action setup follows [Valve's SteamVR Input documentation](https://github.com/ValveSoftware/openvr/wiki/SteamVR-Input).
+
+### Physical crouch port from TR4/5 (2026-10-30)
+
+Unarmed floating hands now use the same opaque black wrist caps as armed hands.
+This covers TR3 crouch/crawl, TR1/2 physical body hiding, and other hands-only
+poses. Each empty hand gets its own tracked skin palette and anatomical wrist
+centre, so the existing cap renderer can close its opening. Ordinary attached
+arms and native shadows retain their previous draw paths. Validation passed
+1,205,280 movement/controller/render-hook checks and 1,704 physics/graphics
+checks, including actual OpenGL wrist-cap coverage from both sides. Headset
+visual confirmation remains necessary.
+
+In TR3 first person, the visible legs bend during a partial squat before native
+crouch hides the body at a 55 cm drop from calibrated standing height. The trigger
+compensates for looking down around the neck. Rising to within 23 cm of standing
+height releases the physical request through native crawl/duck/stand transitions;
+low ceilings still prevent standing. Recenter while standing upright.
+
+TR3 Modern Controls always toggle crouch, unlike TR4/5's selectable hold mode.
+Physical posture now supplies TR3's native crouch latch during Lara simulation,
+after button debounce, and releases it when the player rises. It no longer sends
+a synthetic LB press. The camera still avoids adding native crouch height to
+the HMD drop. Manual crouch outside a physical cycle retains native behavior.
+
+`FirstPersonPhysicalCrouch=1` is now the template, embedded INI and missing-key
+default. Set it to 0 to disable physical crouching and posture-driven body hiding.
+Full-body IK and positional head tracking are required. In TR1/2, the same 55 cm
+drop hides Lara's body while retaining tracked hands; rising to within 23 cm of
+standing restores it. Left grip (Duck/Stand) or Jump also restores the body while
+the HMD remains low, until the player rises and begins another physical crouch.
+TR1/2 collision and animation remain standing: this does not enable crawling under
+obstacles. Third person is unchanged.
+
+The TR1/2 extension passes the Release build and 1,200,477 full-suite checks,
+including physical thresholds, button overrides through jumps, hands-only draw
+masks, native shadow preservation and TR3 behavior. The integration fixture now
+enables full-body IK when testing physical crouch, matching its runtime requirement.
+
+Validation: the Release build and 160 standalone checks in
+`tests/physical_crouch_tests.cpp` passed. The read-only
+`tools/verify_physical_crouch_binaries.py` verified the native entry and both exit
+handlers across all five supported TR3 fixtures (15 complete-function comparisons).
+No game DLL code was executed by that check. Headset behavior remains unverified.
+
+### Crate clearance and VRIK gait stability (2026-10-28)
+
+Two further fixes are ported from TombRaider456VR to all three games:
+
+- The base first-person camera now stops at crates and walls even with
+  `FirstPersonWallCollision=0`. That setting permits physical head leaning
+  through geometry; it no longer bypasses clearance for the game's forward
+  eye offset. Setting it to `1` also clamps tracked leaning. Movable-block
+  face clearance and the collection's climbing/mount camera handling are retained.
+- With full-body IK and movement stabilization enabled, sidestepping and
+  backpedaling use a stable upper-body reference that travels and turns with
+  Lara. Native torso sway no longer rocks the tracked shoulders/elbows with
+  either empty hands or weapons drawn. Feet keep their stepping animation,
+  real head/hand motion stays live, and native draw/holster arms remain animated.
+
+Production regression tests cover all three games, armed/unarmed paths,
+native/HD palettes, moving roots/cameras, live tracking, repeated stereo draws,
+and camera clearance with either lean policy. Each new regression fails with
+its correction disabled. Release compilation and the locomotion, body-parity
+and core self-tests pass. In-headset confirmation remains pending.
+
+### First-person Modern Controls enforcement (2026-10-11)
+
+Active first person forces **Modern Controls** in all three games, including
+when the saved preference is Tank Controls. The mode is enforced at camera,
+frame and controller-input boundaries. Returning to third person restores the
+control mode selected before entering first person, including Tank Controls.
+Changing the third-person preference is still supported. HD/classic graphics
+and the other settings are preserved; no INI change is required.
+
+### TR4/5 IK and body fixes ported to TR1-3 (2026-10-11)
+
+The October 11 TR4/5 fixes now apply to HD first person in TR1-3:
+
+- Ready tracked weapons retain Lara's body and connecting IK arms. Separate
+  weapon meshes draw their forearms with the articulated palette, followed by
+  the existing rigid gun hands. Holstered hands retain controller tracking with
+  `FirstPersonUnarmedIK=1` (also the default when the setting is absent).
+- Armed and holstered forearms follow unrestricted wrist rotation using each
+  mesh's rest-pose wrist/forearm relationship. The calibrated gun-hand position,
+  orientation and grip pivot are preserved. Sparse attachment palettes and
+  duplicate HD helper bones are supported; a single gun keeps its right arm
+  tracked if the left controller becomes unavailable.
+- Looking nearly straight down or up holds the last reliable torso heading,
+  with hysteresis as the view levels out. Camera pitch and roll remain tracked.
+- A runtime recenter from holding right System recalibrates shared headset and
+  controller height, compensates tracking-origin yaw and preserves the standing
+  body anchor. Merely opening the dashboard does not recalibrate height.
+- The rendered body accompanies camera retreat at walls, including its chest
+  physics and attached arms. Standing calibration stays separate from wall
+  clearance; tracked hands subtract the body shift to retain their exact targets.
+  Wall-impact animation keeps the horizontal standing anchor and native neck
+  height. All three games bypass native first-person body-proximity hiding.
+- TR2/3 ladders use **80 units** of torso clearance in Lara's facing frame.
+  Shoulder movement is limited by native arm reach, preserving rung grips,
+  wrist rotations and leg animation without stretching. TR1 has no ladders;
+  its reused state numbers are explicitly excluded.
+
+Native shadow rendering remains separate, and jiggle physics reads the complete
+body skeleton before controller-arm IK. No INI changes or new settings are needed.
+These changes port the listed arm/body corrections; they do not introduce TR4/5's
+separate optional full-body IK mode.
+
+Validation passed: Release/x64, **783,611** production hook checks, **66,179**
+tracking checks, general self-tests, **1,692** native shader/jiggle checks on
+each of the PDB and installed EGS executable fixtures, and **3,587** address
+checks across all five supported builds. Deployment details and the DLL backup
+are recorded in [the deployment manifest](build/ik-collection-parity/deployment.json).
+In-headset checks
+remain necessary for natural wrist motion with guns drawn and holstered, looking
+straight down, System recenter, wall retreat and ladder climbing. Earlier entries
+below describe their historical behavior and are superseded by this section.
+
+### Epic Games Store executable support (2026-10-11)
+
+The EGS `tomb123.exe` with PE timestamp **`0x6AA156D9`** is now supported,
+including when copied into the Steam game folder. Previously, the loader
+started but the mod rejected this unknown executable before installing VR
+hooks, so the game stayed flat. EGS now has its own verified engine address
+table and texture-load hook signature. Steam and Gold support remain enabled;
+unknown builds still fail safely without patching guessed addresses.
+
+The three game DLLs in the tested installation are byte-identical to the
+supported October Steam DLLs. The executable and INI are preserved; only
+`TombRaiderVR.dll` is replaced. All **3,537** address/layout/hook checks across
+PDB, earlier Steam, Gold, October Steam and EGS fixtures pass. The EGS native
+shader/physics test passes **1,692** checks, including tracked-hand shaders.
+A live launch recognized the EGS executable, installed all six renderer hooks
+and the effect hooks, patched 26 skin programs without fallback, acquired the
+headset pose and submitted stereo frames to SteamVR. The test session was
+closed normally; in-headset gameplay was not assessed.
+
+### First-person crouch/crawl parity with TR4/5 (2026-10-10)
+
+TR3 now keeps **floating weapon hands visible and usable while crouching or
+crawling** with HD graphics and tracked motion guns enabled. LT draws weapons,
+Y holsters, and the existing independent trigger firing, held-trigger fire,
+native ammunition/fire rate and per-hand shot rumble remain available.
+Crawl movement temporarily sees free hands; the real gun state and fire input
+are restored before the native weapon update. Interaction, crawl-to-hang,
+vehicle, death and airborne transitions retain native control.
+
+With movement stabilization enabled, the crouched eye follows Lara's
+interpolated root in the artificial-turn frame, without the animated head's
+sideways swing or bob. Entering/leaving crouch blends relative eye height;
+standing calibration and HMD tracking are preserved. LS travel follows the
+requested direction through forward, backward and turning crawl clips,
+including negative-speed stopping transitions. Native animation runs once and
+native collision still decides whether Lara can move.
+
+Crouch camera clearance uses TR3's 400-unit capsule and checks the final
+tracked eye against walls, floor and ceiling. Under low ceilings, vertical
+clearance is resolved before the horizontal sweep to avoid retracting and
+popping the camera as the player rises or leans. The render-only proximity
+bypass preserves native shadows and the separate chest-physics/IK palettes.
+TR1/2 have no native crouch states and do not receive TR3's crouch overrides.
+This does not add crouched roomscale body movement or unarmed floating hands.
+
+Automated crouch, camera, input, IK and shadow regressions pass. Headset
+confirmation of the crouching feel and clearance remains pending.
+
+### Ledge catch impact rumble (2026-10-09)
+
+Catching a ledge after a substantial jump or fall now gives **both motion
+controllers a brief 120 ms maximum-strength rumble** in TR1, TR2 and TR3, in
+first or third person. Feedback follows the successful native collision/grab,
+not the grab button or the start of an animation.
+
+A qualifying flight has at least 10 airborne simulation ticks (about one third
+of a second) and either 768 units of horizontal displacement or 512 units of
+vertical excursion. A classic tile is 1024 units. Travel is measured before the
+collision snaps Lara onto the ledge. Small grabs, failed catches, monkey bars,
+ladder transitions, ordinary hanging and shimmying do not produce repeated
+bursts. Changing Lara/level, unavailable gameplay/tracking or a large position
+discontinuity clears the flight history.
+
+The shared pulse scheduler uses full-strength 3999-microsecond OpenVR pulses,
+spaced at least 5 ms apart. Gun rumble remains independent per hand and cannot
+shorten an active ledge impact. This is an observer of native movement: input,
+animation, collision, camera, IK and jiggle physics are unchanged. Automated
+catch and pulse tests pass; headset confirmation of the feel remains pending.
+
+### Held automatic running jump (2026-10-21)
+
+Ported TR4/5's automatic jump fix to TR1, TR2 and TR3. With Modern Controls,
+hold **A / Jump while running forward** to wait for a ledge. The mod checks
+native floor heights along the approach and releases Jump early enough for
+Lara's seven-frame grounded run-up, targeting the last supported running tick
+before takeoff. Both first and third person are covered; first person already
+forces Modern Controls. Tank Controls retain their native jump handling.
+
+A quick release within 250 ms requests a manual jump; releasing a longer hold
+cancels the queued automatic jump. Stopping, walking, changing direction,
+entering an interaction or leaving valid grounded gameplay also cancels it.
+Holding through landing does not queue another automatic jump. Native animation
+and collision still control clearance and takeoff; steering or collisions during
+the committed run-up can change the result, so this is not a guarantee of a
+pixel-perfect launch under every condition.
+
+All **140 installed gameplay animation banks** verify the run dispatch and
+seven-frame, 47-unit-per-frame run-up. The **802,051** production-hook regression
+checks include sustained holds, both views, eight approach headings, narrow
+gaps, steps, walls, missing geometry, native rejection, taps and cancellation.
+Release/x64 builds successfully and all **3,602** address/layout checks pass.
+The DLL is deployed with the previous DLL backed up and the INI unchanged:
+[deployment record](build/auto-jump/deployment.json). In-headset ledge timing
+remains to be verified.
+
+### Late stopping jump correction in both views (2026-10-09)
+
+Jump priority now works in **first and third person**. The first implementation
+only enabled it with an active first-person heading. Third-person scene renders
+also cleared its tap buffer; the buffer now survives repeated eye/render frames
+until the simulation can consume it.
+
+A queued jump goal no longer counts as an already-started jump. The tap remains
+eligible while Lara is still in an ordinary grounded animation, and is consumed
+when she actually enters compression or takeoff. In TR3, the final standing-entry
+frame advances beyond that clip's jump dispatch window, so pressing A there now
+restarts the command-free standing entry at its verified first frame. Native
+control, animation and collision perform the jump normally.
+
+The regression failed on the preceding implementation. It now covers the last
+frames of both walk-stop clips, both run-stop clips, standing entry and idle in
+both views, including held A, quick taps, pending jump goals and intervening eye
+draws. Running momentum and special-animation safeguards remain covered. The
+buffer is tied to the current Lara/level and is canceled by invalid gameplay or
+scripted cameras. All 140 installed animation banks verify the stopping
+handoffs and dispatch windows. Headset confirmation remains pending.
+
+### Jump priority during walking (2026-10-09)
+
+In first or third person, **A / Jump takes priority over ordinary walk, run-start,
+run-stop, sidestep and backpedal animations** in TR1, TR2 and TR3. Those gait
+transitions can now enter the game's native jump preparation on the next
+simulation tick, instead of waiting for the outgoing footstep animation. A
+quick press is retained for up to **250 ms**, so releasing A between controller
+polling and the next simulation tick does not discard the jump.
+
+The normal running loop keeps its native running-jump transition, speed and
+distance. Forward, backward, side and stationary jump input continues through
+the native handlers, including Jump + grab. Native compression, takeoff and
+collision still determine when and where Lara can jump. Authored landings,
+step-ups, climbing and interactions retain their normal animation handling;
+there is no queued midair jump or delayed automatic jump after a pause.
+
+The production-hook tests cover every ordinary gait clip in all three games,
+both control schemes, held/quick-tap input, all jump directions, cancellation,
+protected states and preservation of running momentum. Read-only verification
+of all **140 installed gameplay animation banks** confirms immediate native
+compression entry and running-jump dispatch at every stride frame. Camera,
+IK, ledge gesture, haptic and movement regressions also pass. Headset playtesting
+remains pending.
+
+### Tracked IK hand pivot correction (2026-10-09)
+
+Unarmed IK hands now keep the same complete calibrated controller frame as the
+floating gun hands. Previously the IK positioned the wrist using the gun grip
+calibration, then limited the hand's rotation to a forearm-relative pose. The
+position and rotation no longer agreed, making the visible grip move around the
+physical controller when rotating the wrist.
+
+The hand now follows controller pitch, yaw and roll exactly. Forearm twist
+stabilization and its full-turn recovery remain active, with no accumulated
+rotation history. Floating guns, camera tracking, authored ledge/climbing hands
+and the native skeleton used by jiggle physics are unchanged.
+
+A production-palette regression fails on the prior implementation and passes
+with this fix. It checks both hands in TR1/2/3, running/standing/jumping poses,
+multiple headings, full rotations about all three axes and repeated eye draws.
+The calibrated grip stays on the stationary physical controller, and the hand's
+orientation matches the floating gun reference. Existing wrist-recovery tests
+and HD inverse-bind checks also pass. Headset confirmation remains pending.
+
+### First-person ledge pull gesture (2026-10-09)
+
+In TR1, TR2 and TR3, while Lara is already hanging from a ledge, pull **both
+controllers downward about 18 cm** in one deliberate motion to climb up. The
+pull window is **0.75 seconds**, starting after the first 4 cm of movement.
+Tank controls still require holding your usual grab/Action input; modern
+controls also recognize the game's existing automatic grab latch. Normal stick
+climbing and dropping remain available.
+
+This applies only to ordinary ledge hanging and shimmying, not monkey bars,
+ladder climbing, swimming, falling, grounded movement or third person. It sends
+native Forward briefly while preserving the existing grab. Native collision
+checks still decide whether there is clearance and which mount animation to use.
+Drop, back, jump and roll inputs cancel the gesture, as do missing tracking,
+camera suspension, view changes and relocation. The request cannot leak into
+walking once the native ledge tick finishes.
+
+Movement is measured relative to the live headset, so moving head and hands
+down together does not count. One-hand motion, small jitter, slow drift and
+tracking discontinuities are rejected. If a ledge blocks the climb, raise both
+hands at least 10 cm before pulling again. No overhead starting pose or extra
+calibration is required. Camera transforms, native animations, arm IK and jiggle
+physics are unchanged.
+
+Automated tests cover all three games, native state gating, modern auto-grab,
+tank grab release, native clearance decisions, tracking loss, retry behavior and
+sampling at 30/60/90/144 Hz. Physical gesture comfort and timing still need
+headset confirmation.
+
+### Mount-to-standing camera smoothing (2026-10-31)
+
+The first-person camera now eases the remaining position difference when Lara
+finishes climbing onto a crate or ledge. `FirstPersonMountSmoothingSeconds=0.16`
+sets a 160 ms transition; `0` disables it. Positive values are limited to
+0.03–0.40 seconds and require `FirstPersonMovementStabilization=1`.
+
+Only the animation handoff is blended. Head tracking and movement remain live,
+and jumping, falling, camera changes and large relocations cancel the blend.
+The existing post-mount root-height correction and camera collision checks
+remain in place. Existing INIs use the new default when the key is absent.
+
+The refined blend carries the incoming climbing speed toward the standing
+position instead of starting from rest. Speed is bounded to avoid overshoot,
+and the handoff starts from the camera position after wall/floor correction.
+Repeated render passes preserve the measured speed; stale samples after a
+stall are discarded. Large relocations also cancel an already-running blend.
+
+Release/x64 builds successfully; 1,213,584 regression checks pass, covering
+TR1/2/3 mount handoffs, repeated render calls, frame-rate independence and
+transition cancellation, plus incoming speed, overshoot prevention, collision
+corrections and immediate movement across the supported blend durations.
+Visual comfort still needs headset confirmation.
+
+### Post-mount camera flicker correction (2026-10-09)
+
+Fixed a reproducible height reversal immediately after a ledge mount. On the
+first grounded render, the camera accepted Lara's new root height. On the second
+render of the same native simulation tick, the mount-state marker had already
+advanced, so the camera returned toward the old interpolated height. A 513-unit
+mount could therefore move the view by hundreds of units for a single frame.
+
+Once the completed mount's height is accepted, it now stays fixed for every
+render using that same previous/current native root pair. Ordinary interpolation
+resumes as soon as the pair advances. Eye collision samples use that same height
+so they do not test the old position below the ledge. The override resets on
+non-grounded animations, camera suspension/toggle, relocation and level changes.
+Standing calibration, tracked head motion, arm IK, physics and simulation roots
+remain unchanged.
+
+A production-camera replay fails on the preceding build and passes with this
+fix across TR1/2/3, both mount states, 256/513/769-unit rises, repeated frames and
+interpolation fractions from 0 to 256. It also checks collision query height and
+release on subsequent movement or animation transitions. This addresses a
+confirmed camera discontinuity; headset confirmation of the reported flicker
+remains pending.
+
+### Per-hand gun rumble (2026-10-09)
+
+First-person tracked weapons now give the firing controller a strong **80 ms**
+rumble burst, using the TR4/5 haptic scheduler. The left gun rumbles the left
+controller; the right gun rumbles the right controller. Both can fire and rumble
+independently, including held-trigger automatic fire. The TR3 Desert Eagle uses
+the right controller despite its native left-arm firing call. Long guns and
+projectile weapons use the right controller.
+
+Feedback follows confirmed native shots, including misses. Empty weapons,
+suppressed duplicate shots, equip/holster input and unavailable tracked shots do
+not request bursts. A shotgun volley is combined into one burst, rather than one
+per pellet; harpoons, rockets and grenades require successful native projectile
+allocation. TR2's separate grenade animation path is covered too.
+
+The burst uses 3,999 microsecond OpenVR legacy pulses, at least 5 ms apart,
+dispatched once per rendered frame without sleeping. Repeated shots refresh the
+80 ms deadline instead of queuing a long vibration tail. Disconnected controllers
+are skipped and runtime shutdown cancels pending pulses. No new bindings or INI
+changes are needed. Automated tests cover routing, misses, no-ammo failures,
+held fire, both guns, shotgun volleys, all projectile paths and pulse timing;
+in-headset strength confirmation remains pending.
+
+### First-person wrist twist recovery (2026-10-09)
+
+Fixed unarmed controller IK leaving a wrist permanently twisted until first
+person was toggled. The solver accumulated unwrapped rotation, then clamped the
+visible wrist to its anatomical limit. A complete turn around the twist boundary
+could leave a full turn in that history even after the controller returned to a
+normal pose. The forearm and hand then stayed pinned at the wrong angle.
+
+The recovery fix derives roll from the current absolute pose. The newer hand
+pivot correction above keeps these limits on forearm stabilization only; tracked
+hands now retain exact controller orientation. In the original recovery fix, wrist
+angles and their adjacent limit plateau retain the existing response. Beyond
+135 degrees, the limit softens toward zero at the +/-180-degree seam, so crossing
+that boundary stays continuous without accumulating turns. Every defined pose,
+including extreme angles, has the same result regardless of earlier motion or
+repeated eye/body draws. History is used only when a 180-degree swing makes the
+twist mathematically undefined. Existing bend limits, forearm roll sharing, weapon aiming,
+authored interaction hands and the native palette used by jiggle physics remain
+in place.
+
+The regression reproduces the stuck wrist on the preceding build. Coverage
+includes repeated complete turns in both directions, different body headings and
+wrist bends, wrap-boundary jitter, singular swings, abrupt valid-pose recovery,
+both arm bend directions, native animation roll, fixed grip positions and the
+unconstrained weapon path. The production movement/camera/IK/shadow suite passes
+**512,730** checks. In-headset confirmation remains pending.
+
+### VR launch compatibility fix (2026-10-09)
+
+The installed game updated to executable PE timestamp `0x6AA156AA`. The mod
+refused that unknown build before initializing OpenVR, leaving the game flat.
+Added independently mapped renderer and TR1/2/3 gameplay tables for that build
+and DLL timestamps `0x6AA1567E`, `0x6AA15696`, and `0x6AA1568D`. Older supported
+builds retain their existing tables. Unknown builds still fail safely.
+
+Validation now includes byte-for-byte copies of the actual installed executable
+and all three gameplay DLLs, with hashes recorded in
+`build/vr-launch-fix/verified-installed-modules.json`. The address audit also
+checks that each verified executable table is registered for runtime selection.
+Monkey-bar and shadow audits accept additional build directories so this update
+is covered alongside the older binaries. The recent camera, controls, arm IK,
+monkey-bar, shadow and jiggle fixes are retained; no INI changes are required.
+
+### Tracked first-person arm and pistol shadows (2026-10-13)
+
+In TR1–3 HD first person, Lara's shadow arms and hands now follow the tracked
+controllers, including drawn pistols and holstered hands. The shadow pass uses
+the same calibrated wrist targets and arm solve as the visible body, applied
+directly to the native shadow bone palette. Hand motion and wrist rotation
+therefore change the cast silhouette.
+
+The follow-up fixes shrunken arm and pistol shadows: native attachment masking
+was zeroing bones used by blended vertices, while the shadow path lacked the
+visible hands' rigid-wrist repair. Shadow draws now retain the complete solved
+palette, apply the native mesh mask without shrinking vertices, and skin hand
+and pistol vertices rigidly with their tracked wrist. This preserves mesh size
+without a shadow scale multiplier.
+
+The shadow retains its complete native head, torso, legs, light camera and world
+placement. Eye-only body offsets and visibility masks are excluded. Third person,
+classic graphics, native switch/climbing poses and unavailable tracking retain
+native shadows. Shadow draws still cannot advance or feed jiggle physics.
+Existing motion-gun and unarmed-IK settings apply; no INI changes are needed.
+
+Validation covers both hands, all three games, armed/unarmed poses, legacy and
+remapped HD palettes, duplicate wrist helpers, different shadow origins,
+repeated draws, tracking loss and native fallbacks. The controller-shadow
+regression reproduced the old static wrists before the fix. The sizing GPU
+regression fails on the preceding build and verifies masked seams, full forearm
+size, opposing forearm/wrist rotations and cleanup between draws. The follow-up
+passes **786,270** movement/control/camera checks and **1,697** GPU/physics checks;
+Release/x64 builds successfully. In-headset sizing confirmation remains pending.
+
+### Monkey-bar controls and shadow placement (2026-10-09)
+
+Ported the corresponding TR4/5 fixes:
+
+- **TR3 monkey bars:** first-person LS directions now follow the VR view instead
+  of the hidden chase-camera heading. Modern controls retain native swing and
+  turning; tank controls choose native forward, backward half-turn and side
+  traverse relative to Lara. All seven monkey states are covered. The game still
+  owns grip checks, ceiling collision, root position, facing, speed and animation.
+  Action/drop, deadzone, shifted controls and keyboard/D-pad input are preserved.
+  The override requires TR3's native monkey-swing permission flag; it does not
+  apply to TR1/2, ordinary ledges, ladders or mounts.
+- **TR1/2/3 shadow placement:** the native light-camera pass now stays independent
+  of headset, eye and orthographic-panel projection changes. After the scene
+  camera moves into first person, the shadow receiver matrix is adjusted for the
+  change of camera origin. A fixed world point keeps its native shadow position;
+  light angle and caster geometry stay native. The original matrix is restored
+  before the next shadow build and when returning to third person, including
+  temporary switch/menu camera handoffs. Repeated updates cannot accumulate drift.
+- **Jiggle and visibility isolation:** light-camera draws cannot feed the jiggle
+  solver or receive eye-only body fitting. The October 13 update adds tracked arm
+  IK directly to shadow palettes. Shader cleanup still runs to clear
+  arm/body clipping and deformation uniforms left by an eye-view draw using the
+  same program. Normal first-person jiggle and controller arms remain enabled.
+
+The new monkey-bar regression fails on the preceding build. Production-hook
+coverage now includes all seven states, modern/tank controls, opposing headset,
+body and camera headings, all stick directions and guarded exits. Shadow tests
+check fixed-world-point projection for perspective and orthographic lights,
+repeated camera changes, native caster palettes and third-person restoration.
+Native binary audits verify the monkey state table in all three TR3 builds and
+shadow hook bytes/upload ordering in all nine game DLLs. No INI changes are needed.
+In-headset confirmation remains pending; see
+[validation and current limits](#validation-and-current-limits) for the installed
+build and final test results.
+
+### First-person animation, Action and arm IK parity (2026-10-09)
+
+Ported the corresponding logic from `C:\dev\TombRaider456VR` to TR1, TR2 and TR3:
+
+- Falling and landing hide alternate head-only geometry as well as the face and
+  hair. Landing cameras follow the interpolated native head on all three axes,
+  with floor clearance, instead of leaving the eye inside Lara's bent torso.
+  Landing poses do not overwrite the standing-eye calibration. TR1's animation
+  99 is a water-exit animation and is excluded from the landing rule.
+- Unarmed **Y / Action** yields to native interaction alignment. Head-following,
+  roomscale dragging and stick gait overrides cannot turn or move Lara out of
+  alignment while the game brings her to a switch. Switch animations temporarily
+  use third person, including TR3's special switch animation bank; first person
+  resumes when the current animation finishes. The selected view preference is
+  retained, and gun-trigger state is cleared during the camera handoff.
+- **Unarmed arm/hand IK** follows both tracked controllers in HD first person
+  during ordinary movement and free jumps/falls. Elbows use a two-bone solve;
+  forearm twist is stabilized while hands keep the exact tracked grip frame.
+  Running uses relaxed bare/gloved hand
+  meshes instead of fists. Climbing, grabbing, mounting, pickups and crate
+  interactions retain authored hand poses; existing weapon hands stay unchanged.
+- Tracked unarmed hands remain visible independently of head pitch. With
+  `FirstPersonUnarmedIK=0`, unavailable controller tracking or classic graphics,
+  the existing native arms and 15-degree show / 10-degree hide rule remain.
+  `FirstPersonUnarmedIK` defaults to **1** and uses the existing motion-controller
+  tracking and grip calibration (`FirstPersonMotionGuns=1`). Existing INIs need
+  no changes to enable the new default.
+- The full native body palette is retained before visibility masking, and IK
+  changes a separate rendering copy. This preserves torso/arm seams and the
+  existing body restoration after mounting crates, including stale native mesh
+  masks. Free jumps no longer switch between native unarmed arms and controller
+  arms. Jiggle physics samples the complete animation palette, never IK; shadow
+  rendering bypasses first-person body fitting and now applies its own tracked
+  arm IK without changing the simulation skeleton.
+- Immediate gait handoffs now include returning **forward** from sideways or
+  backward movement. Side/back entry and faster backpedal startup were already
+  present. Native floor/ceiling checks still choose whether entry is allowed;
+  collision, vertical motion and stored native speed retain their existing rules.
+
+Validation includes production-hook tests for both native and mapped HD arm
+palettes, duplicate helper bones, failed solves, relaxed hands, shadow isolation,
+interaction alignment, switch exits, landing cameras and repeated crate-mount
+recovery. All **140** installed gameplay animation banks pass the landing and
+four-direction gait checks. Headset confirmation of this new port is pending.
+See [validation and current limits](#validation-and-current-limits) for the
+build, test results and installation backup.
+
+### Push/pull camera clearance and torso motion (2026-10-05)
+
+In first person, pushing and pulling crates now keeps the rendered eyes on
+Lara's side of the moving block, including when the player physically leans
+forward. The camera follows the block's interpolated movement horizontally,
+removing the animated head's side-to-side rocking and the tile-sized snap when
+the interaction finishes. Room-wall clearance remains active throughout.
+
+The follow-up replaces the initial fixed eye height with Lara's interpolated
+torso height: the camera drops as she kneels and rises as she straightens.
+Entry during an existing kneel uses the current native eye height. A 150 ms
+blend eases entry and the return to walking without changing the saved standing
+height. Headset tracking stays responsive. These changes apply to TR1, TR2 and
+TR3; native block movement, animations, skeletons and jiggle physics are not
+modified. No new INI settings are required.
+
+Validation: the latest Release/x64 build passed **175,087** production movement,
+gun-control and camera checks and **66,150** tracking/eye/projection checks.
+The block-camera update also passed all **2,106** address/layout/hook checks
+across PDB, retail and Gold builds, the general self-tests, and **1,687** native
+shader/physics checks using the installed executable. The latter compiled 288
+native hand shader pairs and checked arm masking alongside jiggle deformation.
+In-headset confirmation of the new crate camera remains pending. See
+[the current installed build](#validation-and-current-limits) for its hash and backup.
+
+### Camera stability, midair rolls and arm visibility (2026-10-04)
+
+- **Head-movement camera jumps:** camera clearance now reads only the samples
+  the native game fills: four in TR1/2 and six in TR3. Unused TR1/2 entries
+  previously invented a low ceiling, making small headset movements snap the
+  eye back toward Lara. Real walls, ceilings and static obstacles still stop
+  the eye. The tracking regression checks the actual eye transforms and
+  asymmetric projections to guard against world warping during head movement.
+- **TR1/2/3 midair turnaround:** pressing B during a native jump roll now turns
+  the first-person view and movement heading by 180 degrees as well. Forward
+  and backward jump flips follow the animation's actual turn command once;
+  holding B does not add camera flips or change Lara's native trajectory.
+- **Unarmed arm visibility:** during ordinary first-person ground movement,
+  looking down 15 degrees reveals the arms; raising the view to within 10 degrees
+  of level hides them again. The gap prevents flicker. Weapon hands, busy-hand
+  interactions, flares and climbing/grabbing retain their existing visibility.
+  Both classic and HD rendering use this rule. HD keeps the full bone palette
+  and masks arm fragments, preserving torso visibility and jiggle deformation.
+
+Native forward/backward jump-roll animation IDs were verified in all **140**
+installed gameplay animation tables (39 TR1, 47 TR2 and 54 TR3), including TR1's
+distinct flip animations. The visibility checks cover the 15/10-degree gap,
+weapon and interaction exclusions, classic meshes and HD fragment masking.
+
+The same day's LS launch-prevention, responsive sidestep/backpedal and LT/Y
+weapon-control changes are documented in the three sections below.
+
+### Side/back movement launch fix (2026-10-04)
+
+Ported the TR4–6 ground-motion safety and gait-handoff fix to TR1–3. Changing
+LS direction now advances the outgoing/stopping animation in place until the
+native gait matches the requested direction. The new gait supplies its own
+speed on its first active tick. Horizontal scaling and smoothing no longer
+write boosted speed into Lara's stored velocity, which native falls inherit.
+Gravity, jump/interaction transitions and large relocations bypass correction;
+vertical motion and subsequent native collision retain their existing handling.
+The responsiveness update below shortens ordinary side/back animation entry.
+
+Validation: Release/x64 built successfully; all existing self-tests and 13,710
+production movement-hook checks passed. The handoff regression reproduces the
+failure with the previous animation hook. Coverage includes left/right/back
+movement, direction reversals, sustained motion, ledge falls, wall collision,
+stick release and jump/interaction exclusions, with smoothing on and off.
+Locomotion address checks passed for all three games in the PDB, retail and
+Gold builds. Headset gameplay confirmation is pending.
+
+### Faster sidestep and backpedal entry (2026-10-04)
+
+Ported the TR4-6 responsiveness changes: ordinary LS side/back direction changes
+now enter the native standing dispatcher before the simulation tick, including
+release/re-press during a pending stop. Native floor/ceiling checks still choose
+whether to enter the requested gait. Its own speed and collision routine take
+over immediately, with the launch-prevention guard retained. Landings,
+step-up/down poses, jumps and pending interactions retain native timing.
+
+The slow, command-free backward-start animation now advances four frames per
+tick, reaching the ordinary backpedal loop after four startup ticks instead of
+sixteen. Loop cadence, maximum speed, smoothing and one native collision pass
+per tick are unchanged. Runtime animation offsets are adapted to TR1-3's
+40-byte records, including TR1/2's one-frame standing entry.
+
+Validation: Release/x64 and existing self-tests passed; **30,190** movement-hook
+checks cover immediate entry, held gait progression, faster startup, release,
+wall/ledge rejection and invalid-data fallbacks. Each new regression fails with
+its corresponding fix disabled. All **2,052** address/layout checks and the
+native locomotion checks passed across the supported PDB, retail and Gold
+builds. `tools/verify_ground_gait_entry.py` verified first-tick side/back entry
+and four-tick backward startup in **39 TR1 + 47 TR2 + 54 TR3** installed animation
+tables. Headset feel still needs confirmation.
+
+### First-person equip and trigger controls (2026-10-04)
+
+Ported TR4-5's updated controls and its follow-up trigger fix. A brief LT press
+while unarmed requests drawing immediately and stays armed after release.
+LT never toggles holstering; Y holsters drawing/ready weapons and is consumed
+so it cannot also perform Action. Unarmed Y, two-grip Action, third-person
+controls and the existing view/graphics chords retain their bindings.
+Equip/holster handling also works with motion guns disabled or classic graphics.
+
+With tracked dual guns, LT fires left and RT fires right on press. Each press
+owns one initial shot; held repeats are cleared on release, preventing the
+extra RT shot previously queued during recoil. Either trigger can be held for
+continuous fire at the native rate. Weapon-specific ammunition, damage and
+cadence remain native. The draw press is blocked from firing until released.
+TR1-3's draw-bit injection at LaraGun is retained for both native control styles.
+
+Validation: Release/x64, existing self-tests and **34,258** movement/gun-control
+hook checks passed. Gun regressions cover both native control styles, all three
+games, drawing/holstering, brief taps,
+independent sustained fire, duplicate-shot prevention, tracking loss and the
+TR3 Desert Eagle's native left-arm call for its right-hand gun. Headset input
+feel still needs gameplay confirmation.
+
+### Default profile (2026-10-02)
+
+The repository INI and embedded first-run INI now match all 113 values in the
+user-approved Steam `TombRaiderVR.ini.good`. Runtime defaults also match the
+supported settings, including positional tracking, `EyeOffsetMode=3`, motion
+guns enabled, hand height `-0.06985` and drift logging enabled. Settings for
+newer features absent from that reference, including enhanced effects and chest
+physics, are retained. Fifteen obsolete keys are preserved in a labeled legacy
+block for reference; the current implementation does not read them.
+
+Edit `TombRaiderVR.ini`, then run `python tools/gen_default_ini.py` to regenerate
+`src/DefaultIni.h`; the embedded template should not be edited directly.
+
+### Built-in enhanced effects (2026-10-02)
+
+`EnhancedEffects=1` (default) adds a code-only interpretation of the visual
+improvements in the supplied EffectRetex 2026 pack. The VR DLL uses the game's
+original textures and ships no replacement DDS artwork. Fire and muzzle flashes
+gain warmer edges and brighter cores; selected equipment glow strips, TR1
+particles and TR3 bubble animations gain brightness and contrast. The stock
+sprite shapes remain, so redrawn smoke, lightning and ring artwork from the
+texture pack will look different. This changes the appearance of effect
+textures; scene lighting still follows the game's renderer.
+
+The texture loader records the actual array layer assigned to each supported
+`TEX` filename. Shader code applies the appropriate adjustment before native
+vertex tint, fog and blending. The mixed equipment and particle atlases use
+region masks to preserve ordinary scenery, footprints and solid strips. Alpha
+is retained, and true black stays black. This works in both camera modes with
+remastered graphics. Set `EnhancedEffects=0` under `[VR]` and restart to restore
+the original appearance; that also avoids stacking this adjustment on separately
+installed effect texture packs.
+
+The layer map clears when textures are recreated or overwritten. A packed
+vertex lookup selects the effect without extra texture samples or a per-pixel
+layer search. Shader patches are compiled and linked before use, and hook byte
+guards cover the PDB, Aspyr retail and Gold builds. GPU regressions exercise
+real game shader sources, composition with the hand/body/chest patches, atlas
+masks, transparency, texture reuse, UI transitions and the disabled setting.
+In-headset appearance and performance still need gameplay confirmation.
+
+### First-person feature port (2026-09-29)
+
+Smooth right-stick turning uses elapsed time. Ground gait motion is smoothed
+toward the stick direction and stops when the stick is released. Wall clearance
+applies only in first person, including forward jumps and walking into crates.
+Ceiling clearance remains active in both views except during jumps and falls,
+with a brief settling pause after landing. The head anchor retracts for climbing, hanging and block
+interactions. Wall-climbing animations also sweep the eye against walls;
+pull-ups and hanging keep their native animated camera with a retracted anchor.
+Switching views recenters the tracking neutral. Swimming, death and
+cutscenes temporarily use the game's camera; first person resumes when a live
+Lara returns to an eligible gameplay state.
+Native Action prompts appear at their nearby world positions in VR. In TR3
+crouch/crawl states Lara's obstructing body is hidden while equipped tracked
+weapon hands remain visible and usable. As in the updated TR4/5
+implementation, hanging and normal/gymnast pull-ups use the arms-only mesh mask.
+Jumps and falls use normal first-person head hiding and native body animation.
+With movement stabilization enabled, the rendered eye uses raw headset displacement while
+Lara's body drag retains neck compensation,
+preventing subtle world motion during physical head turns.
+
+`FirstPersonMotionGuns=1` enables experimental HD tracked guns. The equipped
+hand follows each VR controller and the rest of Lara's arms are hidden. Shots
+start from the tracked muzzle while the game retains ammo, damage, collision
+and hit testing. Bullet weapons select enemies independently for each barrel,
+even when Lara has no native head/body lock. Direct sphere hits take priority;
+otherwise a visible enemy within `FirstPersonAutoAimDegrees` gets assistance
+toward its animated body (default 45 degrees; 0 disables bending).
+This covers TR1's pistols, magnums,
+Uzis and shotgun; TR2's pistols, automatic pistols, Uzis, shotgun, M16,
+grenade launcher and harpoon gun; and TR3's pistols, Desert Eagle, Uzis,
+shotgun, MP5, rocket launcher, grenade launcher and harpoon gun. With dual
+guns, press LT once to draw when holstered; LT never disarms. Press Y to
+holster. Once ready, LT fires left and RT fires right on press. Hold either
+trigger, or both, for continuous native-rate fire. Release cancels unused
+held-fire repeats, preventing a second shot after a tap. The LT press used
+to equip must be released before a fresh press can fire.
+Controller-aimed pistols also keep firing when a moving enemy remains selected
+but Lara loses native arm lock. The pistol animation temporarily uses free aim;
+each shot still uses the controller's target, native cadence, ammo and effects.
+Long guns keep RT firing. Motion guns require first
+person, positional tracking and HD graphics. They are enabled by default,
+matching the user-approved `TombRaiderVR.ini.good` profile.
+The gun pitch now defaults to the same -30 degrees as the installed TR4/5
+profile, and native muzzle flashes follow the tracked gun pose in first person.
+The flash uses the same world axes as the HD hand palette, so stick rotation
+is applied once. Shotgun sparks and smoke also follow the tracked wrist after
+physical roomscale turns, including their emission direction. Bullet origins
+use the game's per-weapon HD flash offsets.
+Tracked hand draws use the TR4/5 rigid wrist correction and trim the forearm
+at the 50-percent hand-weight seam. Mixed wrist vertices follow the corrected
+wrist instead of stretching with the animated forearm. The hand shader
+works with chest physics disabled; unsupported shaders keep native masking.
+Opaque black, two-sided caps close the wrist's open mesh boundary, including fully
+hand-weighted edges that never cross the shader cutoff. Boundary extraction
+welds texture seams across the whole indexed mesh; material draw ranges do not
+create false holes. The opening nearest the anatomical wrist is filled and
+follows the hand's rigid controller pose in each eye.
+These targeting and rotation fixes pass offline checks; headset confirmation
+is still required. The first 100 tracked shots log the selected target and its
+health before/after native damage for that check.
+
+The TR5 3x scope is fitted to an HK mesh absent from TR1-3, so it has no direct
+weapon/mesh equivalent here. TR1/2 have no crouch/prone states. The TR4-6
+crouch/prone roomscale extension was reverted there, so it is not ported as a
+working feature. TR3 now has the crouch camera, tracked-gun and LS steering
+fixes described above, while retaining native body collision and animation.
+
+### Recent first-person fixes (2026-10-01 to 2026-10-02)
+
+- **Hits and muzzle flashes:** hitscan weapons select targets per controller
+  barrel without requiring Lara's native target lock. Muzzle flashes share the
+  gun mesh's world axes, preventing double rotation during stick turns.
+- **Guns stopping during bat attacks:** held LT+RT remains a dual-fire gesture,
+  and the pistol animation can fire while a selected enemy loses native arm
+  lock. Native shot timing, ammunition, damage and effects are retained.
+- **Open or warped wrists:** tracked hands use rigid wrist skinning and opaque black
+  caps over the actual open mesh boundary. Wrist sealing was confirmed in play.
+- **Body centering after camera takeovers and physical turns:** scripted-camera
+  handoffs retain the standing-eye calibration. The grounded body is fitted
+  beneath the rendered eye throughout physical turns, including intermediate
+  angles that a full-circle-only check misses.
+- **Death clipping:** the native death camera takes over as soon as Lara's
+  health reaches zero. Loading a live save restores first-person eligibility.
+- **Mesh stretching near ledges:** first-person HD body draws preserve the
+  complete bone palette and hide fragments by visible bone weight. Hidden
+  shoulder/torso bones no longer collapse shared skin vertices toward zero.
+- **Persistent off-center body at crate/ledge edges:** eye clearance allows
+  looking over empty drops, while body movement still respects ledge safety.
+  Collision pushback cannot be consumed as roomscale travel, and body fitting
+  uses the final collision-resolved camera position each frame. Temporary
+  camera corrections are not saved into the standing calibration.
+- **B-roll turnaround:** a native ground roll now turns the first-person view
+  and movement heading by 180 degrees. Lara keeps her native roll animation;
+  the standing eye offset rotates to her new forward side. The change follows
+  the actual animation turn, so cancelled rolls do not flip the view.
+- **Hard-landing camera dip:** after a large survivable fall, first person follows
+  the animated neck height through the impact kneel and recovery. TR1-3 report
+  this as standing state 2 with animation 24; it now bypasses vertical standing
+  stabilization while retaining horizontal centering and the saved standing fit.
+  The roll floor guard also covers this landing, including physical ducking.
+  Ordinary idle/movement, crate mounts and fatal-fall camera behavior retain
+  their existing paths.
+- **Ground-roll floor clipping:** the camera retains its animated drop during
+  a B roll, but the final tracked eye stops 64 game units above the local floor.
+  Wall clearance, the 180-degree turnaround and the new forward direction remain
+  active. This replaces the earlier fixed upright roll-camera height.
+
+The death, mesh-stretching and edge-centering changes pass automated tests;
+their reported gameplay cases still need headset confirmation. See
+[headset validation](docs/roomscale-testing.md) for death/respawn, repeated
+ledge releases, crate-edge turns and jump-off checks.
+
+## Installation
+
+Copy three files into the game folder
+(`steamapps\common\Tomb Raider I-III Remastered\`):
+
+| file | what it is |
+|---|---|
+| `winmm.dll` | the proxy that loads the mod |
+| `TombRaiderVR.dll` | the mod |
+| `openvr_api.dll` | OpenVR runtime, x64 — SteamVR ships one at `steamapps\common\SteamVR\bin\win64\` |
+
+For Index mode, also copy the `TombRaiderVRBindings` folder beside those DLLs.
+
+Launch from Steam as normal. `TombRaiderVR.ini` is written next to the DLL on
+first run and is heavily commented; that file, not this one, is the reference
+for the settings.
+
+## Status
+
+Verified working: the mod loads, binds, installs all six exe hooks, brings up
+OpenVR, creates the stereo target and submits stereo frames with correct per-eye
+separation. What has **not** been done is a full playthrough of all three games,
+so per-level and per-cutscene issues are likely to remain.
+
+The culling fix is confirmed working in play: geometry no longer disappears when
+you look away from the game camera. `PortalCulling=0` returns the stock
+behaviour exactly. See "Culling Fix" below for what it does, how it differs from
+the TR4-6 attempt, and how to read its log lines.
+
+The sky fix hooks `DrawSkyHD` in the live game DLL. `SkyAtInfinity=0` returns
+the stock finite-dome stereo. See "Sky at infinity" below.
+
+First person is confirmed working in the headset on TR1: the camera rides Lara's
+animated head rather than the chase camera, with her head, face, sunglasses and
+braid hidden and the rest of her body still drawn. The game starts in its old
+third-person view every launch; **Y+LT** toggles the complete first-person mode
+during play. Ground movement uses a stabilized eye; interaction animations
+retain their appropriate vertical motion, including torso-following push/pull
+kneels. See "First person" below.
+
+Around it: positional tracking is measured from a captured neutral, physical and
+right-stick turning share a stable VR-world heading, HMD-relative stick movement
+stays aligned after either kind of turn, and walking about the room moves Lara
+by direct displacement through native collision queries. These controls have
+been exercised in the headset on TR1. The latest death-camera, ledge-mesh and
+edge-centering fixes have automated coverage but still need headset checks.
+See "Roomscale and rotation in first person".
+
+Supported builds:
+
+| build | exe PE timestamp | address table | in the headset |
+|---|---|---|---|
+| earlier build that shipped with PDBs | `0x6A4B4928` | `kBuildStock`, read from the PDBs | working |
+| earlier Aspyr retail (Steam) | `0x6A4B7C52` | `kBuildAspyrRetail`, carried across without PDBs | working (TR1 tested) |
+| Tomb Raider Gold (modders' patch of Aspyr retail) | `0x6A4B7C52` | the same row as Aspyr retail | working |
+| retail update installed 2026-10-09 | `0x6AA156AA` | `kBuildRetailOctober`, independently mapped without PDBs | live hooks and SteamVR startup verified; headset unavailable during test |
+| Epic Games Store executable tested 2026-10-11 | `0x6AA156D9` | `kBuildEpicOctober`, independently mapped without PDBs | live hooks, OpenVR, headset pose and first stereo submission verified |
+
+The mod picks the address table for each module by its PE timestamp and refuses
+to patch anything it does not recognise. On Aspyr retail, a run of Tomb Raider I
+installed all nine hooks at the retail addresses, bound `tomb1.dll`, brought up
+OpenVR and submitted stereo frames with correct eye separation. TR2 and TR3 on
+retail pass every static check but have not yet been played; their first run
+should log `gamedll: bound to tomb2.dll` (or `tomb3.dll`). See "Supporting the
+Aspyr retail and Tomb Raider Gold builds" below.
+
+### Troubleshooting: the game runs on the monitor and SteamVR never starts
+
+Almost always an old `TombRaiderVR.dll` in the game folder, one that predates
+support for the exe you are running. Look in `TombRaiderVR.log` next to it:
+
+```
+engine: unrecognised build (PE timestamp 0x6A4B7C52, ...)
+hook[validate_draw]: prologue mismatch at ... Wrong game build; not patching.
+hooks: at least one hook failed -- rolling all of them back
+TombRaiderVR: hook installation failed
+```
+
+That is exactly what happened the first time Aspyr retail was tried. The DLL in
+the Steam folder was a build from before retail support existed, so the fix
+was not in the code but in deploying the current build. The mod never reached
+OpenVR, so SteamVR was never started and the game ran flat. Rebuild with the game
+closed (a build copies the DLL into the game folder), or copy
+`build\x64\Release\TombRaiderVR.dll` in by hand. A working start logs
+`engine: build identified as ...` for your build, six `hook[...]` lines with no
+mismatch, and `vr: up and running`.
+
+Current builds refuse an unknown exe with `refusing to patch an executable no
+address table describes`. If you see that, the exe is genuinely new; see
+"Supporting the Aspyr retail and Tomb Raider Gold builds" for how to add it.
+
+### Troubleshooting: SteamVR grid but no game video
+
+If SteamVR starts but stays on its grid, check `TombRaiderVR.log` for the per-eye
+target size. Some runtime/driver starts return a zero recommended width or
+height, which previously prevented the stereo framebuffer from being created.
+The mod now replaces a zero width with 1512 and a zero height with 1680 before applying
+`SuperSample`, and logs `vr: runtime returned ... render target; using
+1512x1680 fallback`. Explicit `EyeWidth` and `EyeHeight` settings take priority.
+The next `vr: ready, per-eye target ...` line shows the dimensions actually used.
+
+---
+
+## Development Notes
+
+### Why this port was mostly transcription
+
+`tomb123.exe` and `tomb1/2/3.dll` all ship with private PDBs. That changes the
+character of the work completely:
+
+```
+python tools\pdbdump.py  PDB\tomb123.exe                  name -> RVA, 2815 symbols
+python tools\typedump.py PDB\tomb123.exe RenderState      full struct layouts
+python tools\funcsig.py  PDB\tomb123.exe ogl_draw         real C prototypes
+python tools\disasm.py   PDB\tomb123.exe validate_draw    symbol-annotated asm
+python tools\xrefs.py    PDB\tomb123.exe                  who calls whom
+python tools\verify_addresses.py                          re-derive and diff everything
+```
+
+`pdbdump.py` and `typedump.py` drive `dbghelp.dll` through `ctypes` — no SDK, no
+external dependency. `disasm.py` and `xrefs.py` add `capstone` and `pefile`.
+
+Everything except the room culling was built with these alone — no decompiler.
+That worked *because* of the PDBs; see "Ghidra / re-mcp" below for the one place
+symbols and types were not enough.
+
+The first three questions that decided whether the port was viable at all were
+answered in about ten minutes:
+
+- `tomb123.exe` imports **OPENGL32.dll** and **WINMM.dll** — same renderer, same
+  injection vector as TR4-6.
+- Its PDB contains `vid_setPass`, `validate_draw`, `ogl_draw`, `ogl_present` and
+  `fmvShow` — the same engine, by the same names.
+- `mProj` is still `mat4[2]` with `[1]` the perspective matrix, and
+  `mView_packed` is still a row-major 3×4 affine in 1/16384 fixed point with its
+  third rotation row negated.
+
+So `StereoMath.h`, `VRSystem`, `StereoRenderer`, `InlineHook`, `GL`, `Config`,
+`Gamepad`, `VideoPanel` and the `winmm` proxy carried over essentially
+unchanged. `Engine.h`, `Engine.cpp` and `Hooks.cpp` were rewritten.
+
+### How TR1-3's engine differs from TR4-6's
+
+This is the part that matters if you are porting anything else between them.
+
+| | TR4-6 | TR1-3 |
+|---|---|---|
+| `RenderState` | 240 bytes, 29 members | **152 bytes, 21 members**, different offsets |
+| | separate `vb` / `ib` | one `mesh` pointer |
+| `Shader` | 80 bytes, `uid[18]`, 202 shaders | **60 bytes, `uid[12]`, 74 shaders** |
+| draw entry points | `ogl_draw` **and** `ogl_drawVB` | **`ogl_draw` only** |
+| `vid_setPass` | 4 args (incl. `blend`) | **3 args** |
+| frustum shear lever | `vid_setPerspOffset` | **does not exist** |
+| render-target latch | `ogl_rt` global | **does not exist** — must be hooked |
+| offscreen scene | TR6 only, needed alternate-eye | **none** — all three draw to the backbuffer |
+| `consts` fog bit | bit 5 | **bit 3** |
+| `consts` contacts bit | — | **bit 4** |
+
+The `consts` dirty-flag table was the one piece that genuinely had to be read out
+of the disassembly, because it is encoded in `validate_draw`'s control flow
+rather than in any type. Each bit test was matched to the `uid[]` index and the
+`vid_state` member its guarded `glUniform*` call used:
+
+```
+bit  test site   uid   vid_state member    upload
+ 0   0x0000F086  [0]   proj      (+72)     glUniformMatrix4fv(n=1)
+ 1   0x0000F0B3  [1]   view      (+80)     glUniform4fv(n=4)
+ 2   0x0000F0E5  [2]   shadow    (+88)     glUniformMatrix4fv(n=1)
+16   0x0000F119  [3]   model     (+96)     glUniform4fv(n=4)
+17   0x0000F14C  [4]   params    (+104)    glUniform4fv(n=1)
+ 3   0x0000F17F  [5]   fogColor  (+112)    glUniform4fv(n=1)
+ 4   0x0000F20A  [6]   mContacts (global)  glUniform4fv(n=16)
+18   0x0000F22E  [7]   joints    (+120)    glUniform4fv(n=96)
+19   0x0000F253  [8]   LPos      (+128)    glUniform4fv(n=4)
+20   0x0000F278  [9]   LCol      (+136)    glUniform4fv(n=4)
+21   0x0000F29D  [10]  ambient   (+144)    glUniform4fv(n=6)
+```
+
+That set is exactly the `0x3F001F` mask a shader switch forces (the immediate at
+`0x0000F053`), which is the cross-check that says the table is complete. The
+self-test asserts it.
+
+### What it hooks
+
+Six inline hooks in `tomb123.exe`:
+
+| hook | job |
+|---|---|
+| `vid_setPass` | classify each pass as world-space or 2D |
+| `validate_draw` | write per-eye projection/view, force the dirty bits, restore |
+| `ogl_draw` | issue every draw twice, once per eye half |
+| `ogl_present` | submit to the compositor, mirror, `WaitGetPoses` |
+| `ogl_setRenderTarget` | latch whether the engine is drawing to the backbuffer |
+| `fmvShow` | exact "a video is on screen this frame" signal |
+
+...and three in whichever of `tomb1/2/3.dll` is running:
+
+| hook | job |
+|---|---|
+| `PrintRoomsList` | expand the draw list along the head's frustum before it is drawn |
+| `S_GetObjectBounds` | second-guess "this item is off screen" from the head |
+| `DrawSkyHD` | mark every sky draw so stereo can put the dome at optical infinity |
+| `phd_GenerateW2V` | first person: put the scene camera in Lara's head before the view matrix is built |
+| `DrawCreatureHD` | first person: hide the head mesh through `mesh_bits`, and skip the face and sunglasses draws |
+| `DrawHair` | first person: skip the braid |
+
+The culling pair and `DrawSkyHD` are each the same function in all three DLLs,
+with the same 5-byte position-independent prologue, so one table serves all of
+them. `DrawSkyHD` is independent of `PortalCulling`: it installs whenever
+`SkyAtInfinity=1`.
+
+`tools\xrefs.py` disassembles all 1017 named functions and reports:
+
+```
+validate_draw        <- ogl_draw (x1)
+ogl_draw             <- (no direct call in .text -- reached through the APP vtable)
+vid_setPass          <- (no direct call in .text -- reached through the APP vtable)
+ogl_present          <- (no direct call in .text -- reached through the APP vtable)
+fmvShow              <- (no direct call in .text -- reached through the APP vtable)
+ogl_setRenderTarget  <- (no direct call in .text -- reached through the APP vtable)
+```
+
+Two things follow, and both are load-bearing. `validate_draw` has **exactly one
+caller**, so matrix injection can never run outside the per-eye duplication loop
+— in TR4-6 that property needed two hooks, here it is free. And the other five
+are never called from inside the exe at all: `vidInit` and `init_ogl` install
+them into the `APP` struct and the game DLLs call through those pointers, so
+patching the function bodies catches every call from all three DLLs without
+hooking anything inside them.
+
+### `ogl_setRenderTarget`, and a 13-byte prologue
+
+TR4-6 could read an `ogl_rt` global to know whether the engine was drawing to the
+backbuffer. TR1-3 has no such global, so the state is maintained by hooking
+`ogl_setRenderTarget` and reproducing the engine's own branch — `test edi, edi`
+at `0x0001059A`, where `edi` is the sign-extended second argument: zero binds
+`FBO_default`, anything else binds `FBO_custom`.
+
+Its prologue is also where the one real hooking bug happened. `push rsi` at the
+top of that function is `40 56` — a **two-byte** REX-prefixed encoding, not the
+one-byte `56`. Counting it as one byte put the stolen window at 12 bytes, ending
+*inside* `sub rsp, 0x30`, which would have had the trampoline return into the
+middle of an instruction. `tools\verify_addresses.py` now checks every hook
+window against the real `.text` for three properties: the bytes match, the window
+ends on an instruction boundary, and no instruction in it has a RIP-relative
+operand (because `Hooks.cpp` passes no displacement fixups).
+
+### `gGame` selects the game DLL — the loader does not
+
+All three game DLLs are resident for the entire session. `WinMain` loads them
+unconditionally, setting `gGame` to 0, 1 and 2 around each call so each DLL's
+initialiser sees its own index:
+
+```
+00007924  mov  [gGame], r15d      ; 0
+0000792B  call LoadLibraryA       ; "tomb1.dll"
+00007991  mov  [gGame], r14d      ; 1
+00007998  call LoadLibraryA       ; "tomb2.dll"
+000079FE  mov  [gGame], r13d      ; 2
+00007A05  call LoadLibraryA       ; "tomb3.dll"
+00007ABB  mov  [gGame], eax       ; the game actually selected
+```
+
+So `GetModuleHandleW` succeeds for all three at all times, and "bind to whichever
+DLL is loaded" silently always binds `tomb1.dll`. The first version of
+`GameDll.cpp` did exactly that, and it was caught by its own log:
+
+```
+engine: now running Tomb Raider II (gGame=1)
+gamedll: bound to tomb1.dll (Tomb Raider I)      <-- wrong DLL
+```
+
+Playing TR2 or TR3 it would have read Lara's water status and the camera's room
+out of TR1's globals. `gGame` is the selector, and it is authoritative — `WinMain`
+indexes its own per-game dispatch table with it (`movsxd rax, [gGame]; shl rax,
+5; call [rax + rsi + 0x41d218]` at `0x00007BF2`), so 0/1/2 mean TR1/TR2/TR3 by
+the engine's own definition. Both values are now printed together so they can be
+checked against each other at a glance.
+
+### The game DLLs also have symbols
+
+`tomb1.dll`, `tomb2.dll` and `tomb3.dll` ship PDBs too, with `lara`, `camera`,
+`room`, `number_rooms`, `GetRoomBounds` and full types for `lara_info` (432
+bytes), `camera_info` (128) and `ROOM_INFO` (168). **All three DLLs have
+identical struct layouts** — only the addresses of the globals differ — which is
+why `GameDll.cpp` carries one struct description and a three-row address table.
+
+That is what makes the ceiling clamp and the water-state check exact here rather
+than approximate. In first person, `GetFloor` resolves the rendered eye's room;
+in third person, the native game camera and room are used. Headroom is the
+view's Y minus `room.maxceiling`. TR world space is Y-down, so the ceiling has
+the *smaller* Y. The clamp pauses during jump preparation, flight and falls,
+then resumes 250 ms after landing. Anything outside 0..32768 units is reported
+as "unknown" rather than clamped on.
+
+### Culling Fix
+
+**Symptom.** Turn your head away from the game camera and the world empties out:
+walls, floors and whole rooms simply are not drawn. It is the single most
+disorienting thing a VR port of this engine can do, because it happens exactly
+when you look around — the one thing VR is for.
+
+**Cause.** The engine draws only the rooms its portal traversal reaches from the
+**game camera**, carrying a screen rectangle that is clipped at every doorway. A
+room is submitted only if some chain of doorways lands on the game camera's
+screen. That is right for a monitor and wrong for a headset: you see wider than
+the game camera, and you can look somewhere it is not pointing at all. The
+culling lives in the game DLL, not the exe, which is why nothing the stereo
+layer does can reach it.
+
+**Fix.** `src\PortalCull.cpp` hooks `PrintRoomsList` — the last moment before
+the draw list is consumed — and runs the same traversal a second time from the
+tracked head, in world space, with the headset's frustum, appending what it
+finds. Nothing the engine listed is ever removed, so `PortalCulling=0` is the
+stock behaviour exactly, and with your head aligned to the game camera the
+result is what the engine would have drawn anyway.
+
+**First-person room seed.** The engine starts its room list in the chase
+camera's room. Lara's first-person eye can cross a doorway or enter a stacked
+room while that seed stays behind, so a one-sided portal can hide the room
+containing the eye. When first person is active, the traversal resolves the
+effective eye position, including headset translation, through the native
+`GetFloor` room lookup and starts in that room. An invalid lookup falls back to
+the engine's seed. Third person still starts in the game camera's room. The
+`cull: first-person eye in room ...; game camera seeded room ...` log line shows
+when the two differ.
+
+**The frustum shrinks at every doorway.** The portal quad is transformed into
+eye space, clipped against the planes arriving from the previous room, and a new
+plane is built from the head through each surviving edge. A room enters the list
+only if it can really be seen through that chain of openings — not merely
+because it is nearby or connected. The engine's own back-face test is kept
+unchanged, with the head substituted for the camera; that substitution is free,
+because the world→eye transform is orthogonal, so `dot(A·n, A·(p−c) + t)` is
+`dot(n, p − headPos)` and the comparison survives being done in eye space.
+
+#### Where the code is
+
+| file | what it holds |
+|---|---|
+| `src\PortalCull.cpp` | the traversal, both DLL hooks, the draw-list surgery |
+| `src\PortalGeom.h` | the frustum maths — dependency-free, so the self-test can include it |
+| `src\GameDll.cpp` | the three-row address table these run against |
+| `tests\selftest.cpp` | 26 hand-worked checks on the geometry |
+| `tools\verify_addresses.py` | re-derives every address and both hook prologues from the PDBs |
+
+#### How this differed from the earlier TR4-6 culling fix
+
+The earlier TR4-6 mod expanded the list by **portal hops**: take every room already
+listed, add everything one doorway away, repeat *N* times. It worked, and every
+row below is something it had to live with that a real traversal does not.
+
+| | earlier TR4-6 (`RoomCull.cpp`) | here (`PortalCull.cpp`) |
+|---|---|---|
+| criterion | hop count `N` | whether the head can see through the doorways |
+| depth | `PortalHops`, tuned per level | decided by the geometry; the budgets only bound the worst case |
+| flip rooms | added, then excluded by a hand-kept list | unreachable by construction |
+| addresses | `FUN_18002ea30`, `DAT_18063dc60` | `PrintRoomsList`, `draw_rooms`, by name, from the PDBs |
+
+The flip-room point is the interesting one. A flip map's inactive half is a real
+entry in the room array at the same world position as its live twin, so a
+mechanism that adds rooms the traversal never reached will happily add both and
+draw one over the other. TR4-6 hit exactly that and needed
+`DrawAllRoomsExclude=215` and then a `flipped_room` check to suppress it. No
+live room's portals name a storage room, so a real traversal cannot reach one —
+the same reason the engine's own never draws one. There is no exclusion list
+here because there is nothing to exclude.
+
+The current TR4-6 mod also uses head-frustum portal traversal and resolves the
+first-person eye's room for its traversal seed. This TR1-3 port now does both.
+
+#### The two levers behind the room list
+
+Fixing the list alone is not enough, because the same camera-shaped assumption
+is baked in twice more:
+
+* **`ROOM_INFO::left/right/top/bottom`**, the per-room clip rect. `PrintRooms`
+  copies it into `phd_left/right/top/bottom` and `CheckClipping` turns it into a
+  scissor box, so a room reached down a corridor is pixel-clipped to where the
+  game camera saw its doorway. Every listed room's rect is widened to the whole
+  target (`CullWidenBounds`). On the modern renderer this is belt and braces —
+  the stereo hook already replaces the scissor per draw — but on the classic
+  renderer the same rect drives vertex clipping in `calc_roomvert`.
+* **`S_GetObjectBounds`**, which answers 1 / −1 / 0 for an item's bounding box.
+  Zero is reached two ways and both are the game camera's opinion: every corner
+  behind `phd_znear`, or the projected rectangle missing the screen rect. An
+  enemy behind the camera fails the first, one beside it the second. Without
+  `CullObjects` the added rooms draw with their furniture, enemies and pickups
+  missing. Only the zero answer is second-guessed, and only ever upward to −1
+  ("visible, clip it") — never the other way, and never in the inventory or on
+  the title screen.
+
+TR2 and TR3 additionally keep an `outside` flag and a separate screen rect for
+the sky, grown as the traversal meets outdoor rooms. Both are maintained the way
+the engine maintains them. TR1 has no such state at all, and those five columns
+of the address table are zero for it.
+
+#### One space, one sign
+
+The whole thing turns on a single relationship, so it is worth stating plainly.
+The game's culling works in **phd view space** — `v = R·(p − camPos)`, X right,
+Y down, **+Z forward** (`SetRoomBounds` tests `z < 1` for "behind the camera").
+The mod's matrices work in the space `mView_packed` defines, which is the same
+transform with its **third rotation row negated**, i.e. −Z forward. That is not
+inferred: `vid_setViewMatrix` (RVA `0x0000A5E0`) builds it from the same
+`int[12]` and negates exactly `m[8]`, `m[9]`, `m[10]`, leaving every other term
+alone.
+
+So `eye = HeadView · N · phd` with `N = diag(1, 1, −1)`, and the whole chain
+collapses to one 3×3 and two translations. Get that sign backwards and the
+traversal culls the half of the world you are looking at.
+
+#### What it costs, and what to watch
+
+The traversal is integer-free float work over portal quads — a few hundred
+portals a frame at most — so its own cost is nothing. What costs is the extra
+geometry it lets through, which is the point. The health report prints it:
+
+```
+cull: 12.4 rooms/frame from the engine + 3.1 added by the head frustum, 4.2 items rescued/frame
+```
+
+`added = 0` forever means either the head never left the game camera's cone or
+the traversal is not running; the `cull: head-frustum portal traversal live`
+line tells the two apart. `CullDumpKey` prints the whole list with the added
+rooms starred, which turns "that wall is missing" into a room number.
+
+#### Settings
+
+All in `[VR]`, all documented at length in `TombRaiderVR.ini` itself.
+
+| key | default | what it is for |
+|---|---|---|
+| `PortalCulling` | `1` | the whole feature; `0` is stock behaviour |
+| `CullFovMarginDegrees` | `8` | angle added to each half of the culling frustum — covers canted displays and the few ms between the pose that culls and the pose that renders |
+| `CullMaxDepth` | `16` | doorways deep, worst-case bound only |
+| `CullMaxPortals` | `4096` | portals per frame, worst-case bound only |
+| `CullFarUnits` | `0` | optional distance limit, off by default; a frame-rate lever, not a fix |
+| `CullWidenBounds` | `1` | widen the per-room clip rect (see above) |
+| `CullObjects` | `1` | extend the fix to items (see above) |
+| `CullDumpKey` | `0` | virtual-key code that dumps the draw list to the log |
+
+Neither budget is a visibility criterion. The frustum closing at successive
+doorways is what ends the traversal; the budgets exist so a pathological level
+cannot spend the whole frame in here, and the log says so if either is hit.
+
+#### One thing not to try again
+
+Widening the projection the exe hands the game changes **nothing** about what is
+culled. TR4-6 swept it to 200% of screen each way, and 20× on TR6, and got
+neither extra geometry nor a frame-rate change. The DLL builds its cull planes
+from its own matrices and never looks at the projection matrix; on TR1-3 a
+portal beside or behind the camera fails the near-plane test inside
+`SetRoomBounds` before any rectangle is consulted. Do not re-run that
+experiment.
+
+`preserveProjOffset` is kept but is expected to be permanently inert: there is no
+`vid_setPerspOffset` on this engine and `ogl_setPersp` zeroes `mProj[1].e02/.e12`
+explicitly (verified at `0x0000FAD0`). If the `projoffset=` counter in the health
+report is ever non-zero, something is happening that this analysis says cannot.
+
+### Sky at infinity
+
+**Symptom.** Outdoors, the sky is a painted sphere a few metres away. Distant
+cliffs sit *behind* it, and leaning or IPD makes the dome slide. On a monitor
+the same mesh is fine.
+
+**Cause.** `DrawSkyHD` in `tomb1/2/3.dll` already does the classic
+monitor-correct thing: it copies the current matrix, **zeros its translation**,
+and draws `hd_sky` through `GetRoomShader` / `app.setPass` / `app.draw`. The
+dome is centred on the game camera, so there is no parallax from walking. That
+is optical infinity for one viewpoint.
+
+The stereo path then composes the eye transform `E` — IPD plus any 6DOF head
+offset — into the projection (`EyeOffsetMode=3`: `P' = P * E`). The dome's
+vertices still sit at a finite mesh radius, so that translation gives them
+stereo disparity equal to a few metres, and `glDepthRange` is still the engine's
+own, so the dome's depth values can occlude farther world geometry.
+
+The PDBs say this is the only sky draw path. There is no `DrawFlatSky`,
+`DrawSkySegment` or `SkyDrawPhase` in these DLLs. `tools\xrefs.py` against
+`tomb1.dll` reports a single caller:
+
+```
+DrawSkyHD            <- PrintRoomsList (x1)
+```
+
+The exe PDB names the shader blobs (`ogl_SKY_vs`, `ogl_SKY_HD_vs`, and the
+matching pixel shaders) but no extra draw entry point. `hd_sun` is 24 bytes of
+data, not a function. One hook covers every sky triangle the remaster issues.
+
+**Fix.** `src\Sky.cpp` hooks `DrawSkyHD` and sets a flag for the life of that
+call. Every `validate_draw` that runs underneath it uses the **rotation** of `E`
+only (looking around still turns the sky; leaning and IPD do not). Every
+`ogl_draw` underneath it sets `glDepthRange(1, 1)` for that draw and restores
+the engine's range afterwards, so the fragments land on the far plane and cannot
+win a depth test against the world. `SkyAtInfinity=0` is the stock behaviour
+exactly: the hook is not installed.
+
+The stolen window is the same 5-byte PIC `mov [rsp+8], rbx` as `PrintRoomsList`,
+and it is the same bytes in all three DLLs:
+
+| DLL | `DrawSkyHD` RVA | size |
+|---|---|---|
+| `tomb1.dll` | `0x0006E480` | 558 |
+| `tomb2.dll` | `0x000A0760` | 558 |
+| `tomb3.dll` | `0x000EAA80` | 558 |
+
+#### Where the code is
+
+| file | what it holds |
+|---|---|
+| `src\Sky.cpp` | the `DrawSkyHD` hook and the in-sky flag |
+| `src\Hooks.cpp` | rotation-only `E` at inject time; far-plane depth around `ogl_draw` |
+| `src\GameDll.cpp` | the three-row address table those RVAs live in |
+| `tools\verify_addresses.py` | re-derives the three RVAs and the prologue from the PDBs |
+
+#### What to watch
+
+```
+sky: hooked tomb1.dll (Tomb Raider I) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
+sky: first DrawSkyHD draw (shader N) -- rotation-only eye transform, far-plane depth
+```
+
+The health report's `sky=` count is per injected eye. Outdoors it should be
+non-zero; `sky=0` forever with the "hooked" line present means `DrawSkyHD` is
+not running (indoors, or a title screen).
+
+The GPU verify sample skips sky draws on purpose. Both eyes share a
+translation-free `E` there, so sampling one would report zero separation and
+look like an injection failure.
+
+#### Settings
+
+All in `[VR]`, documented in `TombRaiderVR.ini`.
+
+| key | default | what it is for |
+|---|---|---|
+| `SkyAtInfinity` | `1` | the whole feature; `0` is stock finite-dome stereo |
+
+### First person
+
+**Confirmed working in the headset** on Aspyr retail / Gold, TR1. TR2 and TR3
+use the same hook and the same table and should work, but have not been played.
+The startup view is always the engine's original third person. Press **Y+LT**
+to switch the head camera, roomscale drag, HMD/stick rotation and directional
+sidestep/backpedal handling on or off together. The chord is edge-triggered and
+its Y/left-trigger actions are withheld from the game while held. `FirstPerson`
+remains readable for old INI files but no longer changes the startup view.
+
+Photo Mode is restored to its native controller chord, **L3+R3**. **Y+RT** is
+converted to the Xbox Menu/Start button, the game's native classic/remastered
+graphics toggle. These mappings run after Touch and physical-pad input is
+merged, so both controller sources behave the same way. The two Y/trigger
+chords are recognized only in gameplay; title, inventory and cutscene input is
+passed through unchanged.
+
+On Touch controllers, **LB+RB** (both grips) is another way to hold Action (Y)
+while pushing or pulling blocks. During gameplay the chord replaces the grips'
+individual Duck and Walk inputs; the normal Y button still works. The synthesized
+Y is applied after the Y+trigger view/graphics chords, so gripping while using
+a trigger does not switch modes.
+
+In first person, holster weapons, stand within grabbing reach of an
+ordinary wall lever, and hold **Right Grip** with the right hand near it. Move
+your hand through the lever's travel: the lever and Lara's IK hand follow the
+native animation path, including pauses and reversals. Releasing before the end
+stop cancels the pull; reaching the end activates the native switch once without
+moving Lara or switching the camera to third person. Release before grabbing
+again. Away from a lever, Right Grip still means Walk. Both-grip Action, menus,
+Photo Mode and Y/trigger chords take priority.
+
+Grab reach matches TR4/5 ordinary levers: Lara's allowed position extends 256
+game units sideways and 200 units in depth beyond the lever's mesh bounds.
+Native height limits, backside rejection and tracked-hand proximity still
+apply (18 cm to grab, 40 cm while holding). Native Y/Action bounds are unchanged.
+Input priority remains as ported: either trigger, System, Photo Mode or Action
+cancels a grab so equipping weapons and changing modes take precedence.
+
+This interaction is ported from TR4/5 for TR1, TR2 and TR3 ordinary wall levers.
+Underwater switches, small switches, pushbuttons, airlocks and other special
+mechanisms retain native **Y / Action**, including its temporary third-person
+animation. Tracking loss, stale tracking, recentering and leaving first person
+cancel unfinished pulls. No INI changes are required. The existing motion-gun
+and unarmed-IK settings control whether the attached hand is visible.
+TR5's type-4 subtype does not exist in TR1–3's native switch handlers; these
+games select switch mechanisms by object ID. Small switches, push switches
+and airlocks would require separate interaction support.
+
+Validation: the production hook regression covers pulling both directions in
+all three games, stationary/reversed/aborted pulls, input priority, native
+completion, timer initialization and preserving Lara's pose. The installed
+assets pass all 204 ordinary lever pose paths. Binary checks verify the hook
+entries, activation calls, animation tables and ordinary lever object slots
+across supported builds. In-headset reach and hand alignment still need testing.
+
+Pressing B still starts Lara's native roll. During the roll states, her body,
+separate HD face/sunglasses geometry and braid are temporarily suppressed. Her
+saved mesh mask is restored as soon as the roll finishes, including if the view
+was switched during the animation. Roll suppression is armed only after the
+first-person gameplay gate succeeds. It is forcibly cleared before title,
+inventory, cutscene and third-person draws so Lara's retained animation state
+cannot alter those visual passes.
+
+Ordinary ground movement uses the stabilized standing eye. B rolls follow the
+animated head drop, limited by clearance above the local floor; the native
+180-degree turn still rotates the viewpoint and forward direction.
+Other animations, such as swan dives and grabs, retain their animated head anchor.
+
+#### The scene camera hook
+
+The stereo layer already computes `finalView = eyeView * gameView`, so it never
+needs to know where the game camera is. Move the game's camera and everything
+downstream follows: the stereo view, head-frustum culling, item visibility and
+both renderers. `Hooks.cpp` checks whether first person is active to decide
+whether the stereo layer should include tracked head translation.
+
+So the camera portion of `src\FirstPerson.cpp` hooks exactly one function,
+`phd_GenerateW2V`, which turns a camera pose into `w2v_matrix`, and rewrites the
+pose it is handed. The engine's own chase camera still runs and still decides
+which room the camera is in. The separate locomotion portion deliberately writes
+Lara's facing during safe ground states and transforms XInput movement; those
+gameplay changes are documented under "Roomscale and rotation in first person".
+
+**Only the scene call.** `phd_GenerateW2V` has seven callers -- the inventory,
+the pickup spin, shadows, photo mode, the muzzle flash -- and every one of them
+must keep its own camera. The scene call is the one inside
+`S_InitialisePolyList`, and the hook recognises it by the exact address it
+returns to (`w2vSceneReturn` in the table). That is why a new column exists for
+what is not a symbol at all: `verify_addresses.py` checks that the five bytes
+before it really are an `E8 rel32` to `phd_GenerateW2V`, in all three DLLs and
+both builds, which is the same property the runtime gate depends on. A wrong
+value there means first person never engages -- the safe direction.
+
+Fixed and cinematic cameras (`camera.type` 1 and 4+) are left alone, because
+those framings are placed deliberately by the level.
+
+#### The anchor, and why it is not GetJointAbsPosition
+
+The engine has `GetJointAbsPosition(ITEM_INFO*, PHD_VECTOR*, int32)`, which is
+exactly "where is joint N in the world". The first version called it. It was
+wrong twice over: it walks the engine's matrix stack, which is not something to
+be doing from inside the camera hook, and it answers for the CURRENT simulation
+tick -- while frames are drawn *between* ticks. The camera stepped at tick rate
+while the world moved smoothly, which reads as the camera lurching every time
+Lara moves.
+
+Reading that function's disassembly gave the better answer. It takes the joint
+straight out of `ITEM_INFO`: one 3x4 `int32` matrix per joint, 48 bytes apart,
+rotation in 1/16384 fixed point, in TWO copies -- `+0x1F0` for the previous tick
+and `+0x820` for the current one. The mod interpolates between them with the
+engine's own `frame_frac` (0..256), which is the same value `DrawLara` uses to
+draw the body, and adds Lara's world position interpolated from `pos_prev` to
+`pos`. The result is smooth by construction and touches no engine state at all.
+
+The offset `(0, -32, 144)` places the viewpoint forward of the head joint so
+Lara's visible torso sits underneath the player instead of floating ahead.
+`FirstPersonAnchorZ` is also the body-depth adjustment: increasing it moves the
+viewpoint forward and brings Lara's visible torso back underneath the player.
+At the default 423 units/metre, 128 units are about 0.30 m. The current Steam
+test installation uses `FirstPersonAnchorZ=144` (the normal 16 plus that 128-unit
+correction) after headset testing found the body about one foot too far forward.
+This avatar-fit adjustment changes the camera position only; it does not move
+Lara or change her native collision.
+
+A sanity check rejects an anchor further than four sectors from Lara: a wrong
+joint index then falls back to the game camera and says so in the log, rather
+than putting the player inside the world.
+
+#### Wall clearance during movement and interactions
+
+Lara's collision body can stop at a wall while her animated head and the
+forward avatar-fit offset put the first-person eye inside it. During ground
+movement the mod traces from Lara's interpolated body position toward the final
+head position, including horizontal headset translation. It queries the game's
+room collision in steps of at most 16 units with 64 units of clearance for the
+two eyes and near plane. At a wall it keeps the last clear position and shifts
+the camera anchor to hold the rendered viewpoint there. Lara's body collision
+and movement are unchanged.
+
+The same horizontal check covers jump preparation, forward and vertical jumps,
+side/back jumps, falls and the wall-impact animation. Both grounded and airborne
+views test floor/ceiling obstruction at the rendered eye height, including
+tracked vertical movement. Empty space beyond a ledge is not a camera obstacle;
+looking over a deep drop no longer pulls the view back toward Lara's root.
+Walls, ceilings, static obstacles and invalid room samples still block the eye.
+The grounded HD body fit runs after this check so it follows the final camera.
+
+Hanging, ledge pull-up and ladder climbing use
+`FirstPersonInteractionAnchorZ=16`. This retracts the usual 144-unit forward
+offset while Lara is held against geometry; normal/vault and gymnast pull-ups
+(states 19/54) are included. The 2026-10-03 mount-body fix ports the TR4/5 handling:
+keep the torso hidden during those mounts, then compensate for the remaining
+climbing skeleton when the game has already returned to a grounded state.
+The correction affects rendered HD body translation, preserving the saved
+standing eye and configured `FirstPersonAnchorZ`. Once the head reaches standing
+height, it releases over 120 ms. It clears on camera suspension, body/level
+changes, relocation, view toggles or unrelated non-ground animations. Body
+correction uses `FirstPersonMovementStabilization`; mount visibility applies
+independently. Native collision, tracked hands and ordinary running keep their
+existing paths. This replaces the unsuccessful anchor-only change, which the
+user reported made no visible difference.
+Hanging keeps its existing camera behavior. These camera corrections run only
+when the first-person gameplay view is active. Switching to third person clears
+that state immediately and leaves the native chase camera alone.
+
+Push/pull and ready-to-push states (36/37/38) use a dedicated camera after the
+initial head anchor. A read-only `MovableBlockCollision` observer identifies the
+block accepted by the native interaction. The camera interpolates its item
+position plus root-joint translation, since the block moves through its skeleton
+before its item origin advances one tile. Eye clearance tests its near face
+explicitly: moving blocks temporarily remove their native floor collision.
+The room sweep starts from the moving interaction stance instead of Lara's
+not-yet-advanced item origin. Both include the final tracked eye position.
+
+For height, the camera fits its vertical separation from Lara's native torso
+joint (7) once on entry, then follows that joint's interpolated translation.
+This retains kneeling and recovery while excluding independent head bob and
+rotation. The native joint matrices are read before rendering deformation;
+neither the skeleton nor jiggle-physics inputs are written. Entry and release
+blend over 150 ms, and a completed push/pull's tile-sized root advance is
+accounted for before returning to ordinary standing-eye stabilization.
+
+Fixed-camera and scripted-camera handoffs retain the calibrated standing eye
+offset. On return it is rebased to the new tracking neutral and any scripted
+body turn, so a temporary sideways head animation cannot become a permanent
+mesh offset. A different Lara or level starts a new calibration. Camera
+suspension/resumption and the retained offset are recorded in the mod log.
+
+Death also suspends first person: a head anchor following the death animation
+can rotate into the floor, so health at or below zero selects the native camera
+and restores normal body visibility. First person resumes on a live Lara without
+requiring a view toggle.
+
+#### What headset testing changed
+
+The first implementation exposed three independent problems. The anchor needed
+simulation interpolation; tracked position needed a captured neutral rather than
+the runtime's floor/seated origin; and using Lara's body yaw directly made the
+right stick appear dead under modern controls. Those fixes made the basic
+first-person camera and positional tracking work in the headset.
+
+The later locomotion tests found a fourth problem: adding the engine camera yaw
+to tracking-space HMD yaw forms a feedback loop. Lara turns, the chase camera
+follows, the changed camera yaw moves Lara's target again, and forward movement
+curves into a circle. The final implementation no longer uses the chase camera
+as a heading source. A stable tracking-to-world heading now drives rendering,
+body following and movement conversion together; its full design is below.
+
+Head rotation is always tracked. Head translation is on by default in first
+person and measured from the captured neutral. Lara's animated head pitch and
+roll are discarded because an animation must not tilt the player's horizon.
+`PortalCull.cpp` uses the same final head transform, so culling agrees with both
+eyes.
+
+#### Hiding the head, three different ways
+
+With the camera inside her skull, what saves the view is only the near clip
+plane: her head is still drawn, and pieces of it cross the view as she moves.
+Hiding it turned out to need three separate mechanisms, because the engine draws
+the head in three different ways. This was worked out by decompiling `DrawLara`,
+`DrawLaraHD` and `DrawCreatureHD` -- 2771 bytes of the middle one, which is where
+Ghidra earned its place over reading assembly.
+
+**The head mesh: the engine's own switch.** Every one of Lara's 15 meshes has a
+bit in `ITEM_INFO::mesh_bits`. The classic renderer's draw loop in `DrawLara`
+tests that bit per mesh and skips it; the HD renderer reaches the same result one
+step further in, with `DrawCreatureHD` zeroing the joint matrix of any mesh whose
+bit is clear so its triangles collapse to a point. `DrawLaraHD` uses this itself
+-- `0x600` to draw only the right hand, `0x3000` for the left. So hiding the head
+is clearing bit 14, and one mechanism covers both renderers.
+
+The only catch is that `DrawCreatureHD` honours `mesh_bits` only when its second
+argument is non-zero, and the body draw passes zero. The hook passes one and
+sets a draw-local mask: the native body pass starts with all joints, then first
+person removes the head or keeps just both complete arms while hanging or mounting.
+Native masked hand/weapon passes retain their own bits. The item mask is restored after
+each draw. This matches the TR4/5 HD path and keeps native hand positions even
+when the saved item mask is empty or stale.
+
+Zeroing HD bones can deform vertices weighted to both visible and hidden body
+parts, especially around the shoulders during ledge transitions. The current
+path therefore snapshots the full native palette in `GetJoints`, before masking,
+and uploads it for that first-person body draw. The skin shader discards
+fragments with less than 50 percent weight on visible bones. Outfit bone-to-mesh
+mapping determines visibility; bone positions and normals keep their native
+transforms. The override is limited to the draw and clears before later hands,
+NPCs or third-person draws. It works with motion guns and chest physics disabled;
+unsupported shaders retain the native masking fallback.
+
+**The face and the sunglasses: skip the draw.** Neither is part of the body mesh,
+so no `mesh_bits` bit reaches them. `DrawLaraHD` copies a separate `GEOM_INFO`
+into `objects[Lara].geom` immediately before each call -- `gLaraHead[0]` for the
+animated face, `gLaraHead[1]` for the sunglasses, `gActorHead` for the cutscene
+head. The hook compares that mesh pointer against those arrays and drops the
+draw. Comparing the geometry rather than counting calls means it does not depend
+on the order of the draws, or on which of them a given outfit produces.
+
+**The braid: its own hook.** Drawn outside the skeleton entirely by `DrawHair`,
+so neither of the above can see it -- and from inside her head it sweeps through
+the view. It gets a third hook, which does nothing but decline to draw.
+
+Her body stays drawn during ordinary first-person movement: look down and she is
+there. A B-button roll temporarily applies a second visibility override that
+clears the whole body mask and skips the separate HD face, sunglasses and braid
+draws. The saved mask returns when the roll state ends. First-person head hiding
+also ends immediately for death, a cutscene, inventory, the third-person toggle or an
+unhook. The unhook line counts what was dropped:
+
+```
+firstperson: unhooking tomb1.dll (anchored 41233 frames, stood down 120,
+             41233 mesh_bits draws, 82466 face/glasses skipped, 41233 braid skipped)
+```
+
+**Equipped arms and guns.** TR1-3's native `AimWeapon` lowers the arms toward
+their unarmed direction when there is no target. In first person with no
+selected target, the `CalculateLaraMatrices` hook temporarily poses both gun
+arms toward the headset before the normal or interpolated joint matrices are
+built, then restores the native arm state. This keeps the ready pose visible
+and lets it tilt up and down without firing. When an auto-target is selected,
+native arm aiming builds the visible pose. The earlier simulation-time
+`AimWeapon` override forced `arm.lock` every tick, which changed native
+target tracking; it has been removed. Native weapon mesh-mask
+changes remain visible while Lara's head is hidden. Third person retains the
+game's original aiming and mesh visibility. `FirstPersonHeadAim=0` disables
+the no-target visual pose.
+
+#### A hook window that is not position independent
+
+`DrawHair` is the first hook in this mod whose stolen bytes cannot simply be
+copied:
+
+```
+48 83 EC 28              sub rsp, 0x28
+48 8B 05 <disp32>        mov rax, [rip + disp32]     <- RIP-relative
+```
+
+Eleven bytes, because five would end inside that second instruction, and the
+displacement means the copy in the trampoline would resolve to the wrong address.
+`InlineHook` already supports displacement fixups, so the source declares the
+disp32 at offset 7 and it is rewritten when the window is copied. Only the first
+seven bytes are compared, because the displacement itself differs per DLL.
+
+`verify_addresses.py` was extended to match: a RIP-relative operand inside a hook
+window is no longer simply forbidden, it is allowed exactly where the source
+declares a fixup for it, and the declared offsets are checked against the real
+instruction encoding. Planting a wrong offset fails all three DLLs, which is the
+test that says the check is real.
+
+Hooking `DrawLara` itself was considered and rejected: its prologue differs in
+every one of the three DLLs, where `DrawCreatureHD`'s and `DrawHair`'s are
+identical across all of them. Going through `mesh_bits` avoids needing it.
+
+#### Settings
+
+| key | default | what it is for |
+|---|---|---|
+| `FirstPerson` | `0` | legacy setting; startup is always third person and Y+LT toggles the full mode |
+| `FirstPersonJoint` | `14` | Lara's head joint, the same in all three games |
+| `FirstPersonAnchorX/Y/Z` | `0,-32,144` | avatar fit; -Y is up and +Z moves the viewpoint forward, bringing the visible body back |
+| `FirstPersonInteractionAnchorZ` | `16` | retracts the initial head anchor during interactions; push/pull then uses its dedicated block-clearance and torso-height camera |
+| `FirstPersonYawFromLara` | `0` | obsolete; stable VR heading now owns first-person yaw |
+| `FirstPersonHeadTranslation` | `1` | lets your own leaning move the viewpoint relative to neutral |
+| `FirstPersonHideHead` | `1` | hide the head mesh, the face, the sunglasses and the braid |
+| `FirstPersonHeadAim` | `1` | pose equipped gun arms toward the headset in first person when no auto-target is selected |
+
+#### Optional controller-driven hands and guns
+
+The HD `GetJoints` pass moves each equipped hand mesh and gun to its tracked
+controller. The forearm/body meshes are hidden for those passes. `FireWeapon`
+repositions hitscan shots and LOS checks at the tracked muzzle; the TR2/3
+projectile paths reposition newly spawned missiles while preserving native
+ammo, effects and simulation. If a required controller pose or per-weapon hook
+is unavailable, that weapon uses its native pose. Enable with
+`FirstPersonMotionGuns=1`; grip and angle calibration are in the INI. Each
+weapon still needs an in-headset gameplay and appearance check.
+Hitscan shots select living targets independently per barrel, preferring direct
+sphere hits and otherwise assisting toward a visible enemy within
+`FirstPersonAutoAimDegrees` (default 45 degrees). Lara need not have a native
+target lock. Projectile assistance still uses the native selected living enemy.
+Set the assist angle to 0 for unassisted shots, or up to 60 for stronger
+assistance. The first 100 tracked hitscan shots log their selected target and
+health before/after native damage.
+`DrawGunFlash` uses the same tracked wrist correction as the HD gun mesh,
+with world axes so scene rotation is applied only once. Shot origins use each
+weapon's native HD muzzle offset. Outside first-person tracked-gun mode, the
+native flash render path is unchanged.
+
+Shotgun sparks and smoke take a separate path through `FireShotgun`. Its four
+`GetJointAbsPosition` calls now transform the emission origins and direction
+points through the tracked right-hand frame. This corrects particles remaining
+at Lara's animated wrist after physical roomscale turns. The hook matches only
+those four verified callers, Lara, weapon 4 and wrist 10; other joint queries
+retain their native behavior. HD particle offsets, spread, lifetime and firing
+cadence remain native. Regression tests cover a full physical turn, stick turns,
+combined turns, calibrated pitch/roll and rejection of unrelated callers.
+
+For dual guns, LT/RT fire left/right on press and either trigger can be held
+for continuous fire. Y holsters; LT never does. Held triggers resume after a
+temporary tracking interruption. `AnimatePistols` temporarily clears the native
+target only while advancing a requested controller shot, then restores it. This
+avoids the selected-target/no-arm-lock stall seen during bat attacks while
+preserving native cadence, ammunition and effects.
+
+The tracked wrist uses rigid skinning at a 50-percent hand-weight seam. Opaque black,
+two-sided caps seal native open wrist boundaries, including fully hand-weighted
+edges and texture seams across material ranges. See the feature overview above
+for the cap extraction details and current validation limits.
+When tracked guns are ready, Ctrl+F1–F6 adjust their live grip position by
+quarter-inch steps; Ctrl+Shift+F1–F6 adjust yaw, pitch and roll by one degree.
+Ctrl+F7 saves the fit to the INI after making a backup, and Ctrl+Shift+F7
+restores the last loaded or saved fit. These keys are captured only in the
+focused gameplay window while tracked guns are ready.
+`FirstPersonMotionGunRaiseMetres` adjusts hand height; 0.25 inches is 0.00635 m.
+The default is `-0.06985`, matching the requested hand-height tuning in the
+Steam `TombRaiderVR.ini.good` profile. The template, embedded first-run INI and
+code fallback agree. Restart after editing the INI manually; the calibration keys
+apply changes live and Ctrl+F7 persists them.
+The runtime log reports why tracked hands are unavailable while first person
+is active, including classic graphics, missing controller poses and gun state.
+
+#### Prior art
+
+The head-anchored camera, the `(0,-32,16)` offset and joint 14 all come from an
+independent TR1-3 Remastered attempt (`tomb123-vr-dev-source`), which got there
+without symbols by matching instruction streams. The arm IK design that stage 3
+would follow is BeefRaiderXR's, which can do it the easy way: it is built on
+OpenLara, an open-source re-implementation, so it edits the skeleton in its own
+source rather than someone else's binary. OpenLara is BSD-2-licensed.
+
+### Roomscale and rotation in first person
+
+First person puts the camera in Lara's animated head. Roomscale gives the
+player's real movement a gameplay meaning: lean and duck move the viewpoint,
+turning physically turns the world and Lara, the right stick turns the same
+world heading, and physical steps directly drag Lara through native collision
+queries. Physical displacement never generates analog-stick input or walking
+animations. Manual stick movement remains a separate path.
+
+#### Positional tracking and its neutral
+
+An OpenVR position is absolute within the tracking universe. In a standing
+universe its origin is normally on the floor, so applying it directly on top of
+Lara's already-correct head position lifts the camera by the player's entire
+height -- roughly 700 Tomb Raider units at the default scale.
+
+`VRSystem` therefore captures the current HMD position as a neutral and applies
+only displacement from it. The capture happens when first person becomes live,
+after a valid pose and Lara head anchor both exist. Leaning, ducking and stepping
+then move the viewpoint, while simply being 1.7 metres tall does not. Pressing
+END (`FirstPersonRecenterKey`) captures a new positional neutral without changing
+the world heading.
+
+The horizontal locomotion offset stays in tracking space as `(x, -z)`: positive
+X is right and OpenVR negative Z is forward. Height is excluded. The old version
+rotated this displacement into the head's current frame, which meant the same
+physical position changed meaning when the player looked around.
+
+#### One stable heading for the view, body and controls
+
+The final design has one persistent `trackingToWorldYaw`. On entry it is aligned
+without moving the view:
+
+```text
+trackingToWorldYaw = LaraYaw - HmdTrackingYaw
+HmdWorldYaw        = trackingToWorldYaw + HmdTrackingYaw
+```
+
+Physical turning changes `HmdTrackingYaw`. Right-stick turning changes
+`trackingToWorldYaw`. The scene camera receives `trackingToWorldYaw`, and the
+stereo layer composes the tracked HMD rotation on top exactly once. Movement and
+body following read the same `HmdWorldYaw`.
+
+The chase camera is deliberately absent from these equations. The failed design
+used `cameraYaw + HmdTrackingYaw`; Lara turned, the chase camera followed her,
+the changed camera yaw moved her target again, and forward movement curved into
+a circle. Keeping the tracking-to-world transform as independent state removes
+that feedback loop.
+
+HMD yaw is extracted from row 2 of the inverse OpenVR pose: that row is the
+headset's back axis in tracking space. Projecting it onto the floor gives yaw
+without letting pitch or roll steer Lara. This also avoids the pose-versus-view
+matrix sign errors encountered by earlier controller-yaw experiments.
+
+Right-stick turning is smooth by default, uses elapsed time rather than frames,
+has its own dead zone, and clamps a long pause to 50 ms of catch-up. A stick turn
+rotates the tracked view displacement around the current HMD position. Neck-arc
+compensation remains in the body movement request, not the stabilized eye;
+translation is refreshed immediately so culling and both eyes use the same
+origin in that frame.
+
+When death, inventory, a fixed camera, a cinematic camera or a cutscene takes control,
+first person and locomotion stand down. Returning with the same Lara preserves
+the last world heading and captures a fresh positional neutral. A changed item
+or a relocation of more than two metres/1024 units realigns from Lara instead
+of trying to catch up stale state.
+
+#### Body facing and jumps
+
+The B-button ground roll transfers the engine's native 180-degree body turn to
+the separate VR heading. `AnimateLara` is observed before/after its native tick
+for the ground-roll states (45/23); the view turns only when the engine actually
+reverses Lara's yaw. Forward input, including a held stick, follows that new
+heading. The same tracking pivot as a right-stick turn preserves roomscale lean,
+and the standing eye anchor rotates to Lara's new facing direction. No second
+body turn is injected. Third person and water/air roll states keep their native
+behavior. Headset confirmation is still needed for the new first-person turn.
+
+During ground-roll states the camera follows its interpolated animated head
+anchor and retains the drop toward the ground. After horizontal wall clearance,
+a native collision query samples the floor beneath the resolved eye, including
+physical leaning. The final eye is limited to 64 game units above that floor;
+tracked head rise/ducking is included before the limit is applied. The query
+uses Lara's root height so a below-floor skull cannot select a lower stacked
+room. A missing floor sample uses Lara's root plane as a fallback. Roll frames
+do not recalibrate the standing eye.
+
+Idle ground states and manual first-person movement follow the HMD heading.
+Manual forward input selects Lara's native forward walk/run, backward selects
+her backpedal, and horizontal input selects her dedicated left/right sidestep
+states. Lara no longer turns toward a lateral or backward input and reuses the
+forward-run animation. Direct roomscale dragging remains separate, so a
+physical sideways step moves Lara sideways without starting any gait animation.
+
+The previous jump-button yaw snap was incomplete. `lara_as_compress` (state 15)
+and `lara_as_forwardjump` (state 3) both recompute direction from `analogInput`.
+The old input transform stopped in those states, allowing the chase-camera
+heading to take over after physical rotation.
+
+The new `LaraAboveWater` hook runs at the simulation boundary, after
+`LaraControl` has decoded Modern controls. It publishes HMD-world yaw as
+`camTurn`/`oldCamTurn` and corrects the signed analog vector after the game's
+per-axis deadzones. This continues through compression and forward flight.
+A directional jump aligns body yaw and `lara.move_angle` and clears residual
+`lara.turn_rate` before launch. During compression, lateral stick directions
+use the engine's ordinary Left/Right actions so its native side-jump selection
+still works; forward continues to launch along HMD forward. Airborne steering
+remains an engine operation using that consistent input frame. Swimming,
+climbing, hanging and scripted interactions retain their native controls.
+
+#### Manual analog movement
+
+The merged Touch/Xbox movement axes supply manual intent. Forward means HMD
+forward, including after physical and right-stick turns. At the simulation
+boundary, the dominant stick axis selects one native action: forward, backpedal,
+sidestep-left or sidestep-right. A forward-dominant diagonal remains forward;
+a lateral-dominant diagonal remains a sidestep. This prevents Modern controls
+from rotating Lara toward every movement vector and showing a forward run while
+travelling sideways or backward.
+
+The gamepad pass converts the vector to the current engine input frame; the
+simulation pass corrects it after per-axis deadzones, restores HMD-facing body
+yaw, clears residual turn rate, publishes the selected world direction through
+`lara.move_angle` before root motion, and replaces only the direction action bits.
+Jump and other buttons remain intact; backward also adds the native Walk
+modifier because `Back` alone selects the classic fast-back hop rather than a
+continuous backpedal. This direction routing applies to
+both control schemes while first person is active. Roomscale displacement is
+never added to the stick. Right-stick yaw continues to update the persistent VR
+heading. Physical body dragging works in both schemes, including diagonal
+movement and concurrent stick use.
+
+The classic sidestep and backward-walk states normally advance at walking pace.
+While one of these first-person directions is held on the ground, the
+`AnimateLara` hook advances exactly one animation frame and scales only that
+frame's horizontal root displacement by three before collision. This yields
+roughly forward-running travel speed without skipping skeletal/head frames;
+the earlier three-animation-ticks approach caused severe first-person stutter.
+Forward movement and all jump states retain the engine's normal root motion.
+The normal Lara collision routine still handles the resulting movement every
+simulation tick.
+
+#### Direct roomscale body dragging
+
+`VRSystem::HeadFloorOffset` estimates floor translation of the neck pivot by
+subtracting the change in a horizontal neck-to-HMD offset from tracked head
+translation. `FirstPersonRoomscaleNeckMetres` defaults to 0.15 m. Thus turning
+about that pivot does not request a body step. With movement stabilization on,
+the rendered eye, tracked hands and wall-clearance check use raw headset
+displacement from the captured neutral. The grounded scene anchor is already
+stable, so subtracting the estimated neck arc from the rendered eye would move
+the world subtly as the head turns. The legacy rendered-eye correction is kept
+when movement stabilization is off. Vertical ducking remains raw in both modes.
+
+The grounded HD body is fitted beneath that stable eye as Lara physically
+turns. Its render palette compensates for the difference between the final
+collision-resolved eye anchor and the rotating body, including the neck arc already present in
+tracking. This prevents an offset that disappears only after a full revolution.
+It does not move the camera or collision root, cancel real leaning, or shift
+the independently tracked gun hands. The correction stops outside grounded
+first-person body rendering.
+
+Physical displacement beyond the 2 cm default lean allowance becomes a distance
+in game units. Before the normal above-water simulation, `DragBody` sweeps that
+distance in steps of at most 32 game units through `GetCollisionInfo`, using
+Lara's standing height (762) and radius (100). It applies accepted horizontal
+position and collision slide, updates room membership with `UpdateLaraRoom`,
+and lets the normal simulation handle floor settling, enemies and triggers.
+Large drops, excessive floor rises and inadequate headroom block the drag.
+The movement has no walk/run/sidestep input, speed ramp or gait dependency.
+
+Only a shortened or sliding projection of the requested step consumes the
+tracked neutral. A collision correction backward, sideways away from the
+request, or beyond the requested travel is rejected. Previously, ledge pushback
+could increase the pending tracking offset every tick until it exceeded the
+two-metre guard; it then persisted through jumps until recentering or toggling
+views. Native collision settling remains the game's responsibility.
+Separate cumulative roomscale counters are interpolated with the same
+`frame_frac` as Lara's body, keeping camera displacement and body rendering in
+step. Manual travel cannot consume physical displacement. Motion already
+simulated but not yet rendered is excluded from the next drag request so it
+cannot be applied twice.
+
+Dragging is restricted to ordinary ground states. Jumping, swimming, climbing
+and interactions do not receive physical displacement. With movement
+stabilization off, pending horizontal motion is cleared there to avoid movement
+on returning to ground; the stabilized view preserves real headset displacement.
+R3 D-pad
+shift suppresses drag; L3+R3 takes priority for Photo Mode. END captures a fresh neutral and clears interpolation
+history. The first-person camera check separately constrains the rendered eye
+near walls, including the remaining horizontal tracked movement.
+
+#### Why earlier revisions failed
+
+| symptom | cause | current handling |
+|---|---|---|
+| movement curves after turning | chase-camera yaw fed back into VR heading | persistent tracking-to-world heading |
+| physical sidesteps become forward walking | Modern controls convert analog direction into forward-run plus body rotation | direct collision-tested body displacement, no synthesized stick |
+| jump works initially but angles after physical rotation | compression and flight lost the input transform and used the old camera frame | correct decoded input at the simulation boundary throughout both states |
+| turning in place produces movement | headset traces an arc around the neck and exceeds the translation deadzone | subtract the estimated rotational arc from the body request |
+| stationary physical turn subtly moves the world | estimated neck arc was subtracted from the stabilized rendered eye | use raw relative HMD translation for the eye; keep neck compensation for body drag |
+| combined physical/right-stick turn moves the player off-centre | artificial pivot rotated an estimated neck-to-eye arc with room translation | rotate the raw tracked view displacement for stabilized artificial turns |
+| manual left/right/back movement shows a twisted forward run | Modern controls rotate Lara into the travel vector and use forward locomotion for every direction | hold body yaw to the HMD and select native sidestep/backpedal action bits |
+| sidestep/backpedal creeps forward slowly | the hook reset `lara.move_angle` to body-forward before root motion, and the native gaits use walking speed | publish the selected side/back world angle and scale one frame's horizontal root displacement |
+| side/back movement stutters while forward is smooth | accelerating the gait by processing three complete animation frames per simulation tick made the body/head skip frames | process one animation frame and scale only its collision-tested root displacement |
+| physical steps drift or depend on frame rate | fixed neutral consumption or attribution from manual movement | consume only accepted drag, using body interpolation |
+| body goes off-center at a crate edge | camera applied walking-floor restrictions and retracted after body fitting | eye-height clearance allows open drops; fit the body after camera collision |
+| offset persists after leaving a ledge | native collision pushback was counted as physical travel and grew the pending offset | consume only shortened/sliding travel in the requested direction |
+
+#### Implementation and address verification
+
+The feature is deliberately split by ownership:
+
+| file | responsibility |
+|---|---|
+| `src/VRSystem.cpp` | raw tracked position, neutral, HMD yaw, step consumption and turn pivot |
+| `src/FirstPerson.cpp` | stable heading, simulation steering, collision body drag, rendered-eye wall clearance, interpolation and diagnostics |
+| `src/Gamepad.cpp` | merge Touch/physical pads, handle L3+R3 Photo, Y+RT graphics, Y+LT view and dual-grip Action, then apply the active view's input path |
+| `src/LocomotionMath.h` | tested frame-independent vector, angle, step and heading maths |
+| `src/StereoMath.h` | floor-projected yaw extraction from the inverse HMD pose |
+
+Locomotion adds `analogInput` to every `GameDllLayout` row. The checked RVAs are:
+
+| DLL | PDB build | Aspyr retail / Gold |
+|---|---:|---:|
+| `tomb1.dll` | `0x0041DFE0` | `0x0041EF20` |
+| `tomb2.dll` | `0x004330A0` | `0x00432FE0` |
+| `tomb3.dll` | `0x00491F40` | `0x00494E80` |
+
+`tools/verify_addresses.py` checks the PDB symbol, the 52-byte
+`ANALOG_INPUT_INFO` layout and `camTurn` offset. `tools/verify_locomotion.py`
+independently locates the unique `S_UpdateInput` instruction sequence that
+passes `&analogInput` to the application's input function, and verifies all six
+table values against the actual DLLs.
+
+The address table also carries `input`, `LaraAboveWater`, `GetCollisionInfo`
+and `UpdateLaraRoom`. Their PDB symbols and shared `coll_info`/`lara_info`
+layouts are verified. The retail collision and room functions were matched
+against the symbol-bearing build and checked through native callers. The
+simulation hook validates each game's five-byte prologue before installation.
+
+Directional gait speed adds the `AnimateLara` hook. Its checked RVAs are:
+
+| DLL | PDB build | Aspyr retail / Gold |
+|---|---:|---:|
+| `tomb1.dll` | `0x00029E70` | `0x0002A010` |
+| `tomb2.dll` | `0x00054290` | `0x00054300` |
+| `tomb3.dll` | `0x00076F90` | `0x00076F50` |
+
+The hook validates the different TR1/TR2/TR3 and stock/retail instruction
+windows before patching. `tools/verify_locomotion.py` independently checks each
+address and prologue in all six binaries.
+
+With `FirstPersonDriftLog=1`, simulation diagnostics report `state`, `head`,
+`body`, `cam`, the manual world vector, pending physical displacement, accepted
+`drag` in metres and decoded action bits. Lines are emitted twice a second and
+on entry to compression/forward-jump. During a pure physical step, `manual`
+should remain zero and `drag` should follow the physical direction. During a
+forward jump, `head` and `cam` should agree even after turning.
+
+#### Settings
+
+| key | default | purpose |
+|---|---|---|
+| `FirstPerson` | `0` | legacy setting; every launch starts in third person and Y+LT toggles the full mode |
+| `PositionalTracking` | `1` | required for leaning and physical-step movement |
+| `FirstPersonHeadTranslation` | `1` | track displacement from the captured neutral |
+| `FirstPersonHeadAim` | `1` | pose equipped gun arms toward the headset in first person when no auto-target is selected |
+| `FirstPersonMovementStabilization` | `1` | smooth ground gait and use raw head displacement for a world-stable rendered eye; the stick-release stop also works when this is off |
+| `FirstPersonMotionGuns` | `1` | tracked HD hands and controller-directed shots |
+| `FirstPersonAutoAimDegrees` | `45` | controller-shot assist toward the game's selected enemy; 0 disables it, maximum 60 |
+| `FirstPersonMotionGunHotkeys` | `1` | live Ctrl+function-key gun fit while tracked guns are ready |
+| `FirstPersonRecenterKey` | `0x23` | END resets position without changing world heading |
+| `FirstPersonBodyFollowsHead` | `1` | follow HMD heading while idle or physically dragging on the ground |
+| `FirstPersonBodyDeadzoneDegrees` | `0` | permitted body/head yaw difference |
+| `FirstPersonBodyTurnDegreesPerFrame` | `4` | 60 Hz legacy rate, scaled by elapsed time |
+| `FirstPersonTurnDegreesPerSecond` | `120` | smooth right-stick turning speed |
+| `FirstPersonTurnDeadzone` | `0.25` | right-stick turn dead zone |
+| `FirstPersonMoveWithHead` | `1` | manual direction follows HMD heading; ground lateral/back input uses native sidestep/backpedal |
+| `FirstPersonRoomscaleMove` | `1` | physical floor displacement directly drags the body |
+| `FirstPersonRoomscaleDeadzoneMetres` | `0.02` | small lean allowance before body dragging |
+| `FirstPersonRoomscaleNeckMetres` | `0.15` | estimated horizontal neck-to-HMD distance |
+| `FirstPersonRoomscaleFullMetres` | `0.45` | legacy stick-ramp setting; ignored |
+| `FirstPersonDriftLog` | `1` | simulation state, heading, manual input and body-drag diagnostics |
+
+`FirstPersonYawFromLara` and `FirstPersonRoomscaleDriftMetres` remain readable for
+old INI files but are ignored by the new path. Old experimental moving-dead-zone,
+head-smoothing, controller-steering and fixed stick-drift settings are also
+ignored.
+
+#### Validation and current limits
+
+`tests/build_selftest.cmd` checks independent physical/stick turns, render and
+movement heading agreement, pitch/roll isolation, neck-pivot rotation, lateral
+drag at arbitrary physical/artificial headings, native forward/backpedal/
+sidestep selection, jump-direction selection, and consistent steering in
+compression and forward flight. These checks validate math and state selection;
+they do not run the game engine or a headset.
+
+The current regressions also cover physical turns at five-degree intervals,
+camera handoff calibration, repeated ledge pushback at multiple headings,
+jump/landing recovery and body fitting against the final collision-resolved eye.
+Ground-roll tests cover a single native 180-degree turn, held-forward movement,
+roomscale pivot preservation, the new forward eye position, yaw wrap, repeated
+rolls and cancellation without a native turn.
+`tests/build_physics_selftest.cmd` exercises the actual skin shaders on a hidden
+OpenGL context, including wrist caps, body visibility, repeated ledge/NPC draw
+transitions and clearing a prior body-fit offset. The ledge-centering run passed all
+1,263 checks using both the PDB-build and installed retail executable's shaders;
+each supplied image compiled 288 native skin shader pairs.
+
+The wall camera sweep calls the game engine's `GetCollisionInfo`, so it also
+needs in-headset verification. Walking into a wall has been confirmed without
+clipping; the latest jump, wall-climb and pull-up changes have not yet been
+confirmed there.
+
+The latest `tools/verify_addresses.py` run passed all **3,602** PDB, earlier retail,
+Gold, October retail and EGS address, layout and hook-window checks, including the new
+`MovableBlockCollision` observer, native hand/shadow globals and `DrawToShadow`
+hook in all three games, native `GetHeight` for automatic jumps, plus TR3's outer
+`DrawLara` crouch visibility hook. Existing weapon, effect,
+shotgun joint-query and animation-table addresses remain covered.
+`tools/verify_locomotion.py` checks the PDB and retail input, simulation,
+animation, collision and room-update addresses and hook prologues.
+
+The current **2026-10-11 EGS executable compatibility** Release/x64 DLL is
+installed with verified SHA-256:
+`C4A9D8DD2B53E7E9D75B1D4B65D995706691E146B2EB94C3C193F2CDDC58C311`.
+The previous DLL, INI and log are backed up under
+`build/before-egs-support-20261011-041620/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`). The user's EGS executable and native game DLLs
+were not modified. [Deployment record](build/current-egs-verify/deployment.json).
+The Release/x64 build passed without warnings.
+[Live launch log](build/current-egs-verify/live-launch.log) confirms EGS build
+recognition, all six renderer hooks, OpenVR Scene initialization, headset pose
+acquisition and the first submitted stereo frame. The test game exited normally.
+
+The preceding **2026-10-10 TR3 first-person crouch/crawl parity** Release/x64
+DLL is installed with verified SHA-256:
+`8CAC52D5BAF04425D346C6C6628E9C347CD39DBC40863F73F9BA59E361B2C20D`.
+The previous DLL, INI and log are backed up under
+`build/before-crouch-parity-20261010-003308/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/crouch-parity/deployment.json).
+
+**750,544** production movement/control/camera/IK/shadow/gesture/haptic checks,
+**66,162** tracking/eye/projection checks, **3,522** physics/native shader checks
+and the general self-test pass. Crouch coverage includes all eight TR3 states,
+TR1/2 exclusions, backward stopping clips, native wall collision, equip/fire/
+holster, both floating hand passes, native shadow isolation, standing-eye
+preservation, stance blending and low-ceiling clearance with physical leaning.
+The new outer render hook is separate from the existing jiggle-physics
+`DrawLaraHD` hook; all four installed game-module hashes match the verified
+October fixtures. Release/x64 built without warnings. Headset confirmation
+remains pending.
+
+The preceding **2026-10-09 ledge catch impact rumble** Release/x64 DLL is
+installed with verified SHA-256:
+`C095E252403DBC0A3A3E4DC76969157099A4ED3016561B1F6C6E4EBA22E1548A`.
+The preceding DLL, INI and log are backed up under
+`build/before-ledge-catch-haptics-20261009-171146/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ledge-catch-haptics/deployment.json).
+
+**748,009** production movement/control/camera/IK/shadow/gesture/haptic checks
+and **66,162** tracking/eye/projection checks pass. Coverage includes successful
+large jump/fall catches, exclusions, both views, one burst per catch, maximum
+pulse duration, both hands and coexistence with gun rumble. Installed game
+hashes match the verified retail update; native addresses and hook windows are
+unchanged. Release/x64 built without warnings. Headset confirmation is pending.
+
+The preceding **2026-10-09 late-stop jump correction for both views** Release/x64
+DLL was installed with verified SHA-256:
+`B3DC1B95AB82BB4F5C71AF21DBE8C5A848773A45F79AD1D73DB3185A1986E5FF`.
+The preceding DLL, INI and log are backed up under
+`build/before-jump-stop-handoff-20261009-165111/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/jump-stop-handoff/deployment.json).
+
+**745,333** production movement/control/camera/IK/shadow/haptic/gesture checks
+and **66,162** tracking/eye/projection checks pass. The late-stop regression
+fails on the preceding implementation and passes with this correction in both
+views. All **140** installed gameplay animation banks pass the expanded jump
+verification. Installed game hashes match the verified retail update; no native
+addresses or hook windows changed. Release/x64 built without warnings.
+Headset confirmation remains pending.
+
+The preceding **2026-10-09 walking jump priority** Release/x64 DLL was
+installed with verified SHA-256:
+`C1254AC235440EC66D8EAE4C35E667CD50133DB2EDAB253267577A538FDA5636`.
+The preceding DLL, INI and log are backed up under
+`build/before-jump-priority-20261009-163831/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/jump-priority/deployment.json).
+
+**731,118** production movement/control/camera/IK/shadow/haptic/gesture checks
+and **66,162** tracking/eye/projection checks pass. All **140** installed gameplay
+animation banks pass `tools/verify_jump_priority.py` (TR1: 39, TR2: 47, TR3: 54).
+Installed game hashes still match the verified retail update; native addresses
+and hook windows are unchanged. Release/x64 built without warnings.
+Headset playtesting remains pending.
+
+The preceding **2026-10-09 IK hand pivot correction** Release/x64 DLL was
+installed with verified SHA-256:
+`3439B1CD6FF47584EDE8750CAA4051925748F51F8234CF6D0084A4BC76AEDC0D`.
+The preceding DLL, INI and log are backed up under
+`build/before-ik-hand-pivot-20261009-161014/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ik-hand-pivot/deployment.json).
+
+**718,613** production movement/control/camera/IK/shadow/haptic/gesture checks,
+**66,162** tracking/eye/projection checks and **3,522** physics checks pass.
+The new stationary-grip regression fails before the fix and passes afterward.
+The earlier wrist-recovery and ledge-gesture regressions remain covered.
+Installed game hashes still match the verified retail update, and no native
+addresses or hook windows changed. Release/x64 built without warnings.
+Headset confirmation remains pending.
+
+The preceding **2026-10-09 first-person ledge pull gesture** Release/x64 DLL was
+installed with verified SHA-256:
+`0B305D77BC53440C0FCEB6AEDDD74EC9735637D85B07518FF792E52FA97D59A2`.
+The preceding DLL, INI and log are backed up under
+`build/before-ledge-pull-gesture-20261009-155935/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ledge-pull-gesture/deployment.json).
+
+**530,693** production movement/control/camera/IK/shadow/haptic/gesture checks,
+**66,162** tracking/eye/projection checks, **3,522** physics checks across four
+supported executable builds, all general self-tests and **2,837** native
+address/layout/hook checks pass. Installed game hashes still match the verified
+retail update. Release/x64 built without warnings. The general test harness
+retains its two existing local-variable shadow warnings. Headset confirmation of
+the gesture remains pending.
+
+The preceding **2026-10-09 post-mount camera correction** Release/x64 DLL was
+installed with verified SHA-256:
+`1AA8A888D3A2604677A93446B586FBB45802EC78AAD81E9783004B79F7320409`.
+The preceding DLL, INI and log are backed up under
+`build/before-ledge-flicker-fix-20261009-152413/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/ledge-flicker-fix/deployment.json).
+
+The mount-height replay fails on the previous build and passes after the fix.
+**514,895** production movement/control/camera/IK/shadow/haptic checks,
+**66,150** tracking/eye/projection checks, all general self-tests and **2,837**
+address/layout/hook checks pass. Installed game hashes still match the verified
+retail update. Release/x64 built without warnings. Headset confirmation of the
+reported flicker remains pending.
+
+The preceding **2026-10-09 per-hand gun rumble** Release/x64 DLL was installed
+with verified SHA-256:
+`099C7CC6A492D93B3D652C39967F34838F104BBDAE7F03C2FFA4994A638744E5`.
+The preceding DLL, INI and log are backed up under
+`build/before-gun-haptics-20261009-040918/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/gun-haptics/deployment.json).
+
+This build passes **513,019** production movement/control/camera/IK/shadow and
+gun-haptic checks, **66,150** tracking/eye/projection checks and **2,837** native
+address/layout/hook checks. The installed executable and gameplay DLL hashes still
+match the verified retail update. Release/x64 built without warnings. The wrist
+fix remains included; haptic strength has not yet been checked in the headset.
+
+The preceding **2026-10-09 first-person wrist twist fix** Release/x64 DLL was
+installed with verified SHA-256:
+`325D64A27108E7A928138D0DE3EB40A034265D8BB50F9A87A3DFF1CB17C3CA82`.
+The previous DLL, INI and log are backed up under
+`build/before-wrist-twist-fix-20261009-012416/`.
+The installed INI remains unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/wrist-twist-fix/deployment.json).
+
+The stuck-wrist reproduction fails on the previous solver and passes with the
+fix. **512,730** production movement/control/camera/IK/shadow checks, **3,522**
+physics/shader checks across four executables and **2,837** address/layout/hook
+checks pass. Installed game hashes still match the verified retail update, so
+its launch support is retained. Release/x64 built without warnings. The new
+wrist behavior has not yet been confirmed in the headset.
+
+The preceding **2026-10-09 VR launch compatibility fix** Release/x64 DLL was
+installed with verified SHA-256:
+`329A218957B45B2A2FD8936986B7D8A88CD019BDD9AE9C266020BA15C0EEC785`.
+The preceding DLL, INI and log are backed up under
+`build/before-vr-launch-fix-20261009-004614/`.
+The installed INI remains byte-for-byte unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/vr-launch-fix/deployment.json).
+
+This build passed **2,837** address/layout/hook checks against the PDB, earlier
+retail, Gold and newly installed retail binaries; **263,187** production
+movement/control/camera/IK/shadow checks; **66,150** tracking/eye/projection
+checks; all general self-tests; and **3,522** physics/shader checks. All four
+executables compiled **288** native hand shader pairs each. Native hand,
+locomotion, monkey-bar and shadow audits also pass for the new build. The
+Release/x64 build produced no compiler warnings.
+
+A live Steam launch recognized `0x6AA156AA`, installed all renderer/effect hooks
+and started SteamVR. SteamVR confirmed `tomb123.exe` connected as a scene
+application, then returned `VRInitError_Init_HmdNotFound`: no headset was
+available during this test. Headset display and gameplay confirmation remain
+pending; the unsupported-build startup failure is resolved.
+
+The preceding **2026-10-09 monkey-bar and shadow-placement port** Release/x64 DLL
+was installed with verified SHA-256:
+`72D8D656A83CA828480BB4FD50D135D630F0FE06669332FA284B325A7ED02318`.
+The previous DLL, INI and log are backed up under
+`build/before-monkey-shadow-port-20261009-003606/`.
+The installed INI remains byte-for-byte unchanged (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/monkey-shadow-port/deployment.json).
+
+This build passed **263,187** production movement/control/camera/IK/shadow checks,
+**66,150** real tracking/eye/projection checks, the general self-tests, and
+**2,912** native physics/shader checks across PDB, retail and Gold executables.
+The GPU checks include clearing preceding arm/body masks during light-camera
+rendering; each executable compiled **288** native hand shader pairs. All
+**2,178** address/layout/hook checks pass. `verify_monkey_controls.py` verifies
+all seven native monkey states in each TR3 DLL, and `verify_shadow_placement.py`
+verifies the production hook bytes, light-pass flag, receiver upload and
+shadow-before-scene ordering across all nine game DLLs. Release/x64 built without
+compiler warnings. In-headset confirmation of traversal and shadow placement
+remains pending.
+
+The preceding **2026-10-09 TR4/5 first-person parity port** Release/x64 DLL is
+installed with verified SHA-256:
+`150A91C69F17D3CDF895BC755AE77AEA9BF3D993BB2875F150F1E40B87D46A9B`.
+The previous DLL, INI and log are backed up under
+`build/before-tr45-parity-port-20261009-001541/`.
+The previous relaxed-running-hands DLL had SHA-256
+`A94B5C4C7152A8E06B89A58A28FCCCF73AA52E7F33194BAF593A1B161449F5DB`.
+The installed INI was preserved byte-for-byte (SHA-256
+`55E2BD27F47DF85320980221200E0853405555FDAE429341361F3E74537F9842`).
+[Deployment record](build/tr45-parity-port/deployment.json).
+
+This build passed **180,737** production movement/control/camera/IK checks,
+**66,150** real tracking/eye/projection checks, the general self-tests, and
+**2,908** native physics/shader checks. The latter compiled **288** native hand
+shader pairs per executable across PDB, retail and Gold and verified that IK
+cannot feed the jiggle solver. All **2,124** address/layout/hook checks pass;
+`verify_firstperson_render.py` independently checks hand/shadow globals in all
+nine supported game DLLs. `verify_landing_camera.py` and
+`verify_ground_gait_entry.py` pass all **140** installed gameplay animation
+banks. Release/x64 built without compiler warnings. In-headset confirmation of
+the new landing, switch and controller-arm behavior remains pending.
+
+The preceding **2026-10-05 torso-following push/pull camera** Release/x64 DLL is
+installed with verified SHA-256:
+`051CE65262B4114F282027F0B222A48345D895CA27D851F3196400A22CF9E285`.
+The previous DLL, INI and log are backed up under
+`build/before-block-torso-camera-20261005-002022/`; the initial block-clearance
+update's backup is `build/before-block-camera-fix-20261005-000509/`.
+The installed INI, including hand calibration, is unchanged. Deployment and
+validation records are in
+[build/block-torso-camera/deployment.json](build/block-torso-camera/deployment.json)
+and [build/block-camera-fix/deployment.json](build/block-camera-fix/deployment.json).
+The final build passed 175,087 movement/gun/camera checks and 66,150 tracking
+checks. New cases exercise both push and pull at all cardinal headings,
+sub-tick torso kneeling/recovery, entering first person while already kneeling,
+ready-to-push transitions, physical leaning, room walls, the final tile-sized
+origin advance, return to standing and preserved native skeleton/physics data.
+Headset verification of this new camera remains pending.
+
+The earlier 2026-10-03 hard-landing camera Release/x64 DLL had verified
+SHA-256 `EFE42EBABB01009496BD7FCF3217627848074E524478CB096DAA27487707453D`.
+Backup: `build/pre-hard-landing-20261003-010641/` (DLL, INI and log).
+The INI and hand calibration are unchanged. Release build and all 2,917 CPU
+checks passed, including landing kneel/recovery height, multiple headings,
+standing calibration, entering first person during a kneel, floor clearance
+with physical ducking, and the existing mount/roomscale/weapon regressions.
+The state/animation pair was verified in `lara_col_fastfall` in all three PDB
+images. No shader or hook-address changes were required. Headset confirmation
+of the landing motion remains pending.
+
+The preceding 2026-10-03 TR4/5-style mount-body Release/x64 DLL had SHA-256:
+`53E934AC0B5ED21F24E8A0AA6413968DF608FCC723733E89D78075FE96210E8E`.
+The previous DLL, INI and log are backed up under
+`build/pre-mount-body-20261003-005652/`. The installed INI is byte-for-byte
+unchanged, including hand calibration. Release build, 2,696 CPU checks and
+2,264 GPU/physics checks passed. Mount regressions cover normal/gymnast masks,
+stale climbing skeletons, custom anchors, physical/artificial headings,
+interpolation, collision-resolved body fit, saved standing calibration and
+120 ms release at 30/60/90/144 Hz. GPU checks cover body masking, native shader
+pairs and opaque black wrist caps against both PDB and installed retail sources.
+State 54 was verified against all three native control tables. No engine
+addresses or hook windows changed. Headset confirmation remains pending in
+[docs/roomscale-testing.md](docs/roomscale-testing.md).
+
+The preceding 2026-10-02 known-good-defaults Release/x64 DLL had SHA-256:
+`845DA6D43F482A7AB3640CE4BEA90311488AAFEC7CD78593C2271703BD91578B`.
+The prior DLL, INI, log and reference profile are backed up under
+`build/pre-good-defaults-20261002-161323/`; the original `.ini.good` is unchanged.
+All 113 reference values match the template, embedded INI and installed INI,
+with newer settings retained. Release build and CPU tests passed.
+
+The preceding 2026-10-02 shotgun roomscale-effects Release/x64 DLL had SHA-256:
+`85DA380D52A7AC5209FAF356CE5004D90DB9FC7928A344388C977719F9B65D82`.
+The previous DLL, INI and log are backed up under
+`build/pre-shotgun-roomscale-20261002-104525/`. Settings and hand calibration
+were preserved. The Release build, CPU rotation/scope regressions and all
+2,022 binary checks passed. Physical-turn shotgun placement still needs the
+headset check described in [docs/roomscale-testing.md](docs/roomscale-testing.md).
+
+The preceding 2026-10-02 built-in enhanced-effects Release/x64 DLL had SHA-256:
+`178FE9FEBCC1670EEA430078C04334F44CEF284A60C084AE79EE7A9640527968`.
+The prior DLL, INI and log are preserved under
+`build/pre-enhanced-effects-20261002-100741/`. The installed INI and hand
+calibration were retained; the absent `EnhancedEffects` key defaults to enabled.
+No effect DDS files were installed. Release build and CPU tests passed; the GPU
+suite passed all 2,264 checks against both PDB and installed retail shader sources,
+including 33 effect vertex sources, 46 effect fragment sources and 288 native
+hand shader pairs per image. Gameplay appearance and performance remain to be
+confirmed in the headset.
+
+The preceding 2026-10-02 roll floor-clearance Release/x64 DLL had SHA-256:
+`780E8E43EC440F14BA242EF83D22D69F9F102EBB41B3E765B0C0A4385ACE1BCC`.
+The prior DLL, INI and log are preserved under
+`build/pre-roll-floor-clearance-20261002-093934/`. Hand calibration was preserved.
+The Release build and CPU self-tests passed for the roll changes, including
+preserved descent/recovery, clearance on flat/raised/sloping floors, tracked
+ducking/rise, missing floor samples and the 180-degree turnaround. The earlier black-seal
+update passed 949 graphics checks with the PDB executable, including opaque
+black coverage of both wrist openings from both sides against a colored background.
+Ground rolls, death-camera and rare ledge-transition
+behavior still require the headset
+checks in [docs/roomscale-testing.md](docs/roomscale-testing.md).
+
+#### Earlier build history
+
+An earlier 2026-09-30 Release/x64 DLL used arms-only visibility during pull-ups,
+their transition frames, and first-person jumps/falls. Its SHA-256 is
+`9454522F24F327FDA2D9F44451A1AF0DEEAD9FD4471F42D6BF5D47AF118F1CCD`.
+The previous first-person-only clamp DLL is backed up as
+`TombRaiderVR.dll.pre-jump-ceiling-20260930`.
+The previous jump-diagnostic DLL is backed up as
+`TombRaiderVR.dll.pre-firstperson-ceiling-fix-20260930`.
+The previous crate-transition diagnostic DLL is backed up as
+`TombRaiderVR.dll.pre-sustained-fire-jump-trace-20260930`.
+The preceding hanging-hand DLL is backed up as
+`TombRaiderVR.dll.pre-crate-hit-recovery-20260930`. The preceding pull-up-camera
+DLL is backed up as
+`TombRaiderVR.dll.pre-hang-hand-mask-20260930`. The preceding pull-up-arm DLL is
+backed up as
+`TombRaiderVR.dll.pre-pullup-camera-20260930`; the preceding LT-focus DLL is
+`TombRaiderVR.dll.pre-pullup-visibility-20260930`. The preceding head-stability
+DLL is backed up as
+`TombRaiderVR.dll.pre-lt-focus-20260930`; earlier DLL and INI backups are
+`TombRaiderVR.dll.pre-raw-head-20260930`,
+`TombRaiderVR.dll.pre-flash-tilt-20260930` and
+`TombRaiderVR.ini.pre-flash-tilt-20260930`. The installed INI retains the
+player's settings, with `FirstPersonMovementStabilization=1`,
+`FirstPersonMotionGuns=1` and
+`FirstPersonMotionGunPitchDegrees=-30`; the later defaults update also enables
+motion guns in the repository template. The user confirmed LT draws guns and they stay armed after LT is
+released. TR1-3 `GetJoints` takes only an item pointer and fills a global
+palette; the corrected hook reads that palette directly. `EquipInput` maintains
+the modern-controls native draw bit through ready and LT release until a later
+holster gesture. SteamVR may deliver controller input while the game mirror is
+not the foreground Windows window; the gun adapter no longer drops its equip
+state in that case. The live failure log showed `foreground=0`, a native draw
+bit while LT was held, then `4 -> 3` holstering after LT release. A regression
+test now covers the focus-loss case. Runtime logs showed a pull-up transitioning
+through state 28/animation 27 and a short vault ending in standing animation 51.
+That build used the normal head-hidden mesh during those transitions, matching
+the TR4/5 implementation at that time. The 2026-10-03 mount-body fix above ports
+the newer TR4/5 pull-up mask and grounded body correction. The first grounded
+frame after a mount uses Lara's current root height if her native head is already at standing height, avoiding a one-frame
+camera lag from interpolating the previous climb root. Until a valid standing
+pose exists, the camera uses the native joint rather than a guessed height.
+Pull-up transition logging records animation and camera heights. A hit or
+temporary tracking loss no longer makes an
+inherited hold on one trigger block a new press on the other. Pull-up state 19
+keeps its native eye animation rather than the wall-climb camera sweep;
+walking, blocks and wall climbing retain their normal mesh rules. The HD render pass now
+matches TR4/5's draw-local mask, retaining both native arms/hands even if
+`mesh_bits` is stale; no custom hand translation is applied. The Release/x64
+build, self-tests and 1,734 address checks pass. Held RT now continues to
+request dual-gun shots while Lara is ready, letting the native animation set
+their rate and resuming after a nonfatal hit. The gun adapter no longer
+injects draw input after Lara's health reaches zero; gun transition logs now
+include health and animation state. One line per jump records camera stepping
+and late frames in both views. A Croft Manor third-person jump showed 100
+rendered frames, 7 frames over 28 ms and a 32-unit maximum vertical camera
+step; the main-game jump showed 99 frames, 9 late frames and a 95-unit step.
+The Manor log also showed the old ceiling clamp forcing the headset height to
+zero in third person. The clamp now remains available in both views, using the
+native camera in third person and Lara's rendered eye in first person, but
+pauses during jumps/falls and for 250 ms after landing. Close-bat firing and
+the corrected Manor jump still need headset verification.
+The 2026-09-30 follow-up fixes the ceiling cap's coordinate system: it now
+limits headset rise relative to the recentered headset height, the same origin
+used by the rendered camera. The prior absolute cap could shift the view when
+it resumed after a jump or after a crate mount. Self-tests cover neutral-height
+continuity at landing and crate-height capping; the Release/x64 build and all
+1,734 address checks pass. That DLL's SHA-256 is
+`71BA071CB619CB40FD957822FCC03706C607CE796CB60BEB2409B3806E3DADB2`;
+the preceding build is backed up as
+`TombRaiderVR.dll.pre-neutral-ceiling-20260930`. A headset check is still
+needed for the reported landing angle and crate-head appearance.
+The 2026-10-01 build matches TR4/5's mesh policy: only ledge hanging uses the
+arms-only mask. Crate pull-ups, their state 28/animation 27 and standing
+animation 51 transitions, and jumps/falls use the ordinary head-hidden body
+draw. The first-person camera, collision clearance and standing-eye fixes
+remain in place. The self-tests and 1,734 address checks passed; that
+Release/x64 DLL SHA-256 is
+`36F122D7C88112B922B59DF48B63CC2F4F0300BE279F503D9ED62D79BD6FBA47`.
+The prior DLL is backed up as `TombRaiderVR.dll.pre-tr45-hang-mask-20261001`.
+Crate mounting and edge jumps still need headset verification.
+The subsequent full first-person parity pass makes TR1–3's native stick-release
+brake match TR4/5 even with movement stabilization disabled, while excluding
+gravity frames, jumps and pull-ups. It also connects TR4/5's live tracked-gun
+fit keys and backed-up INI save to the existing TR1–3 calibration math. The HK
+3× scope remains TR5-specific because its scope mesh and optic path do not
+exist in TR1–3; TR1/2 also lack crouch/prone states. Existing camera-height
+and collision safeguards remain in place because their game-specific animation
+transitions differ. Headset checks remain necessary for movement feel and gun
+fit across all three games. That parity-pass Release/x64 DLL was installed in
+the Steam game folder with SHA-256
+`0D56F4C922D4857991B7C9644D42EC77C0ED92700C38C32836FC8C5C20ED5D30`.
+The preceding installed DLL is backed up as
+`TombRaiderVR.dll.pre-full-fp-parity-20261001`.
+The 2026-10-01 first-person auto-aim follow-up widens tracked-shot assist from
+12 to 45 degrees around each controller barrel, using only the game's living
+selected enemy. Hitscan and projectile paths share the adjustable
+`FirstPersonAutoAimDegrees` setting (0–60). The first 12 tracked shots report
+native target and assist status in the log. The Release/x64 DLL is installed,
+with SHA-256
+`6D07B3C58798EBD612DB677E6DAC838E38AAD687BA41D3BD914A16F1ACD1E6BE`;
+the previous DLL is `TombRaiderVR.dll.pre-autoaim-20261001`. Self-tests and all
+1,734 address checks pass. Target selection and aiming feel need a headset
+check in TR1, TR2 and TR3.
+The earlier
+2026-09-25 build has SHA-256
+`5027B471FE34BA668A3D928167E440E865AD15BC8F700968C44E497527F1D51F`;
+its preceding gun-pitch DLL remains backed up as
+`TombRaiderVR.dll.pre-autoaim-fix-20260925-230255`.
+
+An earlier 2026-09-22 UI-safe control-remap/roll-visibility build was built in
+Release/x64 and installed in the Steam game folder. It always starts on the
+engine's original third-person path, uses L3+R3 for native Photo Mode, Y+RT for the native
+classic/remastered graphics toggle, and Y+LT for the complete first-person
+package. Lara's mesh is hidden for her roll states and restored afterwards, but
+only while the first-person gameplay scene is active. This corrects the prior
+build's visual regression, where roll detection ran before the gameplay gate
+and could leak the mesh override into menu/UI scene draws. Its SHA-256 is
+`4D688039D4FE18958463C5CC1A636991AFE069CFA780932760392D85ED45C329`.
+The preceding restored DLL is preserved as
+`.pre-ui-safe-roll-20260922-010509`. The regressed build is retained for binary
+comparison as `.broken-visual-ui-20260922-005935`, and the same known-good
+fallback also remains as `.pre-control-remap-20260922-004701`. The prior view-toggle DLL and INI are
+preserved with suffix `.pre-view-toggle-20260922-000924`; only `FirstPerson=0`
+was changed in that installed INI. The earlier three-animation-tick build is preserved beside the
+installed file with suffix `.pre-smooth-root-scale-20260921-000100`. Earlier DLL backups use
+`.pre-direction-speed-fix-20260920-234600`; the prior DLL and INI are preserved
+with suffix `.pre-native-gaits-20260920-231700`. The obsolete experimental
+`FirstPersonHideBodyOnNonForward` line was removed from the active INI; Lara's
+body remains visible for all four manual directions. Earlier DLL backups use
+`.pre-repo-body-depth-20260920-223436`,
+`.pre-physical-turn-center-20260920-185850`,
+`.pre-combined-turn-pivot-20260920-170702` and
+`.pre-direct-drag-20260920-153753`. The installed deadzone remains 0.02 m and
+other existing settings are preserved. The neck-pivot setting uses its 0.15 m
+default when absent from the INI. The installed first-person anchor Z is tuned
+to 144 to move the viewpoint about 0.30 m forward relative to the earlier value
+of 16. That earlier build completed with no warnings or errors.
+
+Headset testing has confirmed direct roomscale dragging, physical/artificial
+rotation, centring, body depth, HMD-forward jumping and walking wall clearance.
+The test sequence is in `docs/roomscale-testing.md`. Full-body tracking is
+unavailable, so the neck
+pivot remains an adjustable estimate. Physical drag is grounded only; a large
+tracking discontinuity requires END to recenter.
+
+### Supporting the Aspyr retail and Tomb Raider Gold builds (no PDBs)
+
+The current Aspyr retail build differs from the build in `PDB\` in
+`tomb123.exe` and all three game DLLs. Every image has a new PDB GUID. It was
+relinked with a newer toolchain: `.fptable` appears,
+`_RDATA` is gone, and constants are now loaded with `mov r, imm` where the old
+compiler used `lea r, [reg+k]`. It shipped **without PDBs**, and the game's
+`pdb\` folder is empty. Almost every address the mod uses moved, and nothing
+could be read out of dbghelp this time.
+
+This work was first done on the **Tomb Raider Gold** binaries, and only then on
+the Aspyr retail build. Gold turns out to be an in-place byte patch of retail:
+same sizes, same PE timestamps, same PDB GUIDs, so both select the same address
+table. A byte diff of the two:
+
+| image | bytes changed | where |
+|---|---|---|
+| `tomb123.exe` | 6 | `.data`, inside `texDesc`: 1920×1080 → 3840×2160, 2 → 4 |
+| `tomb1.dll` | 35 | one 30-byte code patch, plus `.rdata` |
+| `tomb2.dll` | 56 | the same code patch, plus `.rdata`/`.data` |
+| `tomb3.dll` | 150 | the same code patch, four more patched functions, plus `.data` |
+
+None of those bytes falls inside a hook window, a hooked function, or any
+global the mod reads. `port_build.py` run separately on `retail\` and `gold\`
+derives identical addresses, and `verify_addresses.py` passes against both.
+
+**How the addresses were recovered.** `tools\port_build.py <dir>` carries the
+symbols across from the PDB build in `PDB\` to the build in `<dir>` (here
+`retail\` and `gold\`):
+
+1. `.pdata` gives every non-leaf function's exact extent in both images.
+2. Each function is reduced to one token per instruction. RIP-relative
+   displacements and branch targets are masked. Struct displacements and
+   immediates are kept.
+3. Functions pair up by unique exact hash, then by unique mnemonic-only hash.
+   Pairs propagate along call edges, and what remains is matched by sequence
+   similarity (≥ 0.75).
+4. Inside every matched pair, aligned RIP-relative references vote for
+   old global → new global. The winner of the vote is the new address.
+
+All 75 values the mod needs resolved. Every one was unanimous except tomb2
+`room`, at 152 of 154 votes. `mView_packed` has no RIP-relative reference
+anywhere, so it is inferred from its neighbours, which both shift by +3920. The
+tool labels it as inferred.
+
+**How they were checked, independently of the matching.** A match is not proof,
+so `verify_addresses.py` re-checks what the mod depends on directly against the
+new images:
+
+| check | what it establishes |
+|---|---|
+| all 15 hook prologues byte-identical, instruction-aligned, RIP-free | the stolen-byte windows are still safe |
+| `vidInit`/`init_ogl`/`appInit` install each hooked function at the same `APP` slot in both builds (+560, +368, +280, +352, +712) | the five exe hook targets are the functions the game DLLs actually call |
+| `validate_draw` forces `0x3F001F` and runs the same 11 bit tests in the same order | `ConstBits` is unchanged |
+| `vid_setViewMatrix` writes the same 25 offsets relative to `vid_state` | `mView_packed` really is `vid_state + 400` |
+| every structural relationship `Engine.cpp` asserts holds on the new row | no typo in the row |
+| every value in `Engine.h`/`GameDll.cpp` equals `<dir>\port_build.json` | the source says what the tool derived |
+
+Also checked while porting: all 191 mapped references into `APP` keep their
+field offset. `ogl_setRenderTarget` still branches on `test edi, edi` (now at
+`0x0001046A`).
+
+**What is inferred rather than proven.** There are no type records, so the
+struct layouts (`RenderState`, `ROOM_INFO`, `lara_info`, `camera_info`) are
+assumed unchanged. The evidence is that the functions touching the fields the mod
+uses (`validate_draw`, `PrintRooms`, `SetRoomBounds`, `CalculateCamera`,
+`S_GetObjectBounds`) use the same displacements in both builds. TR1's
+`SetRoomBounds` now inlines a helper and touches more fields, but at the same
+offsets.
+
+**Where it lives.**
+
+| file | what changed |
+|---|---|
+| `src\Engine.h` | `kBuildAspyrRetail`, the exe row (Aspyr retail and Gold), as hex literals with the evidence in the comment |
+| `src\Engine.cpp` | `kBuilds` lists both builds |
+| `src\GameDll.cpp` | `kDlls` is now `[build][gGame]`, selected by the DLL's own PE timestamp |
+| `tools\port_build.py` | the matcher; prints paste-ready rows and writes `port_build.json` |
+| `tools\verify_addresses.py` | checks rows for PDB-less builds (default dirs `retail\` and `gold\`) |
+
+**Two safety bugs fixed along the way.** Both had let a mismatched build through:
+
+- `IdentifyBuild` used to fall back to `StructuralCheckPasses` against the stock
+  table for an unknown exe. That check compares the table's constants with each
+  other and reads nothing from the image except `shaders[]`, so it passed for
+  *every* exe. On the Aspyr retail exe it would have redirected `FBO_default` and the
+  XInput slot at stale addresses. The prologue check doesn't cover those writes,
+  and `vid_setPass` happens to keep RVA `0xABA0`, so it could not be relied on
+  either. An unknown exe is now refused.
+- `GameDllUpdate` accepted a DLL with an unexpected timestamp, on the grounds
+  that nothing is written through that table. That stopped being true when
+  `PortalCull` began writing `draw_rooms` and the room clip rects. An unknown DLL
+  is now left unbound, and every consumer already treats that as "stand down".
+
+The old fallback was visible in practice: the pre-retail DLL, run on the retail
+exe, logged `structural check passed; proceeding with the stock addresses`. It
+was saved only because five of the six stock hook sites happened not to match,
+which rolled all of them back (see "Troubleshooting" above).
+
+**Confirmed in the headset.** Gold was confirmed first. Aspyr retail was
+confirmed next, once the current DLL was deployed. Its log shows the build
+matched by timestamp, all six exe hooks at the new addresses (`validate_draw`
+at `+0xEFE0`, `ogl_setRenderTarget` at `+0x103A0` with its 13-byte window, and
+so on), the three `tomb1.dll` hooks, `vr: up and running`, head pose acquired,
+and 26.13 world units of eye separation. It also shows a clean unhook of all
+nine on exit.
+
+The consequence is deliberate: after a future patch the mod does nothing until
+a row is added. The log names the unrecognised timestamp. To add one, copy the
+four new binaries into a directory, run `python tools\port_build.py <dir>`,
+paste the rows, and make `python tools\verify_addresses.py <dir>` pass. If the
+patch ships PDBs, use `pdbdump.py` as before.
+
+### Ghidra / re-mcp
+
+Everything except the culling was written without a decompiler, because the PDBs
+made one unnecessary. The culling is where that stops: it is algorithm-shaped
+rather than layout-shaped, and no amount of symbol and type information tells
+you that `SetRoomBounds` rejects a portal when `dot(normal, vertex − camera)`
+is non-negative, that its four `z < 1` tests are what make a portal behind the
+camera unreachable, or that `PrintRoomsList` clears `bound_active` for every
+listed room on its way out. Those came out of the decompiler, and they are what
+the reimplementation had to agree with.
+
+Worth knowing before reading either implementation: **TR1 and TR2/TR3 do not
+share a traversal.** TR1 recurses (`GetRoomBounds` calls itself per portal); TR2 and
+TR3 run a queue in `bound_list` with `bound_start`/`bound_end` and keep an
+enqueue count in the upper bits of `bound_active`. Only bit 0 of that byte means
+"already in `draw_rooms`" in both, which is why one line of ours works on all
+three — and why writing our own traversal was simpler than driving theirs.
+
+`.mcp.json` configures [`re-mcp`](https://pypi.org/project/re-mcp/)'s Ghidra
+backend for this repo:
+
+```json
+{ "mcpServers": { "re-mcp": {
+    "command": "re-mcp-ghidra", "args": ["stdio"],
+    "env": { "GHIDRA_INSTALL_DIR": "C:\\Ghidra\\" } } } }
+```
+
+Two things about that config are worth knowing, because the TR4-6 repo's copy
+implies otherwise:
+
+- **`GHIDRA_PROJECT_PATH` does nothing.** Nothing in `re_mcp` or
+  `re_mcp_ghidra` reads it. It is dropped here rather than carried over.
+- **There is no single project to point at.** The backend's `open()` creates one
+  project *per binary*, alongside the binary:
+  `<binary dir>\ghidra_projects\<file name>.gpr`, with the program stored at `/`
+  under its full file name (`re_mcp_ghidra\session.py`). So opening
+  `PDB\tomb123.exe` yields `PDB\ghidra_projects\tomb123.exe.gpr`.
+
+`tools\build_ghidra_projects.cmd` pre-imports all four binaries into exactly
+those paths with `analyzeHeadless`. It is worth running once: `open()` reuses an
+existing `.gpr` instead of importing, so the first MCP call is instant rather
+than a multi-minute auto-analysis — and the analysis happens with each PDB
+sitting next to its binary, so Ghidra applies the real symbols and types rather
+than inventing `FUN_`/`DAT_` names.
+
+Delete `PDB\ghidra_projects` to start over.
+
+## Building
+
+Visual Studio 2019 or newer, x64:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\fetch_openvr.ps1
+msbuild TombRaiderVR.sln /p:Configuration=Release /p:Platform=x64
+```
+
+Produces `TombRaiderVR.dll` and `winmm.dll` in `build\x64\Release\`, and copies
+the mod DLL and `TombRaiderVRBindings` into the game folder. Override the destination with
+`/p:GameDir="..."`, or disable the copy with `/p:DeployToGame=false`.
+
+`openvr_api.dll` is resolved with `LoadLibrary` at runtime, so only the OpenVR
+header is needed to build and the DLL loads fine on a machine with no VR runtime
+installed.
+
+### Verification
+
+```powershell
+python tools\port_build.py path\to\new-build  # only for a new PDB-less build
+python tools\verify_addresses.py build\current-retail-verify build\current-gold-verify
+python tools\verify_locomotion.py build\current-retail-verify build\current-gold-verify
+python tools\verify_jump_roll.py "path\to\Tomb Raider I-III Remastered"
+python tools\verify_ground_gait_entry.py "path\to\Tomb Raider I-III Remastered"
+.\tests\build_selftest.cmd
+.\tests\build_locomotion_selftest.cmd
+.\tests\build_tracking_selftest.cmd
+.\tests\build_physics_selftest.cmd
+```
+
+`verify_addresses.py` re-derives every address, struct offset, structural
+relationship and hook prologue from the PDBs and diffs them against the source.
+For each build without PDBs named on the command line, it checks that build's
+rows against `port_build.json` and against the images themselves. The checked
+retail and Gold images in this repository are in
+`build\current-retail-verify` and `build\current-gold-verify`. Run the checks
+after any game patch: failures name what moved.
+
+The locomotion harness also exercises the production camera-clearance hook.
+TR1/2 fill only the first four collision samples; TR3 fills all six. Reading
+the unused TR1/2 entries invented a ceiling at `rootY - 762`, making a standing
+eye at `rootY - 701` snap back to Lara's root as small HMD movements crossed
+the clearance threshold. The camera now reads only the samples each game
+produces. The regression leaves unused entries zero, sweeps tracked head
+movement around the logged standing eye, and checks that actual walls,
+ceilings, missing rooms and static obstacles still block the camera.
+`tests/block_camera_selftest.h`, included by the locomotion harness, exercises
+the production block observer, horizontal follow, torso-height interpolation,
+tracked-eye clearance and entry/exit blends for all three games. It also checks
+that camera updates do not modify native Lara or block skeleton data.
+`tests/jump_roll_selftest.h` and `tests/arm_visibility_selftest.h` cover midair
+heading changes and the unarmed-arm visibility rule; the physics harness checks
+that arm masking retains the native chest deformation.
+The separate tracking harness checks the real `VRSystem` eye transforms and
+asymmetric projections; neither harness replaces in-headset validation.
+
+The physics self-test defaults to `PDB\tomb123.exe`. To validate other builds'
+embedded skin shaders too, pass their executable paths as arguments to
+`build_physics_selftest.cmd`. Use absolute paths because the script runs the
+test from `build\test`.
+
+## Hands-only climbing transitions
+
+In first person, crate vaults, ledge pull-ups and water exits show only the hands,
+with opaque black wrist caps. The arms remain hidden during post-climb body and
+camera recovery, then return when recovery finishes. Normal hanging, shimmying,
+and TR3 monkey-bar traversal retain their arms. Third-person and shadow rendering
+keep their native behavior.
+
+This uses the existing cap renderer and preserves the current climbing contacts,
+controller wrist poses, original arm-recovery timing, and mount-camera smoothing.
+No additional INI setting is required. `tests/transition_hands_selftest.cpp` checks
+the production draw scopes for all three games without running the full test suite.
+
+## Repository layout
+
+```
+src\             the mod
+  Engine.h/.cpp    address map, struct layouts, module binding
+  Hooks.cpp        the stereo injection layer
+  GameDll.cpp      binding and address table for tomb1/2/3.dll
+  PortalCull.cpp   head-driven room culling, hooked into the game DLL
+  PortalGeom.h     the frustum maths behind it, tested by tests\
+  Sky.cpp          DrawSkyHD hook: sky draws at optical infinity
+  FirstPerson.cpp  scene camera, locomotion, block/torso follow and tracked guns
+  StereoMath.h     matrix maths against this engine's conventions
+  proxy\           the winmm shim
+tools\           PDB extraction, cross-build porting, disassembly, verification
+tests\           self-test
+PDB\             tomb123.exe + tomb1/2/3.dll and their PDBs (original build)
+retail\          Aspyr retail binaries (no PDBs) + port_build.json
+gold\            Tomb Raider Gold binaries (no PDBs) + port_build.json
+third_party\     OpenVR headers
+```
+
+`PDB\` is what makes the tooling reproducible; the address tables are only as
+checkable as the symbols they came from.

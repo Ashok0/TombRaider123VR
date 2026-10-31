@@ -35,12 +35,24 @@ void TestRemainingParity() {
             g_bodyVisibility={};Field<int16_t>(off::item_anim_state)=int16_t(state);
             Field<uint32_t>(off::item_mesh_bits)=0x7fff;jumpDrawBits=0;
             Detour_DrawCreatureHD(item,0);
-            Check((jumpDrawBits&~ArmMeshBits)==0 && (jumpDrawBits&0x1200u)==0x1200u,
-                "mount and water-exit eye draws retain native grip arms without torso");
+            if(armed) {
+                Field<uint32_t>(off::item_mesh_bits)=0x3600; // Native weapon/hand pass.
+                Detour_DrawCreatureHD(item,1);
+                Check(Field<uint32_t>(off::item_mesh_bits)==0x3600,"mount weapon pass restores its native mask");
+                Field<uint32_t>(off::item_mesh_bits)=0x7fff;
+            }
+            Check(jumpDrawBits==HandMeshBits,
+                "mount and water-exit eye draws retain both hands without forearms or torso");
             Check(Field<uint32_t>(off::item_mesh_bits)==0x7fff,"mount masking is draw-local");
             Field<int16_t>(off::item_anim_state)=2;jumpDrawBits=0;
             Detour_DrawCreatureHD(item,0);
-            Check((jumpDrawBits&~ArmMeshBits)==0,"first standing draw does not flash the recovering torso");
+            if(armed) {
+                Field<uint32_t>(off::item_mesh_bits)=0x3600;
+                Detour_DrawCreatureHD(item,1);
+                Check(Field<uint32_t>(off::item_mesh_bits)==0x3600,"recovery weapon pass restores its native mask");
+                Field<uint32_t>(off::item_mesh_bits)=0x7fff;
+            }
+            Check(jumpDrawBits==HandMeshBits,"first standing draw retains hands without flashing the recovering torso");
             g_bodyVisibility.until=TurnTime()-1;g_mountBodyTransition.Reset();g_torsoPose.recovering=false;
             jumpDrawBits=0;Detour_DrawCreatureHD(item,0);
             Check((jumpDrawBits&0xffu)==0xffu,"body returns when recovery and hold finish");

@@ -1,0 +1,607 @@
+﻿// Exercises the actual port with synthetic game state and a hidden OpenGL context.
+#include "../src/DynamicBones.cpp"
+#include "../src/BoneSkin.cpp"
+#include "../src/EnhancedEffects.cpp"
+#include "../src/FirstPersonStabilization.h"
+#include "../src/FirstPersonVisibility.h"
+#include <fstream>
+#include <iterator>
+#include <set>
+#include <cstdlib>
+
+namespace tr {
+void FirstPersonDrawLara(void* item,void*,void (__fastcall* draw)(void*)) { draw(item); }
+Config testConfig;
+RenderState testState{};
+Shader testShaders[kShaderCount]{};
+Layout testLayout{};
+GameDllLayout testDll{};
+alignas(8) unsigned char testModule[32]{};
+alignas(8) unsigned char testItem[512]{};
+bool testWorld = true;
+bool testShadowPass=false;
+bool FirstPersonShadowPass() { return testShadowPass; }
+int testGame = 0;
+int CurrentGame() { return testGame; }
+int testLevel = 1;
+const float* testHandPalette=nullptr;
+int testHandJoint=-1;
+const float* FirstPersonHandSkin(int& joint) { joint=testHandJoint; return testHandPalette; }
+const float* testNativeBodyPalette=nullptr;
+const float* FirstPersonNativeBodySkin() { return testNativeBodyPalette; }
+const float* testBodyPalette=nullptr;
+uint32_t testVisibleJoints=0;
+const float* FirstPersonBodySkin(uint32_t& mask) { mask=testVisibleJoints; return testBodyPalette; }
+uint32_t testWristSeams=0;
+uint32_t FirstPersonBodyWristSeamMask() { return testWristSeams; }
+const float* testShadowPalette=nullptr;
+const float* FirstPersonShadowSkin(uint32_t& mask,uint32_t& wrists) {
+    mask=testVisibleJoints;wrists=(1u<<13)|(1u<<10);return testShadowPalette;
+}
+bool FirstPersonWristCentre(float out[3]) {
+    out[0]=out[1]=out[2]=0; return testHandPalette!=nullptr;
+}
+const Config& Cfg() { return testConfig; }
+RenderState& VidState() { return testState; }
+Shader* Shaders() { return testShaders; }
+const Layout& L() { return testLayout; }
+uint64_t Base() { return 0; }
+const GameDllLayout* GameDllBound() { return &testDll; }
+uint64_t GameDllBase() { return reinterpret_cast<uint64_t>(testModule); }
+bool IsWorldPass() { return testWorld; }
+int32_t AppFlag(uint32_t off) { return off == drva::app_off::level ? testLevel : 0; }
+}
+
+int checks = 0;
+void Require(bool pass, const char* what) {
+    ++checks;
+    if (!pass) { std::fprintf(stderr, "FAIL: %s\n", what); std::exit(1); }
+}
+#include "effects_selftest.h"
+void Air(bool air, int fall) {
+    uint16_t flags = air ? 8 : 0;
+    int16_t speed = static_cast<int16_t>(fall);
+    std::memcpy(tr::testItem + 484, &flags, 2);
+    std::memcpy(tr::testItem + 36, &speed, 2);
+}
+void ResetPhysics() {
+    using namespace tr;
+    ResetSolver();
+    testConfig = Config{};
+    testDll.laraItem = 8;
+    const auto item = reinterpret_cast<uint64_t>(testItem);
+    std::memcpy(testModule + 8, &item, 8);
+    g_boundDll = &testDll;
+    g_boundBase = GameDllBase();
+    g_torsoThis = {};
+    g_torsoThis.m[0] = g_torsoThis.m[5] = g_torsoThis.m[10] = 1.0f;
+    g_haveThis = true;
+    Air(false, 0);
+}
+float LandingPeak(int hz) {
+    using namespace tr;
+    ResetPhysics();
+    const float dt = 1.0f / hz;
+    float off[3]{};
+    for (int i = 0; i < hz; ++i) Solve(dt);
+    Require(DynamicBonesWorldOffset(off) && std::fabs(off[1]) < 0.001f,
+            "standing begins at equilibrium without startup bounce");
+    for (int i = 0; i < hz; ++i) { Air(true, 70); Solve(dt); }
+    Require(g_jumps == 1, "one jump event per airborne spell");
+    Air(false, 0);
+    float peak = 0;
+    for (int i = 0; i < 2 * hz; ++i) {
+        Solve(dt);
+        DynamicBonesWorldOffset(off);
+        peak = std::fmax(peak, off[1]);
+        Require(std::isfinite(off[1]) && std::fabs(off[0]) < 0.001f && std::fabs(off[2]) < 0.001f,
+                "landing stays finite and world vertical");
+    }
+    Require(g_lands == 1 && g_lastLandFall == 70, "landing uses deepest fall speed, not zeroed speed");
+    Require(peak > 8 && peak < 35, "landing produces a bounded visible bounce");
+    Require(std::fabs(off[1]) < 0.1f, "landing decays back to rest");
+    g_torsoThis.m[3] += 2000;
+    Solve(dt);
+    DynamicBonesWorldOffset(off);
+    Require(std::fabs(off[1]) < 0.001f, "teleport resets to rest");
+    return peak;
+}
+
+int main(int argc, char** argv) {
+    using namespace tr;
+    Require(argc >= 2, "supply the stock/retail/Gold executable paths");
+    const float p60 = LandingPeak(60), p90 = LandingPeak(90), p120 = LandingPeak(120);
+    Require(std::fabs(p60 - p120) / p120 < 0.2f && std::fabs(p90 - p120) / p120 < 0.2f,
+            "landing strength remains comparable at 60/90/120 Hz");
+    std::printf("Landing peaks: 60Hz %.3f, 90Hz %.3f, 120Hz %.3f\n", p60, p90, p120);
+
+    ResetPhysics();
+    bool air = true; int speed = 0;
+    testItem[484] = 4; // status bit, not gravity_status
+    Require(ReadLaraAir(air, speed) && !air, "status bits do not masquerade as airborne");
+    Air(true, 123);
+    Require(ReadLaraAir(air, speed) && air && speed == 123, "TR1-3 item offsets and flag width");
+    int16_t angle = 16384;
+    std::memcpy(testItem + 102, &angle, 2);
+    float forward[3]{};
+    Require(DynamicBonesLaraForward(forward) && forward[0] > 0.999f && std::fabs(forward[2]) < 0.001f,
+            "TR1-3 facing offset drives front-of-chest selection");
+
+    Joint palette[32]{};
+    for (int j = 0; j < 32; ++j) {
+        palette[j].m[0] = palette[j].m[5] = palette[j].m[10] = 1;
+        palette[j].m[3] = float(j * 40);
+    }
+    mat4 projection{}; projection.m[11] = -1;
+    testState.proj = &projection;
+    testState.joints = palette[0].m;
+    testState.shader = 0;
+    testShaders[0].uid[7] = 1;
+    g_inLara = false;
+    DynamicBonesObserveDraw();
+    Require(!DynamicBonesRenderBody(), "NPC outside Lara scope is rejected");
+    g_inLara = true;
+    DynamicBonesObserveDraw();
+    Require(DynamicBonesRenderBody() && g_numJoints == 15, "only 15 skeleton joints classified from fixed upload");
+    Joint nativePalette[32]; std::memcpy(nativePalette,palette,sizeof(palette));
+    testNativeBodyPalette=nativePalette[0].m;
+    for (int j=8;j<=13;++j) palette[j].m[3]+=10000; // Tracked arm pose.
+    palette[7].m[3]+=20000; // Ensure even torso sampling selects native palette.
+    g_haveBest=false;
+    DynamicBonesObserveDraw();
+    Require(DynamicBonesRenderBody() &&
+        std::memcmp(g_best.joints,nativePalette,sizeof(float)*12*15)==0 &&
+        std::memcmp(g_torsoThis.m,nativePalette[7].m,sizeof(g_torsoThis.m))==0,
+        "IK/visibility render palettes cannot feed jiggle classification or torso inertia");
+    testNativeBodyPalette=nullptr; std::memcpy(palette,nativePalette,sizeof(palette));
+    for (int j = 0; j < 15; ++j) palette[j].m[3] = 0;
+    DynamicBonesObserveDraw();
+    Require(!DynamicBonesRenderBody(), "distinct padding cannot make an attachment into a body");
+    for (int j = 0; j < 15; ++j) palette[j].m[3] = float(j * 40);
+    testShadowPass=true;g_haveBest=false;
+    DynamicBonesObserveDraw();
+    Require(!DynamicBonesRenderBody() && !g_haveBest,
+            "shadow cannot drive jiggle even when projection pointer resembles world rendering");
+    testShadowPass=false;
+    testWorld = false;
+    DynamicBonesObserveDraw();
+    Require(!DynamicBonesRenderBody(), "non-world passes are rejected");
+    testWorld = true;
+    DynamicBonesObserveDraw();
+    g_settled = true;
+    g_bone[0].x[1] = g_bone[1].x[1] = 12;
+    testConfig.dynamicBonesShader = 0;
+    const Joint saved = palette[7];
+    DynamicBonesApplyToDraw();
+    Require(DynamicBonesAppliedToDraw() && palette[7].m[7] != saved.m[7], "rigid fallback applies only to Lara body");
+    DynamicBonesRestoreDraw();
+    Require(std::memcmp(&saved, &palette[7], sizeof(saved)) == 0 && (testState.consts & kJoints),
+            "joint palette restored exactly and dirtied for following draw");
+    testConfig.dynamicBonesApply = false;
+    DynamicBonesApplyToDraw();
+    Require(!DynamicBonesAppliedToDraw(), "Apply=0 prevents rigid edits");
+    testConfig = Config{};
+
+    // Compile the exact patched game sources on the installed driver without launching the game.
+    HWND window = CreateWindowExW(0, L"STATIC", L"TR physics shader test", WS_POPUP,
+                                  0, 0, 8, 8, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+    Require(window != nullptr, "hidden GL test window");
+    HDC dc = GetDC(window);
+    PIXELFORMATDESCRIPTOR pfd{};
+    pfd.nSize = sizeof(pfd); pfd.nVersion = 1;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.iPixelType = PFD_TYPE_RGBA; pfd.cColorBits = 24;
+    const int format = ChoosePixelFormat(dc, &pfd);
+    Require(format && SetPixelFormat(dc, format, &pfd), "OpenGL pixel format");
+    HGLRC context = wglCreateContext(dc);
+    Require(context && wglMakeCurrent(dc, context) && gl::Load() && gl::LoadedSkinApi(), "OpenGL shader and mesh API");
+    TestEnhancedEffects();
+    std::string onePatched;
+    for (int arg = 1; arg < argc; ++arg) {
+        std::ifstream input(argv[arg], std::ios::binary);
+        const std::string data((std::istreambuf_iterator<char>(input)), {});
+        Require(!data.empty(), "read real game executable");
+        TestNativeEffectShaders(data);
+        std::set<std::string> sources;
+        for (size_t at = 0; (at = data.find(kAnchor, at)) != std::string::npos; ++at) {
+            const size_t prev = data.rfind('\0', at), next = data.find('\0', at);
+            if (prev == std::string::npos || next == std::string::npos) continue;
+            const auto source = data.substr(prev + 1, next - prev - 1);
+            if (Recognise(source)) sources.insert(source);
+        }
+        Require(!sources.empty(), "real TR1-3 skin shader family is recognized");
+        std::set<std::string> fragments;
+        for (size_t at=0;(at=data.find("#version",at))!=std::string::npos;++at) {
+            const size_t end=data.find('\0',at);
+            if (end==std::string::npos) continue;
+            const auto source=data.substr(at,end-at);
+            if (source.find("void main()")!=std::string::npos &&
+                source.find("gl_Position")==std::string::npos &&
+                source.find("fragColor")!=std::string::npos) fragments.insert(source);
+        }
+        int nativePairs=0;
+        for (const auto& source : sources) {
+            std::string error;
+            onePatched = Patch(source);
+            const bool ok = CompilesOk(onePatched, error);
+            if (!ok) std::fprintf(stderr, "%s\n", error.c_str());
+            Require(ok, "patched game vertex shader compiles on driver");
+            std::string handVertex=onePatched;
+            std::string handFragment="#version 150\nout vec4 color; void main(){ color=vec4(1.0); }";
+            Require(handskin::Patch(handVertex,handFragment) &&
+                    HandProgramCompiles(handVertex,handFragment),
+                    "hand visibility links with real game skin and chest patches");
+            int pairs=0;
+            for (const auto& nativeFragment : fragments) {
+                if (!HandProgramCompiles(source,nativeFragment)) continue;
+                handVertex=onePatched; handFragment=nativeFragment;
+                Require(handskin::Patch(handVertex,handFragment) &&
+                        HandProgramCompiles(handVertex,handFragment),
+                        "hand patch preserves a compatible native vertex/fragment pair");
+                if (effects::Patch(handVertex,handFragment))
+                    Require(HandProgramCompiles(handVertex,handFragment),
+                            "effects compose with native hand, chest and body-mask shaders");
+                ++pairs; ++nativePairs;
+            }
+            Require(pairs>0,"each real skin shader links with native fragments after patch");
+        }
+        std::printf("%s: %zu skin sources, %d native hand shader pairs compiled\n",
+                    argv[arg], sources.size(),nativePairs);
+    }
+    std::string combinedFragment="#version 150\nout vec4 color; void main(){ color=vec4(1.0); }";
+    Require(handskin::Patch(onePatched,combinedFragment),"combine real chest deformation and body visibility for GPU regression");
+    GLuint vertex = gl::CreateShader(GL_VERTEX_SHADER), fragment = gl::CreateShader(GL_FRAGMENT_SHADER);
+    const char* vertexText = onePatched.c_str();
+    const char* fragmentText = combinedFragment.c_str();
+    gl::ShaderSource(vertex, 1, &vertexText, nullptr); gl::CompileShader(vertex);
+    gl::ShaderSource(fragment, 1, &fragmentText, nullptr); gl::CompileShader(fragment);
+    GLuint program = gl::CreateProgram();
+    gl::AttachShader(program, vertex); gl::AttachShader(program, fragment); gl::LinkProgram(program);
+    GLint linked = 0; gl::GetProgramiv(program, GL_LINK_STATUS, &linked);
+    Require(linked != 0, "patched vertex shader links with a fragment stage");
+    gl::UseProgram(program);
+    testShaders[0].id = program;
+    g_patched = 1;
+    g_drawRenderBody = true;
+    g_regionReady = true; g_fwd = 1; g_bodyCalls = 1;
+    g_region = {{-200, -100, 5, 7, 1, 0, 50, 0, 0, 30, 50, 0}};
+    Require(RegionWeight(g_region, {0,-150,50}) > 0.99f, "front chest is selected");
+    Require(RegionWeight(g_region, {0,-150,-50}) == 0, "back is excluded");
+    Require(RegionWeight(g_region, {70,-150,50}) == 0, "shoulder sides are excluded");
+    Require(RegionWeight(g_region, {0,-260,50}) == 0, "upper shoulder height is excluded");
+    BoneSkinAfterValidate(true);
+    float uniform[4]{};
+    GLint loc = gl::GetUniformLocation(program, "uDynBone");
+    gl::GetUniformfv(program, loc, uniform);
+    Require(BoneSkinActive() && uniform[3] == 0, "transition draw does not double-apply rigid and shader motion");
+    BoneSkinAfterValidate(false);
+    gl::GetUniformfv(program, loc, uniform);
+    Require(uniform[3] == 1, "following body draw enables shader deformation");
+    // Both uniforms coexist on the actual native chest shader while arm
+    // visibility changes. The solver must neither reset nor lose its draw.
+    float visibilityPalette[384]{};
+    for (int joint=0;joint<32;++joint)
+        visibilityPalette[joint*12]=visibilityPalette[joint*12+5]=visibilityPalette[joint*12+10]=1;
+    const GLint visibilityLoc=gl::GetUniformLocation(program,"uVisibleBody");
+    Require(visibilityLoc>=0,"native shader exposes the body visibility mask");
+    firstperson::UnarmedArmVisibility armVisibility;
+    float beforeOffset[3]{};
+    Require(DynamicBonesWorldOffset(beforeOffset),"jiggle solver is live before changing visibility");
+    for (float pitch:{0.f,-16.f,-12.f,-9.f,-20.f,0.f}) {
+        const bool hide=armVisibility.Hide(true,pitch*(locomotion::Pi/180.f));
+        testVisibleJoints=firstperson::HdDrawMeshBits(0,false,false,hide);
+        testBodyPalette=visibilityPalette;
+        BoneSkinAfterValidate(false);
+        gl::GetUniformfv(program,loc,uniform);
+        Require(BoneSkinActive() && uniform[3]==1,"chest deformation stays enabled with arms shown or hidden");
+        float mask[4]{}; gl::GetUniformfv(program,visibilityLoc,mask);
+        Require(mask[3]==1 && uint32_t(mask[0])==(testVisibleJoints&0xffffu) &&
+                (uint32_t(mask[0])&(1u<<7))!=0,"GPU receives the arm mask while keeping torso visible");
+        float afterOffset[3]{};
+        Require(DynamicBonesWorldOffset(afterOffset) &&
+                std::memcmp(beforeOffset,afterOffset,sizeof(beforeOffset))==0,
+                "arm visibility changes preserve live jiggle solver displacement");
+    }
+    testBodyPalette=nullptr;
+    g_drawRenderBody = false;
+    BoneSkinAfterValidate(false);
+    gl::GetUniformfv(program, loc, uniform);
+    Require(uniform[3] == 0, "NPC draw clears inherited chest uniform");
+    BoneSkinResetRegion();
+    Require(!BoneSkinActive() && !g_regionReady && g_measuredBuffers.empty(), "game/level reset drops mesh calibration");
+    Require(glGetError() == GL_NO_ERROR, "shader validation leaves no GL error");
+    gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
+
+    // Actual GPU regression: vertices split 50/50 between wrist and forearm
+    // must keep their full positions. Native masking supplies a zero forearm.
+    std::string handVertex=R"GLSL(#version 150
+uniform vec4 uJoints[96];
+uniform vec4 uWeights;
+void main() {
+    vec2 points[3]=vec2[3](vec2(-1,-1),vec2(3,-1),vec2(-1,3));
+    vec4 coord=vec4(points[gl_VertexID],0,1);
+    vec4 j = aLight;
+    vec4 w = aColor;
+    ivec3 index=ivec3(j.xyz)*3;
+    float weight=w.x;
+    vec3 p=vec3(dot(uJoints[index[0]],coord),dot(uJoints[index[0]+1],coord),dot(uJoints[index[0]+2],coord))*weight;
+    weight=w.y;
+    p+=vec3(dot(uJoints[index[1]],coord),dot(uJoints[index[1]+1],coord),dot(uJoints[index[1]+2],coord))*weight;
+    weight=w.z;
+    p.x += dot(uJoints[index[2] + 0], coord) * weight;
+    p.y += dot(uJoints[index[2] + 1], coord) * weight;
+    p.z += dot(uJoints[index[2] + 2], coord) * weight;
+    gl_Position=vec4(p.xy,0,1);
+}
+)GLSL";
+    // Keep the real shader's j/w declarations for the production patcher.
+    handVertex.insert(handVertex.find("void main()"),
+        "#define aLight vec4(10,9,0,0)\n#define aColor uWeights\n");
+    std::string handFragment="#version 150\nout vec4 color; void main(){ color=vec4(1,1,1,1); }";
+    Require(handskin::Patch(handVertex,handFragment),"patch mixed wrist/forearm GPU regression");
+    vertex=gl::CreateShader(GL_VERTEX_SHADER); fragment=gl::CreateShader(GL_FRAGMENT_SHADER);
+    vertexText=handVertex.c_str(); fragmentText=handFragment.c_str();
+    gl::ShaderSource(vertex,1,&vertexText,nullptr); gl::CompileShader(vertex);
+    gl::ShaderSource(fragment,1,&fragmentText,nullptr); gl::CompileShader(fragment);
+    program=gl::CreateProgram(); gl::AttachShader(program,vertex); gl::AttachShader(program,fragment);
+    gl::LinkProgram(program); gl::GetProgramiv(program,GL_LINK_STATUS,&linked);
+    Require(linked!=0,"mixed wrist regression links");
+    gl::UseProgram(program); testShaders[0].id=program; InvalidateProgram(program);
+    GLuint vao=0; gl::GenVertexArrays(1,&vao); gl::BindVertexArray(vao);
+    glViewport(0,0,8,8); glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
+    float fullPalette[96*4]{};
+    for (int joint=0;joint<32;++joint) {
+        fullPalette[joint*12]=fullPalette[joint*12+5]=fullPalette[joint*12+10]=1;
+    }
+    float maskedPalette[96*4]{};
+    std::memcpy(maskedPalette+10*12,fullPalette+10*12,12*sizeof(float));
+    const GLint jointsLoc=gl::GetUniformLocation(program,"uJoints[0]");
+    const GLint weightsLoc=gl::GetUniformLocation(program,"uWeights");
+    const float mixedWeights[4]={.5f,.5f,0,0};
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    testHandPalette=fullPalette; testHandJoint=10;
+    testConfig.dynamicBones=false; // Hand correction must work independently.
+    BoneSkinAfterValidate(false);
+    const auto pixelWhite=[&]() {
+        glClearColor(0,0,0,1); glClear(GL_COLOR_BUFFER_BIT);
+        glDrawArrays(GL_TRIANGLES,0,3);
+        unsigned char pixel[4]{}; glReadPixels(6,6,1,1,GL_RGBA,GL_UNSIGNED_BYTE,pixel);
+        return pixel[0]>240 && pixel[1]>240 && pixel[2]>240;
+    };
+    Require(pixelWhite(),"mixed wrist vertices keep full shape with hidden forearm");
+    fullPalette[9*12+3]=20;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"animated forearm cannot warp the tracked wrist (TR4/5 repair)");
+    const float belowSeam[4]={.49f,.51f,0,0};
+    gl::Uniform4fv(weightsLoc,1,belowSeam);
+    Require(!pixelWhite(),"forearm side is trimmed at the 50-percent seam");
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    fullPalette[9*12+3]=0;
+    BoneSkinAfterValidate(false);
+    Require((testState.consts&kJoints)!=0,"hand GPU override dirties next native palette upload");
+    const float forearmWeights[4]={0,1,0,0};
+    gl::Uniform4fv(weightsLoc,1,forearmWeights);
+    Require(!pixelWhite(),"unwanted forearm fragments are hidden without collapsing bones");
+    testHandPalette=nullptr; testHandJoint=-1;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"following non-hand draw clears persistent wrist clipping");
+    float fittedBody[384]{};
+    std::memcpy(fittedBody,fullPalette,sizeof(fittedBody));
+    stabilization::GroundEye resolvedFit;
+    resolvedFit.Apply({0,0,0},0,{0,-710,0},0);
+    stabilization::OffsetBodyPalette(fittedBody,32,
+        resolvedFit.BodyOffsetAtEye(0,0,{},{},423,{4,0}));
+    gl::Uniform4fv(jointsLoc,96,fittedBody);
+    Require(!pixelWhite(),"ordinary body skin follows physical-turn palette correction on the GPU");
+    // A following clear frame computes its own zero offset; no camera toggle
+    // is needed to undo the prior collision-resolved body fit.
+    stabilization::OffsetBodyPalette(fullPalette,32,
+        resolvedFit.BodyOffsetAtEye(0,0,{},{},423,{0,0}));
+    gl::Uniform4fv(jointsLoc,96,fullPalette);
+    Require(pixelWhite(),"fresh native palette restores ordinary body pixels without accumulated fit");
+    // Reproduce hidden shoulder/torso collapse with a mixed skin vertex.
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    Require(!pixelWhite(),"native zero-bone masking deforms the mixed ledge seam");
+    testBodyPalette=fullPalette; testVisibleJoints=1u<<10;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"ledge arm seam retains full native positions with torso hidden");
+    gl::Uniform4fv(weightsLoc,1,forearmWeights);
+    Require(!pixelWhite(),"body mask discards hidden torso fragments");
+    // A costume cuff may be mostly weighted to the hidden wrist while still
+    // sharing the visible forearm. Keep its blended surface, not the hand.
+    const float cuffWeights[4]={.75f,.25f,0,0},pureHand[4]={1,0,0,0};
+    testVisibleJoints=1u<<9;gl::Uniform4fv(weightsLoc,1,cuffWeights);
+    BoneSkinAfterValidate(false);Require(!pixelWhite(),"old body threshold removes wrist-heavy cuff pixels");
+    testWristSeams=1u<<10;BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"body wrist exception preserves mixed costume cuff pixels");
+    gl::Uniform4fv(weightsLoc,1,pureHand);
+    Require(!pixelWhite(),"cuff exception cannot reveal pure hidden hand surfaces");
+    gl::Uniform4fv(weightsLoc,1,cuffWeights);testWristSeams=1u<<13;BoneSkinAfterValidate(false);
+    Require(!pixelWhite(),"unrelated hidden joints retain normal visibility threshold");
+    testWristSeams=1u<<10;BoneSkinAfterValidate(false);Require(pixelWhite(),"cuff exception can resume on next body pass");
+    testWristSeams=0;BoneSkinAfterValidate(false);Require(!pixelWhite(),"following body pass clears stale cuff permission");
+    testVisibleJoints=1u<<10;gl::Uniform4fv(weightsLoc,1,forearmWeights);BoneSkinAfterValidate(false);
+    // The shadow pass can reuse a program after an eye-view hand/body draw.
+    // Native uploads its palette; the production cleanup must clear old masks.
+    testShadowPass=true;gl::Uniform4fv(jointsLoc,96,fullPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"shadow draw clears a preceding first-person body visibility mask");
+    testShadowPass=false;testHandPalette=fullPalette;testHandJoint=10;
+    BoneSkinAfterValidate(false);
+    Require(!pixelWhite(),"eye-view tracked-hand seam restored after shadow");
+    testShadowPass=true;gl::Uniform4fv(jointsLoc,96,fullPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"shadow draw clears a preceding tracked-wrist clipping uniform");
+    // Shadow attachment draws also zero masked bones. Restore the complete
+    // skin palette, and keep gun vertices rigid even when forearm/wrist differ.
+    testShadowPalette=fullPalette;testVisibleJoints=1u<<10;
+    gl::Uniform4fv(weightsLoc,1,mixedWeights);
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"tracked shadow retains full gun size across a masked forearm seam");
+    fullPalette[9*12]=fullPalette[9*12+5]=-1;
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"opposed forearm/wrist rotations cannot shrink the pistol shadow");
+    fullPalette[9*12]=fullPalette[9*12+5]=1;
+    testVisibleJoints=1u<<9;
+    gl::Uniform4fv(weightsLoc,1,belowSeam);
+    gl::Uniform4fv(jointsLoc,96,maskedPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"forearm shadow keeps full mixed-bone width and length");
+    gl::Uniform4fv(weightsLoc,1,forearmWeights);
+    testVisibleJoints=1u<<10;BoneSkinAfterValidate(false);
+    Require(!pixelWhite(),"shadow repair respects the attachment's native mesh mask");
+    testShadowPalette=nullptr;gl::Uniform4fv(jointsLoc,96,fullPalette);
+    BoneSkinAfterValidate(false);
+    Require(pixelWhite(),"following native shadow clears tracked shadow visibility");
+    testShadowPass=false;testHandPalette=nullptr;testHandJoint=-1;
+    // Drop, walk, rehang, and exit first person on the same shader program.
+    for (int transition=0;transition<8;++transition) {
+        gl::Uniform4fv(weightsLoc,1,mixedWeights);
+        testBodyPalette=(transition%2)==0 ? fullPalette : nullptr;
+        gl::Uniform4fv(jointsLoc,96,fullPalette); // native validate on next draw
+        BoneSkinAfterValidate(false);
+        Require(pixelWhite(),"ledge transition preserves fresh native mesh positions");
+        gl::Uniform4fv(weightsLoc,1,forearmWeights);
+        Require(pixelWhite()==(testBodyPalette==nullptr),"visibility clears on each ledge/NPC transition");
+    }
+    firstperson::UnarmedArmVisibility pixelArms;
+    for (float pitch:{0.f,-16.f,-12.f,-9.f,-12.f,-20.f}) {
+        const bool hide=pixelArms.Hide(true,pitch*(locomotion::Pi/180.f));
+        testBodyPalette=fullPalette;
+        testVisibleJoints=firstperson::HdDrawMeshBits(0,false,false,hide);
+        gl::Uniform4fv(weightsLoc,1,forearmWeights);
+        BoneSkinAfterValidate(false);
+        Require(pixelWhite()!=hide,"unarmed arm pixels follow the look-down hysteresis mask");
+        testHandPalette=fullPalette; testHandJoint=10;
+        gl::Uniform4fv(weightsLoc,1,mixedWeights);
+        BoneSkinAfterValidate(false);
+        Require(pixelWhite(),"tracked weapon hand pixels ignore a preceding hidden-arm body mask");
+        testHandPalette=nullptr; testHandJoint=-1;
+    }
+    testBodyPalette=nullptr;
+    BoneSkinAfterValidate(false);
+    Require(glGetError()==GL_NO_ERROR,"hand skin GPU regression leaves no GL errors");
+    gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);
+    gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
+
+    // An open four-sided sleeve viewed through its wrist has an empty centre.
+    // Extract its actual indexed rim and verify the production cap fills it.
+    std::string capVertex=handVertex;
+    auto replace=[&](const char* from,const char* to) {
+        const auto at=capVertex.find(from); Require(at!=std::string::npos,"cap fixture source anchor");
+        capVertex.replace(at,std::strlen(from),to);
+    };
+    replace("#define aLight vec4(10,9,0,0)\n#define aColor uWeights\n",
+            "in vec3 aCoord;\nin vec4 aLight;\nin vec4 aColor;\n"
+            "uniform mat4 uProjMatrix;\nuniform vec4 uViewMatrix[3];\n");
+    replace("vec2 points[3]=vec2[3](vec2(-1,-1),vec2(3,-1),vec2(-1,3));\n    vec4 coord=vec4(points[gl_VertexID],0,1);",
+            "vec4 coord=vec4(aCoord,1);");
+    replace("gl_Position=vec4(p.xy,0,1);",
+            "gl_Position=uProjMatrix*vec4(dot(uViewMatrix[0].xyz,p),dot(uViewMatrix[1].xyz,p),dot(uViewMatrix[2].xyz,p),1);");
+    vertex=gl::CreateShader(GL_VERTEX_SHADER); fragment=gl::CreateShader(GL_FRAGMENT_SHADER);
+    vertexText=capVertex.c_str(); fragmentText=handFragment.c_str();
+    gl::ShaderSource(vertex,1,&vertexText,nullptr); gl::CompileShader(vertex);
+    gl::ShaderSource(fragment,1,&fragmentText,nullptr); gl::CompileShader(fragment);
+    program=gl::CreateProgram(); gl::AttachShader(program,vertex); gl::AttachShader(program,fragment);
+    gl::LinkProgram(program); gl::GetProgramiv(program,GL_LINK_STATUS,&linked);
+    Require(linked!=0,"wrist cap mesh fixture links");
+    gl::UseProgram(program); testShaders[0].id=program; InvalidateProgram(program);
+    // Match the native byte-packed bone indices and normalized byte weights.
+    struct CapVertex { float pos[3]; uint8_t normal[4],joints[4],weights[4],padding[4]; } sleeve[8]{};
+    const float corners[4][2]={{-.7f,-.7f},{.7f,-.7f},{.7f,.7f},{-.7f,.7f}};
+    for (int i=0;i<8;++i) {
+        sleeve[i].pos[0]=corners[i%4][0]; sleeve[i].pos[1]=corners[i%4][1];
+        sleeve[i].pos[2]=i<4 ? .4f : .8f;
+        sleeve[i].joints[0]=10; sleeve[i].joints[1]=9;
+        // Both rings exceeded the old 5% cutoff, so it produced no cap rim.
+        sleeve[i].weights[0]=i<4 ? 64 : 255;
+        sleeve[i].weights[1]=i<4 ? 191 : 0;
+    }
+    uint16_t sleeveIndices[24]{};
+    for (int i=0;i<4;++i) {
+        const uint16_t face[6]={uint16_t(i),uint16_t((i+1)%4),uint16_t(i+4),
+            uint16_t((i+1)%4),uint16_t((i+1)%4+4),uint16_t(i+4)};
+        std::memcpy(sleeveIndices+i*6,face,sizeof(face));
+    }
+    GLuint vertexBuffer=0,indexBuffer=0;
+    gl::GenVertexArrays(1,&vao); gl::BindVertexArray(vao);
+    gl::GenBuffers(1,&vertexBuffer); gl::BindBuffer(GL_ARRAY_BUFFER,vertexBuffer);
+    gl::BufferData(GL_ARRAY_BUFFER,sizeof(sleeve),sleeve,GL_STATIC_DRAW);
+    const char* attrs[]={"aCoord","aLight","aColor"};
+    const size_t offsets[]={offsetof(CapVertex,pos),offsetof(CapVertex,joints),offsetof(CapVertex,weights)};
+    for (int i=0;i<3;++i) {
+        const GLint attrLoc=gl::GetAttribLocation(program,attrs[i]);
+        Require(attrLoc>=0,"wrist cap reads active native skin attributes");
+        gl::VertexAttribPointer(attrLoc,i==0 ? 3 : 4,i==0 ? GL_FLOAT : GL_UNSIGNED_BYTE,
+            i==2 ? GL_TRUE : GL_FALSE,sizeof(CapVertex),reinterpret_cast<void*>(offsets[i]));
+        gl::EnableVertexAttribArray(attrLoc);
+    }
+    gl::GenBuffers(1,&indexBuffer); gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,indexBuffer);
+    gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(sleeveIndices),sleeveIndices,GL_STATIC_DRAW);
+    uint32_t mesh[5]={vao,indexBuffer,vertexBuffer,0,2};
+    const float capProjection[16]={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+    float view[12]={1,0,0,0,0,1,0,0,0,0,1,0};
+    gl::UniformMatrix4fv(gl::GetUniformLocation(program,"uProjMatrix"),1,GL_FALSE,capProjection);
+    gl::Uniform4fv(gl::GetUniformLocation(program,"uViewMatrix[0]"),3,view);
+    gl::Uniform4fv(gl::GetUniformLocation(program,"uJoints[0]"),96,maskedPalette);
+    testHandPalette=fullPalette; testHandJoint=10;
+    BoneSkinAfterValidate(false);
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_CULL_FACE); glDepthMask(GL_FALSE);
+    for (int pass=0;pass<4;++pass) {
+        if (pass==2) {
+            // Reproduce the reported failure: the other hand has an open
+            // native wrist, but every vertex is fully hand-weighted. There
+            // are NO shader-cutoff crossings from which to build a cap.
+            ResetWristCaps();
+            for (auto& v:sleeve) {
+                v.joints[0]=13; v.weights[0]=255; v.weights[1]=0;
+            }
+            gl::BindBuffer(GL_ARRAY_BUFFER,vertexBuffer);
+            gl::BufferData(GL_ARRAY_BUFFER,sizeof(sleeve),sleeve,GL_STATIC_DRAW);
+            testHandJoint=13;
+            BoneSkinAfterValidate(false);
+        }
+        view[0]=(pass%2) ? -1.f : 1.f;
+        gl::Uniform4fv(gl::GetUniformLocation(program,"uViewMatrix[0]"),3,view);
+        glClearColor(1,0,1,0); glClear(GL_COLOR_BUFFER_BIT);
+        glDrawElements(GL_TRIANGLES,24,GL_UNSIGNED_SHORT,nullptr);
+        unsigned char empty[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,empty);
+        Require(empty[0]>240 && empty[1]<5 && empty[2]>240,"native clipped sleeve leaves an open wrist");
+        // Each material draws only half the sleeve. The boundary must still
+        // use the whole surface, with no false cap along a material border.
+        BoneSkinDrawWristCap(mesh,(pass%2)*12,12);
+        unsigned char sealed[4]{}; glReadPixels(4,4,1,1,GL_RGBA,GL_UNSIGNED_BYTE,sealed);
+        Require(sealed[0]<5 && sealed[1]<5 && sealed[2]<5,
+                "opaque black cap closes clipped AND fully weighted native wrists from both sides");
+        GLint restoredProgram=0,restoredVao=0,restoredBuffer=0;
+        GLboolean restoredDepth=GL_TRUE;
+        glGetIntegerv(GL_CURRENT_PROGRAM,&restoredProgram); glGetIntegerv(GL_VERTEX_ARRAY_BINDING,&restoredVao);
+        glGetIntegerv(GL_ARRAY_BUFFER_BINDING,&restoredBuffer); glGetBooleanv(GL_DEPTH_WRITEMASK,&restoredDepth);
+        Require(restoredProgram==GLint(program) && restoredVao==GLint(vao) &&
+                restoredBuffer==GLint(vertexBuffer) && glIsEnabled(GL_BLEND) &&
+                glIsEnabled(GL_CULL_FACE) && !restoredDepth,"cap draw restores native rendering state");
+    }
+    Require(g_wristRims.size()==1 && g_wristRims.back().loops.size()==2,
+            "material ranges share the two real sleeve openings without artificial seams");
+    Require(glGetError()==GL_NO_ERROR,"wrist cap GPU regression leaves no GL errors");
+    testHandPalette=nullptr; testHandJoint=-1;
+    gl::BindVertexArray(0); gl::DeleteVertexArrays(1,&vao);
+    gl::DeleteBuffers(1,&vertexBuffer); gl::DeleteBuffers(1,&indexBuffer);
+    gl::UseProgram(0); gl::DeleteProgram(program); gl::DeleteShader(vertex); gl::DeleteShader(fragment);
+    ResetWristCaps();
+    Require(g_capProgram==0 && g_capVao==0 && g_capBuffer==0 && g_wristRims.empty(),
+            "wrist cap resources and mesh cache reset safely");
+    wglMakeCurrent(nullptr, nullptr); wglDeleteContext(context); ReleaseDC(window,dc); DestroyWindow(window);
+    ResetPhysics();testDll.drawLaraHD=1;testConfig.dynamicBones=false;
+    g_settled=true;DynamicBonesUpdate();
+    float disabledOffset[3]{};
+    Require(g_boundDll==&testDll && !g_settled && !DynamicBonesWorldOffset(disabledOffset),
+            "holster draw scope survives disabled chest physics without applying deformation");
+    g_boundDll = nullptr;
+    std::printf("Physics self-test: %d checks passed\n", checks);
+    return 0;
+}

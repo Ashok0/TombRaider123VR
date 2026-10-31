@@ -101,12 +101,12 @@ void TestPhysicalSwitch() {
         Check(PhysicalSwitchReady() && SwitchHand(hand),"lever has usable first-person tracking");
         Check(SwitchReach(leverItem,item,hand,distance,false),"nearby hand reaches native wall lever");
         Check(!SwitchReach(leverItem,item,Add(hand,{1000,0,0}),distance,false),"distant hand cannot grab");
-        // TR4/5 ordinary-lever reach follows the mesh, not the mutable native
-        // tank/modern horizontal bounds. Check actual acceptance at each edge.
+        // Hand reach must work outside the native Action-icon zone in either
+        // control scheme, without permitting remote or backside grabs.
         const auto savedBody=Field<PHD_3DPOS>(88);
         const auto savedTarget=LeverField<PHD_3DPOS>(88);
         int16_t savedReach[12];std::memcpy(savedReach,leverReach,sizeof(savedReach));
-        for(int yaw:{0,0x4000}) {
+        for(int yaw:{0,0x4000,0x8000,0xc000}) {
             LeverField<PHD_3DPOS>(88)={100,0,200,0,int16_t(yaw),0,0};
             const auto world=[&](float x,float y,float z) {
                 const auto rotated=locomotion::Rotate({x,z},Radians(int16_t(yaw)));
@@ -121,9 +121,10 @@ void TestPhysicalSwitch() {
                     body.x_pos=int32_t(std::round(p.x));body.y_pos=int32_t(std::round(p.y));body.z_pos=int32_t(std::round(p.z));
                     return SwitchReach(leverItem,item,nearHand,distance,false);
                 };
-                Check(reach(-320,0,-150) && reach(320,0,-150),"mesh-relative lateral limits match TR4/5 regardless of native control bounds");
-                Check(!reach(-321,0,-150) && !reach(321,0,-150),"beyond mesh-relative lateral limits cannot grab");
-                Check(reach(0,0,-232) && !reach(0,0,-233),"ordinary lever uses TR4/5 mesh-relative 200-unit depth");
+                Check(reach(-450,0,-500) && reach(450,0,-500),"hand reaches lever outside native lateral and depth prompt zone");
+                Check(!FakeLeverPosition(leverReach,leverItem,item),"native Action reach rejects the same off-centre body pose");
+                Check(!reach(-1100,0,-150) && !reach(1100,0,-150) && !reach(0,0,-1100),"remote body cannot grab a lever");
+                Check(reach(0,0,-500),"standing back from prompt zone still permits hand contact");
                 Check(!reach(0,101,-150) && !reach(0,0,100),"native vertical reach and backside rejection remain enforced");
                 Check(leverReach[0]==-width && leverReach[1]==width && leverReach[4]==savedReach[4],"physical reach never rewrites native Action bounds");
             }
@@ -132,7 +133,7 @@ void TestPhysicalSwitch() {
         Field<PHD_3DPOS>(88)=savedBody;LeverField<PHD_3DPOS>(88)=savedTarget;
         Field<PHD_3DPOS>(88).z_pos=100;
         Check(!SwitchReach(leverItem,item,hand,distance,false),"cannot grab through backside");
-        Field<PHD_3DPOS>(88).z_pos=-150;Field<PHD_3DPOS>(88).y_rot=Angle(1.2f);
+        Field<PHD_3DPOS>(88).x_pos=450;Field<PHD_3DPOS>(88).z_pos=-500;Field<PHD_3DPOS>(88).y_rot=Angle(1.2f);
         Check(SwitchReach(leverItem,item,hand,distance,false),"hand replaces Lara facing without moving body");
         --LeverField<int16_t>(16);
         Check(!SwitchReach(leverItem,item,hand,distance,false),"special switches remain native");

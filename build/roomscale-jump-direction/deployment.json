@@ -1,0 +1,11 @@
+﻿{
+    "headset_verified":  false,
+    "release_build":  "passed",
+    "native_direction_checks":  792,
+    "regression_checks":  1215548,
+    "new_sha256":  "F79BDDBFC2166DB841B3BC2D291A4BF2E7B0DE4FE8DC16FD5C0EF8C653C83354",
+    "deployed_at":  "2026-10-31T01:02:17.8213335-04:00",
+    "old_sha256":  "68E1553632D1FF5AC2945BA5F58353E348345AFEF4AF0646175BC8973B8BAFAE",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\roomscale-jump-direction\\before-20261031-010217",
+    "ini_sha256":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88"
+}

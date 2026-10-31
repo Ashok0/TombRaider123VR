@@ -1,0 +1,184 @@
+// VRSystem.h -- OpenVR runtime binding.
+//
+// openvr_api.dll is loaded at runtime through its exported C entry points
+// (VR_InitInternal / VR_GetGenericInterface / VR_ShutdownInternal) rather than
+// linked against openvr_api.lib. Only the header is needed to build, which
+// keeps the project buildable from a headers-only drop of the SDK and avoids
+// an import that would make the DLL fail to load when the runtime is absent.
+#pragma once
+
+#include "StereoMath.h"
+#include "GunHaptics.h"
+#include "IndexInput.h"
+#include "GL.h"        // GLuint, and windows.h for HMODULE
+#include <openvr.h>
+
+namespace tr {
+
+enum class Eye { Left = 0, Right = 1 };
+
+class VRSystem {
+public:
+    bool Init();
+    void Shutdown();
+
+    bool active() const { return m_system != nullptr; }
+
+    // Recommended per-eye target size, already multiplied by SuperSample and
+    // overridden by the ini if it set explicit values.
+    void GetEyeSize(uint32_t& w, uint32_t& h) const;
+
+    // Blocks until the compositor says it is time to render, then latches the
+    // HMD pose for this frame. Call once per frame, at the frame boundary.
+    void BeginFrame();
+
+    // Eye transform in ENGINE view space, ready to be composed onto the game's
+    // view matrix:   finalView = EyeView(eye) * gameView
+    Affine EyeView(Eye eye) const { return EyeView(eye, true); }
+
+    // `headTranslation = false` keeps the head's ROTATION and the IPD baseline
+    // but drops the tracked head position. First person uses it: there the
+    // viewpoint is Lara's head, and adding the player's own offset from the
+    // tracking origin on top of it floats the camera above her.
+    Affine EyeView(Eye eye, bool headTranslation) const;
+
+    // The same transform WITHOUT the per-eye offset: head centre rather than
+    // either pupil. This is what the room culling wants -- one frustum that
+    // covers both eyes, rather than two traversals that would agree about
+    // everything except a 64 mm baseline. In mono, EyeView IS this.
+    // Absolute tracking-space yaw, positive right. NOT relative to game camera.
+    float HeadYawRadians() const;
+    float HeadPitchRadians() const;
+
+    // Forget where "still" is; the next valid pose becomes the new neutral.
+    // Head translation is applied as a displacement FROM that point, so it does
+    // not matter whether the runtime's origin is the floor, a seated zero, or
+    // something left over from the last session.
+    void RecenterHead();
+    void RecenterView();
+    bool LevelHeadPose(vr::HmdMatrix34_t& out) const;
+    Affine AnchoredEyeView(Eye eye,const vr::HmdMatrix34_t& anchor) const;
+
+    // Horizontal body request in tracking metres (+x right, +z FORWARD),
+    // corrected for the estimated neck-to-HMD arc. The stabilized rendered eye
+    // uses raw tracked displacement; vertical tracking remains raw.
+    void HeadFloorOffset(float& right, float& forward) const;
+    void FirstPersonViewOffset(float& right, float& forward) const;
+    float HeadVerticalOffset() const;
+    void ConsumeHeadFloorOffset(float right, float forward);
+    // Keep the current eye position fixed while turning the virtual world.
+    void PivotHeadFloorOffset(float yawDelta);
+
+    Affine HeadView() const { return HeadView(true); }
+    Affine HeadView(bool headTranslation) const;
+
+    // Half-angle tangents of a SYMMETRIC frustum that contains both eyes'
+    // asymmetric ones: the largest |l|,|r| and |t|,|b| across the pair.
+    //
+    // Deliberately conservative. Culling wants a superset of what will be
+    // rendered, and taking the max of the magnitudes removes every dependence
+    // on which way round OpenVR's raw tangents are signed -- the one part of
+    // BuildEyeProjection that had to be worked out rather than read off.
+    //
+    // False before the projection is known, in which case the caller should
+    // fall back to something wide rather than cull with a guess.
+    bool CullTangents(float& tanX, float& tanY) const;
+
+    // Fills `out` with this eye's projection in the engine's mProj layout,
+    // preserving the near/far currently in use.
+    void EyeProjection(Eye eye, float zNear, float zFar, mat4& out) const;
+
+    // Hand the finished double-wide texture to the compositor. `bounds` picks
+    // the half: left = [0,0.5], right = [0.5,1].
+    void Submit(GLuint doubleWideTex, uint32_t texW, uint32_t texH);
+
+    // Horizontal NDC shift for the flat 2D layer (HUD, menus, subtitles) so it
+    // fuses at `depthMetres` instead of tearing apart.
+    //
+    // The 2D layer is drawn with the engine's ortho projection, identical in
+    // both eyes. The headset optics apply a fixed per-eye correction assuming an
+    // asymmetric render -- about 15 degrees each way here -- so an unshifted
+    // image gets pulled apart and cannot fuse. 3D content carries that shear in
+    // its projection; the ortho layer has to be given it explicitly.
+    //
+    //   shift = -P02  +  s * P00 * halfSeparation / depth
+    //           ^align with the optics   ^converge to a comfortable distance
+    float HudNdcShiftX(Eye eye, float depthMetres) const;
+
+    // --- controllers ---------------------------------------------------------
+    // Legacy input by default; ValveIndexControllers opts into explicit actions.
+    struct HandState {
+        bool     valid      = false;
+        float    stickX     = 0.0f;   // -1..1
+        float    stickY     = 0.0f;
+        float    trigger    = 0.0f;   //  0..1
+        float    grip       = 0.0f;   //  0..1
+        bool     btnLower   = false;  // A on the right hand, X on the left
+        bool     btnUpper   = false;  // B on the right hand, Y on the left
+        bool     stickClick = false;
+        uint64_t rawPressed = 0;      // for the ini-mapping log
+    };
+    // [0] = left hand, [1] = right hand.
+    void ReadControllers(HandState out[2]) const;
+    // Confirmed shot: strong 80 ms burst on [0] left / [1] right.
+    void GunShotHaptic(int hand);
+    void LedgeCatchHaptic();
+    void HolsterHoverHaptic(int hand,bool inside);
+    bool ControllerPose(int hand, vr::HmdMatrix34_t& out) const;
+    bool ControllerHeightBelowHead(int hand, float& down) const;
+    bool FirstPersonControllerOffset(int hand, float& right, float& down,
+                                     float& forward) const;
+
+    uint64_t PoseSerial() const { return m_poseSerial; }
+    bool HeadPose(vr::HmdMatrix34_t& out) const { out=m_rawHeadPose; return m_poseValid; }
+    float FirstPersonHeightDrop() const { return -HeadVerticalOffset(); }
+    float FirstPersonPostureDrop() const;
+    float FirstPersonVerticalOffset() const { return -HeadVerticalOffset(); }
+    bool poseValid() const { return m_poseValid; }
+
+    // One-shot log flag for the ceiling clamp, so it reports the first time it
+    // bites rather than every frame it holds.
+    bool m_loggedClamp = false;
+
+private:
+    void RefreshHeadTranslation();
+    GunHaptics m_gunHaptics;
+    vr::IVRSystem*     m_system     = nullptr;
+    vr::IVRCompositor* m_compositor = nullptr;
+    vr::IVRInput* m_input = nullptr;
+    mutable IndexInput m_indexInput;
+    mutable vr::EVRInputError m_indexReadError=vr::VRInputError_None;
+    HMODULE            m_dll        = nullptr;
+
+    Affine m_headFromTracking = Affine::Identity();  // inverse(hmdPose)
+    float  m_headNeutral[3]   = { 0.0f, 0.0f, 0.0f };
+    float  m_headPosRaw[3]    = { 0.0f, 0.0f, 0.0f };   // before the neutral
+    float  m_neutralNeckToHead[2] = {}; // tracking-floor metres (right, forward)
+    float  m_neutralEyeNeckY = 0;
+    bool   m_haveNeutral      = false;
+    Affine m_eyeFromHead[2]   = { Affine::Identity(), Affine::Identity() };
+    float  m_rawProj[2][4]    = {};                  // l, r, t, b per eye
+    bool   m_poseValid        = false;
+    mutable float m_headingYaw = 0;
+    mutable bool m_headingYawValid = false, m_headingYawVertical = false;
+    bool m_runtimeRecenterPending = false, m_runtimeRecenterHadYaw = false;
+    float m_runtimeRecenterYaw = 0;
+    void HandleRuntimeEvent(const vr::VREvent_t& event);
+    void ApplyRuntimeRecenter();
+
+    vr::HmdMatrix34_t m_controllerPose[2]{};
+    bool   m_controllerPoseValid[2]{};
+    Affine m_trackingFromRuntime=Affine::Identity();
+    bool m_viewRecenterPending=false,m_levelNeutralValid=false;
+    const void* m_levelRooms=nullptr;
+    int m_levelGame=-1,m_levelNumber=-1;
+    uint64_t m_poseSerial=0;
+    vr::HmdMatrix34_t m_rawHeadPose{};
+    unsigned m_poseLogTick    = 0;
+
+    uint32_t m_eyeW = 0, m_eyeH = 0;
+};
+
+VRSystem& VR();
+
+} // namespace tr

@@ -387,10 +387,14 @@ void TestFirstPersonParity() {
     for (int state:{54,2,3,2,54,2}) {
         ArmSetup(1,state);Field<uint32_t>(12)=0;g_headHidden=true;
         g_ledgeArmsOnly=locomotion::IsLedgeArmsOnlyState(state);
+        armDrawCombinedBits=armDrawCombinedSkinMask=0;
         Detour_DrawCreatureHD(item,0);
-        Check(armDrawPalette && (armDrawBits&0x3f00u)==0x3f00u &&
-            ((armDrawBits&(1u<<7))!=0)==!g_ledgeArmsOnly,
-            "mount recovery restores body and arms despite stale persistent visibility");
+        const uint32_t expected=g_ledgeArmsOnly ? firstperson::HandMeshBits : firstperson::ArmMeshBits;
+        // Mounts use the separate rigid-hand palette; only the recovered
+        // ordinary body advertises a body-skin palette to the renderer.
+        Check(armDrawPalette==!g_ledgeArmsOnly && (armDrawCombinedBits&firstperson::ArmMeshBits)==expected &&
+            ((armDrawCombinedBits&(1u<<7))!=0)==!g_ledgeArmsOnly,
+            "mounting keeps separate hands and recovery restores body despite stale persistent visibility");
     }
 }
 } // namespace

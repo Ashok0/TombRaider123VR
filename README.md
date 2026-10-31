@@ -3,6 +3,26 @@
 Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered*
 (`tomb123.exe`), covering all three games.
 
+### Jump direction after physical turns (2026-10-31)
+
+Neutral first-person jumps now retain the native up-jump after physical turning,
+including with guns drawn. Native armed steering previously treated the gap
+between headset yaw and Lara's slower body-follow yaw as a Left/Right request,
+even with zero stick axes. Standing forward jumps also use the jump direction
+and body heading already chosen from the original left-stick input.
+
+During native standing/compression dispatch, the hook temporarily suppresses
+the redundant analog rotation and matches its camera heading to Lara's heading.
+The live analog values are restored afterwards. Native jump clearance, speeds,
+gravity, running jumps and physical headset tracking remain unchanged.
+
+The regression replay covers physical and artificial turns, centered and
+forward sticks, armed/unarmed states and TR1/2/3. Running the original native
+routines on private fixture memory reproduces 36 neutral-to-side misdirections
+across the three games; all 792 native direction/clearance cases and 1,215,548
+hook regression checks pass. Release/x64 builds successfully. Headset
+confirmation remains pending.
+
 ### Body centering after roomscale jumps (2026-10-30)
 
 First-person full-body rendering now keeps Lara centered on the player's
@@ -1605,10 +1625,11 @@ moving Lara or switching the camera to third person. Release before grabbing
 again. Away from a lever, Right Grip still means Walk. Both-grip Action, menus,
 Photo Mode and Y/trigger chords take priority.
 
-Grab reach matches TR4/5 ordinary levers: Lara's allowed position extends 256
-game units sideways and 200 units in depth beyond the lever's mesh bounds.
-Native height limits, backside rejection and tracked-hand proximity still
-apply (18 cm to grab, 40 cm while holding). Native Y/Action bounds are unchanged.
+The Action icon does not need to be visible or active. Grab reach uses tracked
+hand proximity (18 cm to grab, 40 cm while holding), independently of the native
+horizontal Action zone. Lara must remain within 90 cm horizontally of the
+lever's mesh, on its usable side and within native floor-height limits.
+Native Y/Action bounds and third-person controls are unchanged.
 Input priority remains as ported: either trigger, System, Photo Mode or Action
 cancels a grab so equipping weapons and changing modes take precedence.
 

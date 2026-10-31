@@ -1,6 +1,7 @@
 // Actual visibility and HD draw hooks, including the palette sent to shaders.
 namespace {
 uint32_t armDrawBits=0, armDrawSkinMask=0;
+uint32_t armDrawCombinedBits=0,armDrawCombinedSkinMask=0;
 int armDrawMasked=0;
 bool armDrawPalette=false;
 void __cdecl NativeArmJoints(uint8_t*) {
@@ -16,6 +17,7 @@ void __cdecl NativeArmDraw(void* target,int32_t masked) {
     armDrawMasked=masked;
     tr::Detour_GetJoints(static_cast<uint8_t*>(target));
     const float* palette=tr::FirstPersonBodySkin(armDrawSkinMask);
+    armDrawCombinedBits|=armDrawBits;armDrawCombinedSkinMask|=armDrawSkinMask;
     armDrawPalette=palette!=nullptr;
     if (palette) {
         Check(palette[7*12+3]==7.25f,"body palette retains torso transform for jiggle rendering");
@@ -98,9 +100,12 @@ void TestArmVisibility() {
             Check(!g_unarmedArmsHidden,"jumps, grabbing, hanging, climbing and pull-ups bypass the unarmed rule");
             if (locomotion::IsLedgeArmsOnlyState(state)) {
                 SetMeshVisibility(true,false,false,true,true);
+                armDrawCombinedBits=armDrawCombinedSkinMask=0;
                 Detour_DrawCreatureHD(item,0);
-                Check(armDrawBits==kArmMeshBits && armDrawSkinMask==kArmMeshBits,
-                      "ledge arm visibility takes priority even over a stale hidden-arm flag");
+                const uint32_t expected=locomotion::IsLedgeMountState(state,game)
+                    ? firstperson::HandMeshBits : kArmMeshBits;
+                Check(armDrawCombinedBits==expected && armDrawCombinedSkinMask==expected,
+                      "hanging arms and separate mounting hands override a stale hidden-arm flag");
             }
         }
         g_active=false;

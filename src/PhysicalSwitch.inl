@@ -194,9 +194,8 @@ bool UpdateSwitchPreview(uint8_t* item,motiongun::Vec hand,uint64_t now) {
         SwitchLength(Sub(hand,p.points[0]))>=scale*.03f;
 }
 
-// Match TR4/5 ordinary-lever mesh-relative reach while retaining native height
-// limits and letting a tracked hand replace Lara's facing.
-// The copied probe is never passed to simulation or written back to Lara.
+// The tracked hand owns reach, independently of the native Action-icon zone.
+// Keep Lara on the usable side and floor, within a physical arm's reach.
 bool SwitchReach(uint8_t* target,uint8_t* lara,motiongun::Vec hand,float& distance,bool grabbed) {
     const int object=*reinterpret_cast<const int16_t*>(target+16);
     const int state=*reinterpret_cast<const int16_t*>(target+off::item_anim_state);
@@ -218,25 +217,25 @@ bool SwitchReach(uint8_t* target,uint8_t* lara,motiongun::Vec hand,float& distan
     if(nativePointer) std::memcpy(nativeBounds,nativePointer,sizeof(nativeBounds));
     *reinterpret_cast<int16_t*>(target+24)=savedAnimation;*reinterpret_cast<int16_t*>(target+26)=savedFrame;
     if (!nativePointer) return false;
-    int16_t bounds[12];std::memcpy(bounds,Ptr<int16_t>(g_switchDll->bounds),sizeof(bounds));
+    const auto* bounds=Ptr<int16_t>(g_switchDll->bounds);
     for (int i=0;i<3;++i) if (nativeBounds[i*2]>nativeBounds[i*2+1] ||
         nativeBounds[i*2]<-4096 || nativeBounds[i*2+1]>4096) return false;
-    bounds[0]=int16_t(nativeBounds[0]-256);bounds[1]=int16_t(nativeBounds[1]+256);
-    bounds[4]=int16_t(nativeBounds[4]-200);bounds[5]=int16_t(nativeBounds[5]+200);
-    alignas(8) uint8_t probe[off::item_pos+sizeof(PHD_3DPOS)];
-    std::memcpy(probe,lara,sizeof(probe));
-    auto& probePos=*reinterpret_cast<PHD_3DPOS*>(probe+off::item_pos);
-    probePos.x_rot=pos.x_rot;probePos.y_rot=pos.y_rot;probePos.z_rot=pos.z_rot;
-    if (!g_hSwitchTestPosition.Original<Fn_SwitchPosition>()(bounds,target,probe)) return false;
+    const auto& body=*reinterpret_cast<const PHD_3DPOS*>(lara+off::item_pos);
+    const float height=float(body.y_pos)-float(pos.y_pos);
+    if (height<bounds[2] || height>bounds[3]) return false;
     const auto local=locomotion::Rotate({hand.x-pos.x_pos,hand.z-pos.z_pos},-locomotion::Radians(pos.y_rot));
-    const auto bodyLocal=locomotion::Rotate({float(probePos.x_pos-pos.x_pos),float(probePos.z_pos-pos.z_pos)},-locomotion::Radians(pos.y_rot));
+    const auto bodyLocal=locomotion::Rotate({float(body.x_pos)-float(pos.x_pos),float(body.z_pos)-float(pos.z_pos)},-locomotion::Radians(pos.y_rot));
     if (bodyLocal.z>nativeBounds[4] || local.z>nativeBounds[5]+16) return false;
+    const float scale=LiveWorldUnitsPerMetre();
+    const float dx=bodyLocal.x-std::clamp(bodyLocal.x,float(nativeBounds[0]),float(nativeBounds[1]));
+    const float dz=bodyLocal.z-std::clamp(bodyLocal.z,float(nativeBounds[4]),float(nativeBounds[5]));
+    if (!std::isfinite(scale) || scale<=1 || dx*dx+dz*dz>scale*scale*.9f*.9f) return false;
     const float p[3]={local.x,hand.y-pos.y_pos,local.z};distance=0;
     for(int i=0;i<3;++i) {
         const float d=p[i]-std::clamp(p[i],float(nativeBounds[2*i]),float(nativeBounds[2*i+1]));
         distance+=d*d;
     }
-    const float radius=LiveWorldUnitsPerMetre()*(grabbed ? .40f : .18f);
+    const float radius=scale*(grabbed ? .40f : .18f);
     return std::isfinite(distance) && distance<=radius*radius;
 }
 

@@ -119,6 +119,38 @@ for game in (1, 2, 3):
                         assert goal in (26,27), (game,status,yaw,goal)
                         armed_failures+=1
                     checks+=1
-        print(f'TR{game}: {checks} native cases passed; reproduced {failures_reproduced} unarmed rotations and {armed_failures} armed back-to-side misdirections; corrected direction and clearance verified',flush=True)
+        neutral_failures=0
+        for status in (0,2,4):
+            for head in (-28000,-17000,-7300,7300,17000,28000):
+                for forward in (False,True):
+                    for clear in (False,True):
+                        for corrected in (False,True):
+                            C.memset(item,0,len(item));C.memset(image+symbols['lara'],0,432)
+                            field('lara',offset=2).value=status;field('lara',offset=4).value=1
+                            C.c_int16.from_buffer(item,0x12).value=2
+                            C.c_int16.from_buffer(item,0x14).value=15
+                            # FP aligns the body for deliberate stick movement;
+                            # a neutral body can still lag behind physical yaw.
+                            body=head if forward else 0
+                            C.c_int16.from_buffer(item,0x66).value=body
+                            field('input',C.c_uint32).value=0x10|(1 if forward else 0)
+                            field('analogInput').value=0
+                            field('analogInput',offset=2).value=0 if corrected or not forward else 24000
+                            field('analogInput',offset=4).value=body if corrected else head
+                            field('analogInput',offset=6).value=body if corrected else head
+                            field('camera',C.c_int32,0x20).value=0
+                            gun_rotation(item)
+                            C.c_int16.from_buffer(item,0x12).value=15
+                            floor_angles.clear();native(item,None)
+                            goal=C.c_int16.from_buffer(item,0x14).value
+                            if corrected:
+                                assert goal==(3 if forward and clear else 15), (game,status,head,forward,clear,goal)
+                                assert floor_angles==([head] if forward else []), (game,status,head,floor_angles)
+                                assert C.c_int16.from_buffer(item,0x66).value==body
+                            elif not forward and status in (2,4) and clear:
+                                assert goal in (26,27), (game,status,head,goal)
+                                neutral_failures+=1
+                            checks+=1
+        print(f'TR{game}: {checks} native cases passed; reproduced {failures_reproduced} unarmed rotations, {armed_failures} armed back-to-side and {neutral_failures} physical-turn neutral-to-side jumps; corrected direction and clearance verified',flush=True)
     finally:
         kernel.VirtualFree(image,0,0x8000)
