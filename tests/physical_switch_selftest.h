@@ -2,6 +2,9 @@
 alignas(16) uint8_t leverItem[3664]{},leverObjects[130*2304]{};
 uint8_t* leverItems=leverItem;
 int leverCount=1,leverActivations=0,leverTicks=0,leverControls=0,leverPositionCalls=0;
+bool leverSightBlocked=false;
+void* __cdecl FakeLeverFloor(int32_t,int32_t,int32_t,int16_t*) { return nullptr; }
+int32_t __cdecl FakeLeverSight(ShotVector*,ShotVector*) { return !leverSightBlocked; }
 int16_t leverBounds[6]={-64,64,-900,0,-32,32};
 int16_t leverReach[12]={-220,220,-100,100,-512,0,-1820,1820,-5460,5460,-1820,1820};
 firstperson::SwitchAnim leverAnimations[4]{},*leverAnims=leverAnimations;
@@ -50,6 +53,7 @@ int32_t __cdecl FakeLeverPosition(const void* bounds,uint8_t* target,uint8_t* la
 }
 void __cdecl FakeLeverCollision(int16_t index,uint8_t* lara,void*) {
     if(!(*Ptr<uint32_t>(dll.input)&0x40)) return;
+    Check(*reinterpret_cast<int16_t*>(lara+24)==(dll.module[4]==L'3' ? 103 : 11),"commit uses the game's standing animation");
     Check(index==0,"native switch receives selected index");
     const auto before=leverPositionCalls;
     Check(Detour_SwitchTestPosition(leverReach,leverItem,lara)==1 &&
@@ -78,19 +82,26 @@ void TestPhysicalSwitch() {
         for(auto* field:{&dll.laraItem,&dll.camera,&dll.analogInput,&dll.input,&dll.lara}) *field+=delta;
         const auto rva=[&](const void* p) { const auto n=reinterpret_cast<uint64_t>(p)-base;Check(n<0x100000000ull,"synthetic RVA fits");return uint32_t(n); };
         SwitchDll table{};table.items=rva(&leverItems);table.count=rva(&leverCount);
+        table.collision=rva(reinterpret_cast<void*>(&FakeLeverCollision));
+        dll.getFloor=rva(reinterpret_cast<void*>(&FakeLeverFloor));
+        dll.los=rva(reinterpret_cast<void*>(&FakeLeverSight));
         table.bounds=rva(leverReach);table.getBounds=rva(reinterpret_cast<void*>(&FakeLeverBounds));
         table.animate=rva(reinterpret_cast<void*>(&FakeLeverAnimate));table.calcMatrices=rva(reinterpret_cast<void*>(&FakeLeverMatrices));
         table.control=rva(reinterpret_cast<void*>(&FakeLeverControl));
         table.changes=rva(&leverChangePtr);table.ranges=rva(&leverRangePtr);table.commands=rva(&leverCommandPtr);
         dll.anims=rva(&leverAnims);dll.objects=rva(leverObjects);dll.phdMxptr=rva(&leverMatrixPtr);
+        auto* palmBind=reinterpret_cast<float*>(leverObjects+192)+10*16;
+        for(int i=0;i<16;++i) palmBind[i]=i%5==0 ? 1.f : 0.f;
+        palmBind[12]=-69;palmBind[13]=-5;palmBind[14]=4;
         auto* object=leverObjects+WallSwitchObject()*off::object_stride;
         *reinterpret_cast<int16_t*>(object)=2;
         *reinterpret_cast<Fn_SwitchControl*>(object+24)=FakeLeverControl;
+        *reinterpret_cast<Fn_SwitchCollision*>(object+64)=FakeLeverCollision;
         g_switchDll=&table;g_switchGrab={};g_switchCandidate={};g_switchPreview={};
         g_switchGripDown=g_switchGripClaimed=g_switchCompleted=false;
         g_hSwitchCollision.m_trampoline=reinterpret_cast<void*>(&FakeLeverCollision);
         g_hSwitchTestPosition.m_trampoline=g_hSwitchMovePosition.m_trampoline=reinterpret_cast<void*>(&FakeLeverPosition);
-        Field<int16_t>(24)=11;Field<PHD_3DPOS>(88)={0,0,-150,0,0,0,0};
+        Field<int16_t>(24)=game==3 ? 103 : 11;Field<PHD_3DPOS>(88)={0,0,-150,0,0,0,0};
         g_scenePose={0,-700,-32,0,0,0,0};g_scenePoseValid=true;
         testControllerOffset[1]={};testConfigFlags=1;
         std::memset(leverItem,0,sizeof(leverItem));
@@ -99,7 +110,18 @@ void TestPhysicalSwitch() {
         uint8_t idleLever[sizeof(leverItem)];std::memcpy(idleLever,leverItem,sizeof(leverItem));
         motiongun::Vec hand{};float distance=0;
         Check(PhysicalSwitchReady() && SwitchHand(hand),"lever has usable first-person tracking");
+        motiongun::Frame tracked{};motiongun::Basis controller{};motiongun::Vec rawGrip{};
+        Check(TrackedControllerWrist(1,tracked,controller,&rawGrip) &&
+            SwitchLength(Sub(hand,motiongun::Transform(tracked,{-7,35,4})))<.001f,
+            "grab detection uses the rendered palm with canonical inverse bind and calibration");
+        Check(SwitchLength(Sub(hand,motiongun::Transform(tracked,rawGrip)))>100,
+            "regression distinguishes visible palm from displaced controller origin");
         Check(SwitchReach(leverItem,item,hand,distance,false),"nearby hand reaches native wall lever");
+        if(game==3) {
+            Field<int16_t>(24)=11;
+            Check(!SwitchReach(leverItem,item,hand,distance,false),"TR3 does not confuse TR1 standing clip with its own idle");
+            Field<int16_t>(24)=103;
+        }
         Check(!SwitchReach(leverItem,item,Add(hand,{1000,0,0}),distance,false),"distant hand cannot grab");
         // Hand reach must work outside the native Action-icon zone in either
         // control scheme, without permitting remote or backside grabs.
@@ -139,9 +161,15 @@ void TestPhysicalSwitch() {
         Check(!SwitchReach(leverItem,item,hand,distance,false),"special switches remain native");
         ++LeverField<int16_t>(16);
         XState pad{};bool shifted=false,chord=false;
+        leverSightBlocked=true;
+        Check(FindPhysicalSwitch(item,hand,GetTickCount64()).index<0,"direct grab rejects blocked line of sight");
+        leverSightBlocked=false;
+        *reinterpret_cast<Fn_SwitchCollision*>(object+64)=nullptr;
+        Check(FindPhysicalSwitch(item,hand,GetTickCount64()).index<0,"direct grab requires ordinary wall-switch handler");
+        *reinterpret_cast<Fn_SwitchCollision*>(object+64)=FakeLeverCollision;
         auto grip=[&](float amount,bool gameplay=true) { testHands[1].grip=amount;BuildState(pad,shifted,gameplay,chord); };
-        auto grab=[&]() { testControllerOffset[1]={};grip(0);Detour_PhysicalSwitchCollision(0,item,nullptr);grip(1);Check(g_switchPreview.active,"fresh grip attaches lever"); };
-        auto move=[&](int pose) { auto d=Sub(g_switchPreview.points[pose],hand);testControllerOffset[1]={d.x/1000,d.y/1000,d.z/1000};Detour_PhysicalSwitchCollision(0,item,nullptr); };
+        auto grab=[&]() { testControllerOffset[1]={};grip(0);g_switchCandidate={};grip(1);Check(g_switchPreview.active,"fresh grip finds lever without collision candidate or Action icon"); };
+        auto move=[&](int pose) { auto d=Sub(Sub(g_switchPreview.points[pose],g_switchPreview.handOffset),hand);testControllerOffset[1]={d.x/1000,d.y/1000,d.z/1000};AdvancePhysicalSwitch(item,nullptr,GetTickCount64()); };
         grab();Check(!(pad.Gamepad.wButtons&(XB_X|XB_RIGHT_SHOULDER)),"grab consumes Walk and pitch modifier");
         Check(g_switchPreview.path.count==13 && leverMatrixPtr==leverStack,"pose sampling preserves native matrix stack");
         const int ticksBefore=leverTicks,controlsBefore=leverControls;
@@ -151,12 +179,26 @@ void TestPhysicalSwitch() {
         Check(LeverField<int16_t>(26)==frame,"stationary hand holds lever stationary");
         motiongun::Frame wrist{firstperson::IdentityBasis(),{20,30,40}};
         AttachPhysicalSwitchHand(1,wrist,Add(g_switchPreview.grip,{5,6,7}));
-        Check(std::fabs(wrist.origin.x-15)<.01f && std::fabs(wrist.origin.y-24)<.01f,"IK hand attaches to displayed lever");
+        Check(SwitchLength(Sub(motiongun::Transform(wrist,{-7,35,4}),g_switchPreview.grip))<.001f,"visible palm attaches to displayed lever");
         move(3);Check(g_switchPreview.selected==3,"reversing hand reverses lever");
-        grip(0);Check(!g_switchPreview.active && LeverField<int16_t>(24)==1-initial && leverTicks==ticksBefore && LeverField<int32_t>(488)==0,"early release restores pose without activation");
-        Check(!std::memcmp(idleLever,leverItem,sizeof(leverItem)),"cancellation restores both native matrix palettes and all lever state");
-        for(int cancel:{0,1,2,3,4,5,6,7,8,9,10,11}) {
+        const auto partial=LeverField<int16_t>(26);
+        grip(0);Check(!g_switchPreview.active && LeverField<int16_t>(26)==partial && leverTicks==ticksBefore && g_parkedSwitches.size()==1,"early release retains pose without activation");
+        Field<int16_t>(18)=1;grip(0);Detour_PhysicalSwitchCollision(0,item,nullptr);
+        Check(LeverField<int16_t>(26)==partial,"walking after release retains wall-switch progress");
+        Field<int16_t>(18)=2;
+        testControllerOffset[1].x+=.075f;grip(1);AdvancePhysicalSwitch(item,nullptr,GetTickCount64());
+        Check(g_switchPreview.selected==3 && g_parkedSwitches.empty(),"off-centre regrab resumes without moving or rewinding");
+        grip(0);PrepareParkedSwitchForNative(0);
+        Check(!std::memcmp(idleLever,leverItem,sizeof(leverItem)) && g_parkedSwitches.empty(),"native Action takeover restores both original palettes and animation");
+        grab();move(3);grip(0);
+        const auto parked=g_parkedSwitches.front();
+        ++LeverField<int16_t>(26);RestoreParkedSwitches();
+        Check(LeverField<int16_t>(26)==partial+1,"cache cleanup never overwrites a script-modified pose");
+        LeverField<int16_t>(26)=partial;g_parkedSwitches.push_back(parked);
+        ResetPhysicalSwitch();Check(!std::memcmp(idleLever,leverItem,sizeof(leverItem)),"explicit reset restores retained switches");
+        for(int cancel:{0,1,2,3,4,5,6,7,8,9,10,11,12,13}) {
             grab();move(4);
+            const auto held=LeverField<int16_t>(26);
             if(cancel==0) { testMissingHand=1;Detour_PhysicalSwitchCollision(0,item,nullptr);testMissingHand=-1; }
             if(cancel==1) UpdatePhysicalSwitchGrip(true,true,g_switchPreview.lastTime+251);
             if(cancel==2) grip(1,false);
@@ -169,7 +211,10 @@ void TestPhysicalSwitch() {
             if(cancel==9) { testHands[1].trigger=.2f;grip(1);testHands[1].trigger=0; }
             if(cancel==10) { testHands[0].btnLower=true;grip(1);testHands[0].btnLower=false; }
             if(cancel==11) { testHands[0].stickClick=testHands[1].stickClick=true;grip(1);testHands[0].stickClick=testHands[1].stickClick=false; }
+            if(cancel==12) { testControllerOffset[1].x+=.3f;Detour_PhysicalSwitchCollision(0,item,nullptr); }
+            if(cancel==13) { Field<int16_t>(18)=1;AdvancePhysicalSwitch(item,nullptr,GetTickCount64());Field<int16_t>(18)=2; }
             Check(!g_switchPreview.active && !g_switchPreview.attached && leverTicks==ticksBefore,"tracking, timeout, menus and chords cancel safely");
+            if(cancel!=6 && cancel!=7) Check(LeverField<int16_t>(26)==held && g_parkedSwitches.size()==1,"off-arc pull, motion or input loss retains partial pose until regrab");
         }
         grab();uint8_t savedItem[sizeof(item)],savedLara[432];
         std::memset(Ptr<uint8_t>(dll.lara+256),0x17,12);

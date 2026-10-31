@@ -1620,28 +1620,38 @@ In first person, holster weapons, stand within grabbing reach of an
 ordinary wall lever, and hold **Right Grip** with the right hand near it. Move
 your hand through the lever's travel: the lever and Lara's IK hand follow the
 native animation path, including pauses and reversals. Releasing before the end
-stop cancels the pull; reaching the end activates the native switch once without
+stop leaves the lever at its current position without activation. Walk into
+reach and regrab to resume; an off-centre regrab does not jump or rewind the lever.
+Pulling off the arc, starting to move, or briefly losing tracking also releases
+the hand while retaining progress. Reaching the end activates the native switch once without
 moving Lara or switching the camera to third person. Release before grabbing
 again. Away from a lever, Right Grip still means Walk. Both-grip Action, menus,
 Photo Mode and Y/trigger chords take priority.
 
-The Action icon does not need to be visible or active. Grab reach uses tracked
-hand proximity (18 cm to grab, 40 cm while holding), independently of the native
+The Action icon does not need to be visible or active. Squeezing Right Grip
+queries nearby wall levers directly using the visible calibrated palm (18 cm to grab,
+40 cm while holding), independently of the native
 horizontal Action zone. Lara must remain within 90 cm horizontally of the
 lever's mesh, on its usable side and within native floor-height limits.
-Native Y/Action bounds and third-person controls are unchanged.
+Native Y/Action bounds and third-person controls are unchanged. A clear line
+from the eye to the hand is required. The pull updates on Lara's simulation tick
+even without a native switch collision visit.
 Input priority remains as ported: either trigger, System, Photo Mode or Action
 cancels a grab so equipping weapons and changing modes take precedence.
 
 This interaction is ported from TR4/5 for TR1, TR2 and TR3 ordinary wall levers.
 Underwater switches, small switches, pushbuttons, airlocks and other special
 mechanisms retain native **Y / Action**, including its temporary third-person
-animation. Tracking loss, stale tracking, recentering and leaving first person
-cancel unfinished pulls. No INI changes are required. The existing motion-gun
+animation. Recentring, explicit reset, and native Action takeover restore the
+original lever pose; retained previews cannot overwrite script-modified items.
+TR3 uses its own standing animation (103) for grab eligibility; TR1/2 use 11.
+No INI changes are required. The existing motion-gun
 and unarmed-IK settings control whether the attached hand is visible.
 TR5's type-4 subtype does not exist in TR1–3's native switch handlers; these
 games select switch mechanisms by object ID. Small switches, push switches
 and airlocks would require separate interaction support.
+The TR4 train floor/rail lever has no matching native mechanism here; its
+object-specific handler and floor-handle geometry are not installed in TR1-3.
 
 Validation: the production hook regression covers pulling both directions in
 all three games, stationary/reversed/aborted pulls, input priority, native

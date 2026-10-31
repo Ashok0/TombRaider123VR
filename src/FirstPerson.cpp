@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 namespace tr {
 namespace {
@@ -1695,6 +1696,9 @@ motiongun::Vec NativeJointPoint(const uint8_t* item, int joint) {
     };
 }
 
+bool TrackedControllerWrist(int hand,motiongun::Frame& out,motiongun::Basis& controller,motiongun::Vec* gripLocal=nullptr);
+bool ReadIKBind(const uint8_t* obj,int count,int bones,const int32_t* mapping,
+                const float* poses,int joint,motiongun::Frame& bind);
 #include "PhysicalSwitch.inl"
 
 struct GunPose {
@@ -1703,7 +1707,7 @@ struct GunPose {
     int16_t yaw=0, pitch=0;
 };
 
-bool BuildControllerWrist(int hand, motiongun::Frame& out, motiongun::Basis& controller) {
+bool TrackedControllerWrist(int hand, motiongun::Frame& out, motiongun::Basis& controller,motiongun::Vec* gripLocal) {
     if (hand<0 || hand>1) return false;
     auto rejected=[hand](const char* why) { g_motionPoseFailure[hand]=why; return false; };
     float right=0, down=0, forward=0;
@@ -1726,9 +1730,17 @@ bool BuildControllerWrist(int hand, motiongun::Frame& out, motiongun::Basis& con
         calibration.gripForwardMetres*scale,
         calibration.raiseMetres*scale,
         calibration.rightMetres*scale).origin;
-    AttachPhysicalSwitchHand(hand,out,physical);
+    if (gripLocal) *gripLocal={-calibration.rightMetres*scale,
+        calibration.gripForwardMetres*scale,-calibration.raiseMetres*scale};
     motiongun::Frame inverse{};
     return motiongun::Inverse(out,inverse);
+}
+
+bool BuildControllerWrist(int hand, motiongun::Frame& out, motiongun::Basis& controller) {
+    motiongun::Vec local{};
+    if (!TrackedControllerWrist(hand,out,controller,&local)) return false;
+    AttachPhysicalSwitchHand(hand,out,motiongun::Transform(out,local));
+    return true;
 }
 
 bool FlareIKReady() {
@@ -3694,6 +3706,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
         RoomscaleCollisionScope roomscaleCollision(item);
         g_hLaraAboveWater.Original<Fn_LaraAboveWater>()(item, nativeCollision);
     }
+    AdvancePhysicalSwitch(item,nativeCollision,GetTickCount64());
     ObserveJumpLanding(item);
     FinishFirstPersonLanding(item,airborneBefore);
     g_groundMoveAction = 0;
