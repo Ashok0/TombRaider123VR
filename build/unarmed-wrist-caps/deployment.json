@@ -1,0 +1,11 @@
+﻿{
+    "headset_verified":  false,
+    "release_build":  "passed",
+    "regression_checks":  1205280,
+    "new_sha256":  "15F0BE5FD3DD17D978D40F4290A4FDF2325EBFEBF8E89A827CC10A1C3D43FFB7",
+    "deployed_at":  "2026-10-30T22:50:37.1993466-04:00",
+    "physics_graphics_checks":  1704,
+    "old_sha256":  "9047434EA980E5CD5C9E64E654B706A8E6603C6DE8D719CBCD93AAC09AA49F59",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\unarmed-wrist-caps\\before-20261030-225036",
+    "ini_sha256":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88"
+}

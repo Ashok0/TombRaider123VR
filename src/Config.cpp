@@ -353,6 +353,9 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.dpadShift           = GetBool (L"DpadShift",           g_cfg.dpadShift,          ini);
     g_cfg.dpadShiftDeadzone   = GetFloat(L"DpadShiftDeadzone",   g_cfg.dpadShiftDeadzone,  ini);
     g_cfg.gamepadLogButtons   = GetBool (L"GamepadLogButtons",  g_cfg.gamepadLogButtons,  ini);
+    g_cfg.valveIndexControllers = GetBool(L"ValveIndexControllers",g_cfg.valveIndexControllers,ini);
+    g_cfg.valveIndexGripPress = GetFloat(L"ValveIndexGripPress",g_cfg.valveIndexGripPress,ini);
+    g_cfg.valveIndexGripRelease = GetFloat(L"ValveIndexGripRelease",g_cfg.valveIndexGripRelease,ini);
     g_cfg.decoupledPitch      = GetBool (L"DecoupledPitch",     g_cfg.decoupledPitch,     ini);
     g_cfg.decoupledPitchChord = GetBool (L"DecoupledPitchChord", g_cfg.decoupledPitchChord, ini);
     g_cfg.decoupledPitchWaterOff = GetBool (L"DecoupledPitchWaterOff", g_cfg.decoupledPitchWaterOff, ini);

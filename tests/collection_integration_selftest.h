@@ -215,7 +215,7 @@ void TestCollectionIntegration() {
         pad={};ApplyArmedMenu(pad);pad.wButtons=XB_BACK;ApplyArmedMenu(pad);
         Check(pad.wButtons==XB_BACK,"fresh unarmed X reaches native inventory");
 
-        IKSetup(game);testConfig.firstPersonPhysicalCrouch=true;
+        IKSetup(game);testConfig.firstPersonPhysicalCrouch=true;testConfig.firstPersonFullBodyIK=true;
         testViewRise=-.54f;Check(!FirstPersonPhysicalDuck(),"partial squat retains visible legs before native crouch");
         testViewRise=-.56f;Check(FirstPersonPhysicalDuck()==(game==3),"physical crouch activates only for TR3 at 55 cm drop");
         testViewRise=-.28f;Check(FirstPersonPhysicalDuck()==(game==3),"physical crouch has release hysteresis");

@@ -179,6 +179,7 @@
     <ClInclude Include="src\StereoMath.h" />
     <ClInclude Include="src\StereoRenderer.h" />
     <ClInclude Include="src\VRSystem.h" />
+    <ClInclude Include="src\IndexInput.h" />
     <ClInclude Include="src\BodyFollower.h" />
     <ClInclude Include="src\CollectionParity.h" />
     <ClInclude Include="src\InventoryProjection.h" />
@@ -195,6 +196,12 @@
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <IndexBinding Include="$(MSBuildProjectDirectory)\TombRaiderVRBindings\*.json" />
+  </ItemGroup>
+  <Target Name="CopyIndexBindings" AfterTargets="Build">
+    <Copy SourceFiles="@(IndexBinding)" DestinationFolder="$(OutDir)TombRaiderVRBindings" SkipUnchangedFiles="true" />
+  </Target>
   <!--
     Copy the built DLL into the game folder so a build is a deploy.
     ContinueOnError: the game holds the DLL open while it runs, and a failed
@@ -202,6 +209,7 @@
     happened so it is not mistaken for success.
   -->
   <Target Name="DeployToGameFolder" AfterTargets="Build" Condition="'$(DeployToGame)'=='true'">
+    <Copy SourceFiles="@(IndexBinding)" DestinationFolder="$(GameDir)TombRaiderVRBindings" SkipUnchangedFiles="true" />
     <Message Importance="high" Text="Deploying $(TargetFileName) to $(GameDir)" />
     <Copy SourceFiles="$(TargetPath)"
           DestinationFolder="$(GameDir)"

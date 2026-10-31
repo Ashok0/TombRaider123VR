@@ -1,0 +1,11 @@
+﻿{
+    "headset_verified":  false,
+    "release_build":  "passed",
+    "regression_checks":  1200477,
+    "destination":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "new_sha256":  "D05D41758CDB8FB358484AA062E8B97E18F2BF0890EEE92201D509C84D8EBA01",
+    "deployed_at":  "2026-10-30T20:00:33.6603975-04:00",
+    "old_sha256":  "FCD859569F4F9201E149BF10E5E171194E462EC031CBFF8E758B7B916A3D8B20",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\physical-body-hide\\before-20261030-200033",
+    "ini_sha256":  "F937F9666DFBABC49826DBBA5538DC8293549708B37E68BEBEC2626EEED72930"
+}

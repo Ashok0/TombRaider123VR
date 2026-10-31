@@ -9,6 +9,7 @@
 
 #include "StereoMath.h"
 #include "GunHaptics.h"
+#include "IndexInput.h"
 #include "GL.h"        // GLuint, and windows.h for HMODULE
 #include <openvr.h>
 
@@ -105,10 +106,7 @@ public:
     float HudNdcShiftX(Eye eye, float depthMetres) const;
 
     // --- controllers ---------------------------------------------------------
-    // Read through OpenVR's LEGACY input API. We ship no action manifest, so
-    // SteamVR puts us in legacy mode and this is what it fills in. The new Input
-    // API would need a manifest plus per-controller binding files, which is a
-    // lot of machinery for "act like an Xbox pad".
+    // Legacy input by default; ValveIndexControllers opts into explicit actions.
     struct HandState {
         bool     valid      = false;
         float    stickX     = 0.0f;   // -1..1
@@ -147,6 +145,9 @@ private:
     GunHaptics m_gunHaptics;
     vr::IVRSystem*     m_system     = nullptr;
     vr::IVRCompositor* m_compositor = nullptr;
+    vr::IVRInput* m_input = nullptr;
+    mutable IndexInput m_indexInput;
+    mutable vr::EVRInputError m_indexReadError=vr::VRInputError_None;
     HMODULE            m_dll        = nullptr;
 
     Affine m_headFromTracking = Affine::Identity();  // inverse(hmdPose)

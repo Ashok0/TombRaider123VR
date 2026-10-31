@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 38977 bytes, 805 lines.
+// Source: TombRaiderVR.ini, 39532 bytes, 815 lines.
 #pragma once
 
 namespace tr {
@@ -600,7 +600,17 @@ VideoFlipV=0
 ; first/third person. Y/trigger input is left untouched in menus and cutscenes.
 GamepadEnabled=1
 
-; Log the raw OpenVR legacy button masks whenever they change. Touch's button
+; Set to 1 for Valve Index controllers, then restart the game. Uses explicit
+; SteamVR Input bindings to separate A/B, thumbstick clicks and grip squeeze.
+; Keep the TombRaiderVRBindings folder beside TombRaiderVR.dll.
+; 0 retains the existing Touch-style legacy input for other controllers.
+ValveIndexControllers=0
+; Grip force thresholds (0..1). Lower Press for a lighter squeeze. Release must
+; be below Press; the gap prevents chatter. Resting fingers alone do not grip.
+ValveIndexGripPress=0.55
+ValveIndexGripRelease=0.35
+
+; Log raw legacy masks (or mapped button masks in Index mode) when they change. Touch's button
 ; ids differ between runtimes, so if a button lands in the wrong place this says
 ; which mask it actually set. Leave at 0 for normal play.
 GamepadLogButtons=0
@@ -611,7 +621,8 @@ GamepadLogButtons=0
 ; In VR the headset already owns pitch: you look up by looking up. Stick pitch is
 ; then a second source for the same axis, fighting the first, and it is the
 ; uncomfortable one -- a vertical rotation your inner ear did not ask for is the
-; strongest simulator-sickness trigger there is, worse than yaw. Yaw is left
+)INI"
+           R"INI(; strongest simulator-sickness trigger there is, worse than yaw. Yaw is left
 ; alone because turning on the spot with the stick is how you play seated.
 ;
 ; It does genuinely take something away: the engine aims and reads its look
@@ -619,8 +630,7 @@ GamepadLogButtons=0
 ; has to be lined up by tilting your head instead. It is ON by default anyway,
 ; because DecoupledPitchChord below hands the stick pitch back whenever you hold
 ; RT+RB -- nothing is out of reach, and comfort is the right default in a
-)INI"
-           R"INI(; headset. Set this to 0 for the stock two-axis stick.
+; headset. Set this to 0 for the stock two-axis stick.
 ;
 ; Applied to whatever right stick reaches the game, including a physical pad
 ; merged in alongside the Touch controllers. The binding line in the log says

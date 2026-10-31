@@ -15,7 +15,7 @@
 namespace tr {
 unsigned FirstPersonHolsterGrips(bool left,bool right,bool leftValid,bool rightValid,bool allowed);
 void FirstPersonDrawLara(void* item,void* app,void (__fastcall* draw)(void*));
-bool FirstPersonPhysicalDuck(bool allowed=true);
+bool FirstPersonPhysicalDuck(bool allowed=true,bool stand=false);
 bool FirstPersonFlareTip(int32_t (&tip)[3]);
 
 // Install or drop the hook to match the bound game DLL and the config. Cheap

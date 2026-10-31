@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <string>
 
 namespace tr {
 namespace {
@@ -52,6 +53,22 @@ void LogInitError(const char* what, vr::EVRInitError err) {
 }
 
 VRSystem g_vr;
+
+std::string IndexManifestPath() {
+    HMODULE module=nullptr;
+    if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        reinterpret_cast<LPCWSTR>(&g_vr),&module)) return {};
+    wchar_t path[MAX_PATH]{};
+    const DWORD count=GetModuleFileNameW(module,path,MAX_PATH);
+    if(!count || count>=MAX_PATH) return {};
+    std::wstring full(path);
+    const auto slash=full.find_last_of(L"\\/");
+    if(slash==std::wstring::npos) return {};
+    full.resize(slash+1);full+=L"TombRaiderVRBindings\\actions.json";
+    char utf8[MAX_PATH*4]{};
+    if(!WideCharToMultiByte(CP_UTF8,0,full.c_str(),-1,utf8,sizeof(utf8),nullptr,nullptr)) return {};
+    return utf8;
+}
 
 // OpenVR's HmdMatrix34_t is already row-major 3x4, same shape as our Affine.
 Affine FromHmd(const vr::HmdMatrix34_t& m) {
@@ -163,6 +180,22 @@ bool VRSystem::Init() {
         return false;
     }
 
+    // Register before the first PollNextEvent/UpdateActionState, as OpenVR requires.
+    if(Cfg().valveIndexControllers) {
+        err=vr::VRInitError_None;
+        m_input=static_cast<vr::IVRInput*>(g_getInterface(vr::IVRInput_Version,&err));
+        const auto path=IndexManifestPath();
+        const auto result=m_input && err==vr::VRInitError_None && !path.empty()
+            ? m_indexInput.Init(*m_input,path.c_str()) : vr::VRInputError_InvalidParam;
+        if(result==vr::VRInputError_None)
+            LogF("vr: Index actions ready; grip press=%.2f release=%.2f; manifest=%s",
+                Cfg().valveIndexGripPress,Cfg().valveIndexGripRelease,path.c_str());
+        else {
+            m_input=nullptr;
+            LogF("vr: Index actions unavailable (error %d). Install TombRaiderVRBindings beside TombRaiderVR.dll, or set ValveIndexControllers=0 and restart. Legacy fallback disabled to avoid conflicting controls.",int(result));
+        }
+    }
+
     // Latch the per-eye constants. These do not change while the runtime is up.
     for (int e = 0; e < 2; ++e) {
         const vr::Hmd_Eye eye = (e == 0) ? vr::Eye_Left : vr::Eye_Right;
@@ -211,6 +244,7 @@ bool VRSystem::Init() {
 
 void VRSystem::Shutdown() {
     m_gunHaptics.Reset();
+    m_input=nullptr;m_indexInput.Reset();m_indexReadError=vr::VRInputError_None;
     if (m_system && g_shutdownInternal) g_shutdownInternal();
     m_system     = nullptr;
     m_compositor = nullptr;
@@ -239,6 +273,10 @@ void VRSystem::BeginFrame() {
     while(m_system->PollNextEvent(&event,sizeof(event))) HandleRuntimeEvent(event);
 
     m_gunHaptics.Update(GetTickCount64(),[&](int hand,unsigned short duration) {
+        if(Cfg().valveIndexControllers) {
+            if(m_input) m_indexInput.Haptic(*m_input,hand,duration);
+            return;
+        }
         const auto role=hand==0 ? vr::TrackedControllerRole_LeftHand : vr::TrackedControllerRole_RightHand;
         const auto device=m_system->GetTrackedDeviceIndexForControllerRole(role);
         if (device!=vr::k_unTrackedDeviceIndexInvalid && m_system->IsTrackedDeviceConnected(device))
@@ -732,6 +770,18 @@ void VRSystem::ReadControllers(HandState out[2]) const {
     out[0] = HandState();
     out[1] = HandState();
     if (!m_system) return;
+    if(Cfg().valveIndexControllers) {
+        if(m_input) {
+            HandState hands[2]{};
+            const auto error=m_indexInput.Read(*m_input,hands,Cfg().valveIndexGripPress,Cfg().valveIndexGripRelease);
+            out[0]=hands[0];out[1]=hands[1];
+            if(error!=m_indexReadError) {
+                LogF("vr: Index action polling error=%d (0=recovered)",int(error));
+                m_indexReadError=error;
+            }
+        }
+        return;
+    }
 
     const vr::ETrackedControllerRole roles[2] = {
         vr::TrackedControllerRole_LeftHand,

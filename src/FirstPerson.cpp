@@ -940,8 +940,14 @@ bool IsCrouchState(const uint8_t* item) {
     }
 }
 
+bool PhysicalPostureEligible(const uint8_t* item);
+bool HidePhysicalCrouchBody(const uint8_t* item) {
+    return (BoundGame()==1 || BoundGame()==2) && g_heightCrouch.active &&
+        PhysicalPostureEligible(item) && GroundBodyAvailable(item) &&
+        !(*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u);
+}
 bool IsHandsOnlyBodyState(const uint8_t* item) {
-    return item && (IsCrouchState(item) || firstperson::HideDirectionalJumpBody(
+    return item && (IsCrouchState(item) || HidePhysicalCrouchBody(item) || firstperson::HideDirectionalJumpBody(
         *reinterpret_cast<const int16_t*>(item+off::item_anim_state)));
 }
 uint32_t FirstPersonBodyMask(const uint8_t* item) {
@@ -1184,6 +1190,10 @@ public:
     UnarmedRestHandScope& operator=(const UnarmedRestHandScope&)=delete;
 };
 
+// Floating empty hands need the same rigid skin and wrist cap as weapon hands.
+// Keep this separate from weapon eligibility so rendering cannot enable firing.
+bool g_unarmedHandScope=false;
+
 void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
     if (DrawingNativeShadow()) {
         g_shadowSkinScope=true;g_shadowSkinReady=false;
@@ -1203,7 +1213,28 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
     const uint32_t bodyMask=lara ? FirstPersonBodyMask(static_cast<const uint8_t*>(item)) : UINT32_MAX;
     const bool handsOnly=bodyMask==firstperson::HandMeshBits;
     const bool armsOnly=bodyMask==firstperson::ArmMeshBits;
-    if (lara && (MotionReady() || FlareIKReady())) {
+    const bool trackedWeapon=lara && (MotionReady() || FlareIKReady());
+    const UnarmedRestHandScope restHands(static_cast<uint8_t*>(item),lara && !trackedWeapon ? useMeshBits : 0);
+    if(lara && handsOnly && !trackedWeapon && UnarmedIKReady()) {
+        if(DrawingHeadGeometry(static_cast<const uint8_t*>(item))) return;
+        auto& bits=*reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(item)+off::item_mesh_bits);
+        const uint32_t saved=bits;
+        const uint32_t hands=firstperson::HdDrawMeshBits(saved,useMeshBits!=0,false,false,false)&bodyMask;
+        const int previousArm=g_renderArm;
+        const bool previousScope=g_unarmedHandScope;
+        g_unarmedHandScope=true;
+        for(int hand=0;hand<2;++hand) {
+            const uint32_t mask=hand ? 0x400u : 0x2000u;
+            vr::HmdMatrix34_t pose{};
+            if(!(hands&mask) || !VR().ControllerPose(hand,pose)) continue;
+            bits=mask;g_renderArm=hand;g_renderWrist=-1;
+            g_hDrawCreatureHD.Original<Fn_DrawCreatureHD>()(item,1);
+            g_renderWrist=-1;
+        }
+        bits=saved;g_renderArm=previousArm;g_unarmedHandScope=previousScope;
+        return;
+    }
+    if (trackedWeapon) {
         if (DrawingHeadGeometry(static_cast<const uint8_t*>(item))) return;
 
         auto& bits=*reinterpret_cast<uint32_t*>(
@@ -1244,7 +1275,6 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
     }
     if (g_active && (g_rollHidden || g_crouchHidden) && g_boundDll && g_boundBase &&
         item == *Ptr<void*>(g_boundDll->laraItem)) return;
-    const UnarmedRestHandScope restHands(static_cast<uint8_t*>(item),lara ? useMeshBits : 0);
     if ((bodyMask!=UINT32_MAX || g_headHidden || g_ledgeArmsOnly || g_unarmedArmsHidden || UnarmedIKReady()) && g_boundDll && g_boundBase &&
         item == *Ptr<void*>(g_boundDll->laraItem)) {
         if ((handsOnly || armsOnly || g_headHidden || g_ledgeArmsOnly || UseLandingCamera(static_cast<uint8_t*>(item))) &&
@@ -2527,7 +2557,8 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
         }
         return;
     }
-    if (!item || !g_boundDll || !g_boundDll->joints || (!MotionReady() && !FlareIKReady()) ||
+    const bool unarmed=g_unarmedHandScope && UnarmedIKReady();
+    if (!item || !g_boundDll || !g_boundDll->joints || (!unarmed && !MotionReady() && !FlareIKReady()) ||
         item!=*Ptr<uint8_t*>(g_boundDll->laraItem)) {
         if (g_renderArm>=0 && g_renderArm<2)
             g_motionPoseFailure[g_renderArm]="joint-pass-unavailable";
@@ -2535,7 +2566,12 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
     }
     float* joints=Ptr<float>(g_boundDll->joints);
     GunPose gun{};
-    if (!BuildGunPose(g_renderArm,gun)) return;
+    if(unarmed) {
+        motiongun::Frame wrist{};motiongun::Basis controller{};
+        if(!BuildControllerWrist(g_renderArm,wrist,controller)) return;
+        gun.basis=wrist.basis;gun.hand=wrist.origin;
+        gun.nativeHand=NativeJointPoint(item,g_renderArm ? 10 : 13);
+    } else if (!BuildGunPose(g_renderArm,gun)) return;
     const int nativeJoint=g_renderArm ? 10 : 13;
     const int object=*reinterpret_cast<const int16_t*>(item+off::item_object_number);
     if (object<0) { g_motionPoseFailure[g_renderArm]="invalid-object"; return; }
@@ -2580,7 +2616,7 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
         if(w[0] || w[5] || w[10]) desired.origin=motiongun::Sub(gun.hand,{float(w[3]),float(w[7]),float(w[11])});
     }
     const int pass=g_boundDll->renderPass ? *Ptr<int32_t>(g_boundDll->renderPass) : 0;
-    if(PistolBodyPoseMatches(item,pass)) desired=g_pistolArmPose.joint[g_renderArm ? 2 : 5];
+    if(!unarmed && PistolBodyPoseMatches(item,pass)) desired=g_pistolArmPose.joint[g_renderArm ? 2 : 5];
     if (!motiongun::PaletteCorrection(palette,inverseBind,desired,correction)) {
         g_motionPoseFailure[g_renderArm]="palette-correction-invalid"; return;
     }
@@ -2598,7 +2634,7 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
     g_motionPoseFailure[g_renderArm]="corrected";
     if (!g_loggedMotion) {
         g_loggedMotion=true;
-        Log("firstperson: HD gun hand follows tracked controller");
+        Log("firstperson: HD hand follows tracked controller with sealed wrist skin");
     }
 }
 
@@ -3444,14 +3480,17 @@ void ObserveJumpLanding(uint8_t* item) {
         locomotion::IsLandingAnimation(state,animation),(*Ptr<uint32_t>(g_boundDll->input)&0x10u)!=0);
 }
 
-bool PhysicalCrouchEligible(const uint8_t* item) {
+bool PhysicalPostureEligible(const uint8_t* item) {
     return Cfg().firstPersonPhysicalCrouch && Cfg().firstPersonFullBodyIK &&
         Cfg().positionalTracking && Cfg().firstPersonHeadTranslation &&
-        g_boundDll && g_boundBase && g_boundDll->module[4]==L'3' &&
+        g_boundDll && g_boundBase && BoundGame()>=1 && BoundGame()<=3 &&
         g_active && g_haveHeading && Gate() && VR().poseValid() && !InInventory() &&
         item && item==g_headingItem && item==*Ptr<uint8_t*>(g_boundDll->laraItem) &&
         LaraWaterStatus()==0 && !InteractionAligning() &&
         (CanWalk(item) || CanUseCrouchCamera(item));
+}
+bool PhysicalCrouchEligible(const uint8_t* item) {
+    return BoundGame()==3 && PhysicalPostureEligible(item);
 }
 
 void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
@@ -4587,12 +4626,13 @@ bool FirstPersonFlareTip(int32_t (&tip)[3]) {
     return true;
 }
 
-bool FirstPersonPhysicalDuck(bool allowed) {
-    const bool enabled=allowed && PhysicalCrouchEligible(g_headingItem);
+bool FirstPersonPhysicalDuck(bool allowed,bool stand) {
+    const bool enabled=allowed && PhysicalPostureEligible(g_headingItem);
     // Match leg IK: looking down around the neck is not a physical squat.
-    const bool crouched=g_heightCrouch.Update(enabled,VR().FirstPersonPostureDrop());
-    if(crouched) g_physicalCrouchCamera=true;
-    return crouched;
+    const bool native=BoundGame()==3;
+    const bool crouched=g_heightCrouch.Update(enabled,VR().FirstPersonPostureDrop(),!native && stand);
+    if(crouched && native) g_physicalCrouchCamera=true;
+    return crouched && native;
 }
 
 void FirstPersonToggle() {

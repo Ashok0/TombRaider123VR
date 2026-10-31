@@ -1,0 +1,120 @@
+{
+  "controller_type": "knuckles",
+  "name": "Tomb Raider Index",
+  "description": "Independent Index buttons, thumbsticks and grip force. Trackpads are unused.",
+  "options": {
+    "mirror_actions": false
+  },
+  "bindings": {
+    "/actions/game": {
+      "sources": [
+        {
+          "path": "/user/hand/left/input/thumbstick",
+          "mode": "joystick",
+          "inputs": {
+            "position": {
+              "output": "/actions/game/in/left_stick"
+            },
+            "click": {
+              "output": "/actions/game/in/left_stickclick"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/left/input/trigger",
+          "mode": "trigger",
+          "inputs": {
+            "pull": {
+              "output": "/actions/game/in/left_trigger"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/left/input/grip",
+          "mode": "force_sensor",
+          "inputs": {
+            "force": {
+              "output": "/actions/game/in/left_grip"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/left/input/a",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/game/in/left_lower"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/left/input/b",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/game/in/left_upper"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/thumbstick",
+          "mode": "joystick",
+          "inputs": {
+            "position": {
+              "output": "/actions/game/in/right_stick"
+            },
+            "click": {
+              "output": "/actions/game/in/right_stickclick"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/trigger",
+          "mode": "trigger",
+          "inputs": {
+            "pull": {
+              "output": "/actions/game/in/right_trigger"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/grip",
+          "mode": "force_sensor",
+          "inputs": {
+            "force": {
+              "output": "/actions/game/in/right_grip"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/a",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/game/in/right_lower"
+            }
+          }
+        },
+        {
+          "path": "/user/hand/right/input/b",
+          "mode": "button",
+          "inputs": {
+            "click": {
+              "output": "/actions/game/in/right_upper"
+            }
+          }
+        }
+      ],
+      "haptics": [
+        {
+          "output": "/actions/game/out/left_haptic",
+          "path": "/user/hand/left/output/haptic"
+        },
+        {
+          "output": "/actions/game/out/right_haptic",
+          "path": "/user/hand/right/output/haptic"
+        }
+      ]
+    }
+  }
+}

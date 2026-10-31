@@ -375,8 +375,14 @@ void TestResponsiveEntry() {
 #include "ledge_catch_selftest.h"
 #include "crouch_selftest.h"
 #include "jump_port_selftest.h"
+#include "physical_body_hide_selftest.h"
+#include "index_input_selftest.h"
+#include "unarmed_wrist_cap_selftest.h"
 
 int main() {
+    TestUnarmedWristCaps();
+    TestIndexInput();
+    TestPhysicalBodyHide();
     TestJumpPort();
     Reset(2,{0,0},false);
     for(bool firstPerson:{false,true}) {

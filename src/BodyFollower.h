@@ -132,8 +132,17 @@ struct RoomscaleFollower {
 };
 struct HeightCrouch {
     bool active=false;
-    bool Update(bool enabled,float drop) {
-        if(!enabled || !std::isfinite(drop)) active=false;
+    bool standingOverride=false,standHeld=false;
+    bool Update(bool enabled,float drop,bool stand=false) {
+        if(!std::isfinite(drop)) { *this={};return false; }
+        // TR1/2 can restore the visible body by button while still physically
+        // low. Rearm only after rising, rather than hiding again next poll.
+        if(drop<=.23f) standingOverride=false;
+        // Keep a button override through a jump/fall until the player rises.
+        if(!enabled) { active=false;standHeld=stand;return false; }
+        if(stand && !standHeld && (active || drop>=.55f)) standingOverride=true;
+        standHeld=stand;
+        if(standingOverride) active=false;
         // Allow a visible IK squat before native Duck hides the body.
         else if(!active && drop>=.55f) active=true;
         else if(active && drop<=.23f) active=false;

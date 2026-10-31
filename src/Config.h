@@ -518,6 +518,10 @@ struct Config {
     float dpadShiftDeadzone = 0.5f;
 
     bool  gamepadLogButtons = false;
+    // Opt-in native Index actions; requires shipped TombRaiderVRBindings files.
+    bool  valveIndexControllers = false;
+    float valveIndexGripPress = .55f;
+    float valveIndexGripRelease = .35f;
 
     // Right stick turns only. Its vertical axis is dropped, so the game camera
     // never pitches from the stick.

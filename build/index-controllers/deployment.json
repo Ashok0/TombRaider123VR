@@ -1,0 +1,17 @@
+﻿{
+    "previous_ini_sha256":  "F937F9666DFBABC49826DBBA5538DC8293549708B37E68BEBEC2626EEED72930",
+    "regression_checks":  1201164,
+    "files":  {
+                  "TombRaiderVR.dll":  "9047434EA980E5CD5C9E64E654B706A8E6603C6DE8D719CBCD93AAC09AA49F59",
+                  "TombRaiderVRBindings\\actions.json":  "2A85BDEA9D7B3E76580B17621E0DEC29721FAC8752AB09521F1D944509AC66E7",
+                  "TombRaiderVRBindings\\bindings_index.json":  "1C23C56951F393E4F933932625F20C03264F7F9971ACF54736F68405FC50189F"
+              },
+    "deployed_at":  "2026-10-30T20:16:41.7558544-04:00",
+    "release_build":  "passed",
+    "old_sha256":  "D05D41758CDB8FB358484AA062E8B97E18F2BF0890EEE92201D509C84D8EBA01",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\index-controllers\\before-20261030-201641",
+    "index_mode_enabled":  false,
+    "bindings_validated_against_installed_valve_profile":  true,
+    "ini_sha256":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88",
+    "index_hardware_verified":  false
+}

@@ -199,9 +199,6 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
     // The two-grip gameplay chord is a second Action button. Do not send its
     // constituent Duck/Walk buttons, or they can interrupt a block push.
     if (!gripAction && !(holsterGrips&1) && L.grip > 0.5f) b |= XB_LEFT_SHOULDER;
-    // Physical posture enters the native simulation after button debounce.
-    // Sending LB here leaves TR3's Modern Controls crouch toggle latched.
-    FirstPersonPhysicalDuck(gameplay && !gripAction);
 
     // Walk modifier. X is what the game binds Walk to; RIGHT_SHOULDER also
     // keeps the optional RT+RB pitch chord reachable.
@@ -328,6 +325,11 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     float ly = mine.Gamepad.sThumbLY / 32767.0f;
     float rx = mine.Gamepad.sThumbRX / 32767.0f;
     const bool jumpPressed = (mine.Gamepad.wButtons & XB_A) != 0;
+    // TR1/2 use posture only to hide the body; Duck/Jump can restore it.
+    // Read the effective buttons after chords and holsters consumed their input.
+    // TR3 still applies physical Duck inside simulation, after native debounce.
+    FirstPersonPhysicalDuck(gameplay && !gripAction && !photoChord && !viewToggle && !graphicsToggle,
+        !shifted && (jumpPressed || (mine.Gamepad.wButtons & XB_LEFT_SHOULDER)!=0));
     FirstPersonInput(lx, ly, rx, shifted, jumpPressed);
     mine.Gamepad.sThumbLX = Axis(lx);
     mine.Gamepad.sThumbLY = Axis(ly);

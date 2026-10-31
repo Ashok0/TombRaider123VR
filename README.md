@@ -163,7 +163,63 @@ background controller polling and tracking/roomscale improvements. Full-body
 IK, spatial inventory and TR3 physical crouch are enabled by default; camera
 wall collision for physical leaning is opt-in. See the port record for controls, settings and validation.
 
+### Valve Index controllers
+
+Set these keys under `[VR]` in the installed `TombRaiderVR.ini`, then restart:
+
+```ini
+ValveIndexControllers=1
+ValveIndexGripPress=0.55
+ValveIndexGripRelease=0.35
+```
+
+Keep the shipped `TombRaiderVRBindings` folder beside `TombRaiderVR.dll`.
+Builds copy these files to the output and deployment folders. Index mode uses
+SteamVR Input actions with a `knuckles` default binding. The old legacy default
+can alias Index A and grip squeeze to the same button; this mode separates them
+and leaves trackpads unbound so they cannot interfere with thumbsticks.
+
+| Index input | Game control |
+| --- | --- |
+| Left thumbstick / click | Move / Sprint |
+| Right thumbstick / click | Turn / D-pad shift with left stick |
+| Right A / B | Jump / Roll |
+| Left A / B | Inventory / Action (also the existing view/graphics chords) |
+| Left / right trigger | Existing equip and per-hand shooting controls |
+| Left / right squeeze | Crouch or stand / Walk; existing physical holster gestures |
+| Both squeezes | Action, when not claimed by a holster gesture |
+| Both stick clicks | Photo Mode |
+
+Grip uses squeeze **force**, not resting finger contact. Lower
+`ValveIndexGripPress` for a lighter squeeze, keeping `ValveIndexGripRelease`
+below it to prevent repeated presses near the threshold. The supplied values
+are starting points, not hardware-calibrated recommendations.
+
+`ValveIndexControllers=0` is the default and retains legacy input for Touch-style
+controllers. Index mode supplies an Index profile only. While the game is running,
+SteamVR's controller binding editor can customize its named actions; choose the
+default **Tomb Raider Index** binding if an older custom binding conflicts.
+`TombRaiderVR.log` reports `Index actions ready` on successful initialization.
+Missing manifests or failed actions produce neutral input and diagnostics instead
+of falling back to conflicting legacy controls. `GamepadLogButtons=1` reports
+mapped button masks in Index mode.
+
+Validation includes the Release build, the full movement/controller regression
+suite, and `tests/validate_index_bindings.py`. The latter also accepts
+`--steamvr <installation path>` to check the binding against Valve's installed
+Index driver profile and force-sensor example. Physical Index hardware testing
+is still required. Action setup follows [Valve's SteamVR Input documentation](https://github.com/ValveSoftware/openvr/wiki/SteamVR-Input).
+
 ### Physical crouch port from TR4/5 (2026-10-30)
+
+Unarmed floating hands now use the same opaque black wrist caps as armed hands.
+This covers TR3 crouch/crawl, TR1/2 physical body hiding, and other hands-only
+poses. Each empty hand gets its own tracked skin palette and anatomical wrist
+centre, so the existing cap renderer can close its opening. Ordinary attached
+arms and native shadows retain their previous draw paths. Validation passed
+1,205,280 movement/controller/render-hook checks and 1,704 physics/graphics
+checks, including actual OpenGL wrist-cap coverage from both sides. Headset
+visual confirmation remains necessary.
 
 In TR3 first person, the visible legs bend during a partial squat before native
 crouch hides the body at a 55 cm drop from calibrated standing height. The trigger
@@ -178,9 +234,18 @@ a synthetic LB press. The camera still avoids adding native crouch height to
 the HMD drop. Manual crouch outside a physical cycle retains native behavior.
 
 `FirstPersonPhysicalCrouch=1` is now the template, embedded INI and missing-key
-default. Set it to 0 to disable automatic native crouching. Full-body IK and
-positional head tracking are required. TR1/2 have no native crouch and are excluded;
-third person is unchanged. The crashing full self-test is not run for this port.
+default. Set it to 0 to disable physical crouching and posture-driven body hiding.
+Full-body IK and positional head tracking are required. In TR1/2, the same 55 cm
+drop hides Lara's body while retaining tracked hands; rising to within 23 cm of
+standing restores it. Left grip (Duck/Stand) or Jump also restores the body while
+the HMD remains low, until the player rises and begins another physical crouch.
+TR1/2 collision and animation remain standing: this does not enable crawling under
+obstacles. Third person is unchanged.
+
+The TR1/2 extension passes the Release build and 1,200,477 full-suite checks,
+including physical thresholds, button overrides through jumps, hands-only draw
+masks, native shadow preservation and TR3 behavior. The integration fixture now
+enables full-body IK when testing physical crouch, matching its runtime requirement.
 
 Validation: the Release build and 160 standalone checks in
 `tests/physical_crouch_tests.cpp` passed. The read-only
@@ -935,6 +1000,8 @@ Copy three files into the game folder
 | `winmm.dll` | the proxy that loads the mod |
 | `TombRaiderVR.dll` | the mod |
 | `openvr_api.dll` | OpenVR runtime, x64 — SteamVR ships one at `steamapps\common\SteamVR\bin\win64\` |
+
+For Index mode, also copy the `TombRaiderVRBindings` folder beside those DLLs.
 
 Launch from Steam as normal. `TombRaiderVR.ini` is written next to the DLL on
 first run and is heavily commented; that file, not this one, is the reference
@@ -2804,7 +2871,7 @@ msbuild TombRaiderVR.sln /p:Configuration=Release /p:Platform=x64
 ```
 
 Produces `TombRaiderVR.dll` and `winmm.dll` in `build\x64\Release\`, and copies
-the mod DLL into the game folder. Override the destination with
+the mod DLL and `TombRaiderVRBindings` into the game folder. Override the destination with
 `/p:GameDir="..."`, or disable the copy with `/p:DeployToGame=false`.
 
 `openvr_api.dll` is resolved with `LoadLibrary` at runtime, so only the OpenVR
