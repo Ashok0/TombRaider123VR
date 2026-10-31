@@ -1,0 +1,10 @@
+﻿{
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\climbing-arms\\before-20261030-230305",
+    "new_sha256":  "B20F636F125CEB728B76C90C69926174B057B48F78BEFF7BA6A742A7B5C74322",
+    "headset_verified":  false,
+    "regression_checks":  1210602,
+    "release_build":  "passed",
+    "ini_sha256":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88",
+    "deployed_at":  "2026-10-30T23:03:05.5148925-04:00",
+    "old_sha256":  "15F0BE5FD3DD17D978D40F4290A4FDF2325EBFEBF8E89A827CC10A1C3D43FFB7"
+}

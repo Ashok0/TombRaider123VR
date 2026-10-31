@@ -8,7 +8,7 @@
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 39532 bytes, 815 lines.
+// Source: TombRaiderVR.ini, 39793 bytes, 819 lines.
 #pragma once
 
 namespace tr {
@@ -341,6 +341,10 @@ FirstPersonTurnDeadzone=0.25
 ; Smooth the native gait's horizontal root motion toward stick direction and
 ; cancel residual walking motion immediately when the stick is released.
 FirstPersonMovementStabilization=1
+; Ease the camera handoff from a crate/ledge mount to standing, in seconds.
+; Only the animation offset is blended; head tracking and movement stay live.
+; 0 disables; positive values are limited to 0.03..0.40 seconds.
+FirstPersonMountSmoothingSeconds=0.16
 
 ; HD motion guns are enabled by default. Each controller places its hand; shots
 ; use that controller's barrel. In first person, press LT to equip when
@@ -616,13 +620,13 @@ ValveIndexGripRelease=0.35
 GamepadLogButtons=0
 
 ; Right stick turns only. Its vertical axis is dropped, so the game camera never
-; pitches from the stick. 1 = on and the default; 0 = the stock two-axis stick.
+)INI"
+           R"INI(; pitches from the stick. 1 = on and the default; 0 = the stock two-axis stick.
 ;
 ; In VR the headset already owns pitch: you look up by looking up. Stick pitch is
 ; then a second source for the same axis, fighting the first, and it is the
 ; uncomfortable one -- a vertical rotation your inner ear did not ask for is the
-)INI"
-           R"INI(; strongest simulator-sickness trigger there is, worse than yaw. Yaw is left
+; strongest simulator-sickness trigger there is, worse than yaw. Yaw is left
 ; alone because turning on the spot with the stick is how you play seated.
 ;
 ; It does genuinely take something away: the engine aims and reads its look

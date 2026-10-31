@@ -107,6 +107,86 @@ struct MountRootHeight {
         Reset();return interpolated;
     }
 };
+// Remove only the mount-to-standing discontinuity. A bounded residual carries
+// incoming animation velocity and decays to zero. Live locomotion keeps moving
+// the target and HMD tracking is added later.
+struct MountCameraTransition {
+    const void* owner=nullptr;
+    int level=-1;
+    bool have=false,mounting=false,active=false;
+    Point last{},offset{},velocity{},sample{},lastTarget{},tangent{};
+    double time=0,start=0,sampleTime=0;
+    float duration=0;
+    void Reset() { *this={}; }
+    // Remember the view that survived collision/floor correction, so the next
+    // handoff starts where the player actually was, not behind a wall.
+    void Presented(Point view,double now) {
+        if(!have || !mounting || !std::isfinite(now) || !std::isfinite(view.x) ||
+           !std::isfinite(view.y) || !std::isfinite(view.z)) return;
+        // Ignore sub-frame duplicate passes. Use the collision-corrected
+        // animation camera; tracked HMD motion is composed later.
+        const double dt=now-sampleTime;
+        if(dt>=1.0/240) {
+            velocity=dt<=.1 ? Point{float((view.x-sample.x)/dt),
+                float((view.y-sample.y)/dt),float((view.z-sample.z)/dt)} : Point{};
+            sample=view;sampleTime=now;
+        } else if(dt==0) sample=view;
+        last=view;
+    }
+    Point Apply(const void* item,int currentLevel,bool mount,bool standing,Point target,
+                double now,float seconds,float units) {
+        if(!item || (!mount && !standing) || !std::isfinite(now) ||
+           !std::isfinite(seconds) || seconds<=0 || !std::isfinite(units) || units<=1 ||
+           !std::isfinite(target.x) || !std::isfinite(target.y) || !std::isfinite(target.z)) {
+            Reset();return target;
+        }
+        if(owner!=item || level!=currentLevel || !have || now<time || now-time>.25) {
+            Reset();owner=item;level=currentLevel;have=true;mounting=mount;
+            last=lastTarget=sample=target;time=sampleTime=now;
+            return target;
+        }
+        time=now;
+        if(mount) {
+            if(!mounting) { sample=target;sampleTime=now;velocity={}; }
+            mounting=true;active=false;last=lastTarget=target;return target;
+        }
+        if(mounting) {
+            mounting=false;
+            offset={last.x-target.x,last.y-target.y,last.z-target.z};
+            const float distance2=offset.x*offset.x+offset.y*offset.y+offset.z*offset.z;
+            // Large relocations are camera cuts, not animation handoffs.
+            active=distance2>1 && distance2<=units*units*.75f*.75f;
+            start=now;
+            duration=std::clamp(seconds,.03f,.4f);
+            if(now-sampleTime>.05) velocity={};
+            // Quintic Hermite tangents in [-2.5, 0] times the residual
+            // preserve motion toward the destination without overshooting.
+            const auto slope=[&](float gap,float speed) {
+                const float travel=std::clamp(speed,-units*3,units*3)*duration;
+                return gap>0 ? std::clamp(travel,-2.5f*gap,0.f) :
+                    gap<0 ? std::clamp(travel,0.f,-2.5f*gap) : 0.f;
+            };
+            tangent={slope(offset.x,velocity.x),slope(offset.y,velocity.y),slope(offset.z,velocity.z)};
+        } else if(active) {
+            const Point step{target.x-lastTarget.x,target.y-lastTarget.y,target.z-lastTarget.z};
+            if(step.x*step.x+step.y*step.y+step.z*step.z>units*units*.75f*.75f) {
+                Reset();return target;
+            }
+        }
+        lastTarget=target;
+        if(active) {
+            const float t=float(std::clamp((now-start)/duration,0.0,1.0));
+            const float weight=1-t*t*t*(10+t*(-15+6*t));
+            const float motion=t*(1-t)*(1-t)*(1-t)*(1+3*t);
+            target.x+=offset.x*weight+tangent.x*motion;
+            target.y+=offset.y*weight+tangent.y*motion;
+            target.z+=offset.z*weight+tangent.z*motion;
+            if(t>=1) active=false;
+        }
+        last=target;
+        return target;
+    }
+};
 // Smooth stance height relative to the body, leaving native vertical travel intact.
 struct StanceEye {
     bool valid=false,transition=false;

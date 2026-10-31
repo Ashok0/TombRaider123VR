@@ -298,6 +298,8 @@ void LoadConfig(const wchar_t* ini) {
         GetBool(L"FirstPersonMovementStabilization",
                 g_cfg.firstPersonMovementStabilization, ini);
     g_cfg.firstPersonDriftLog = GetBool(L"FirstPersonDriftLog", g_cfg.firstPersonDriftLog, ini);
+    g_cfg.firstPersonMountSmoothingSeconds = GetFloat(L"FirstPersonMountSmoothingSeconds",
+        g_cfg.firstPersonMountSmoothingSeconds,ini);
     g_cfg.firstPersonRoomscaleMove   = GetBool (L"FirstPersonRoomscaleMove",
                                                 g_cfg.firstPersonRoomscaleMove, ini);
     g_cfg.firstPersonRoomscaleDeadzoneMetres = GetFloat(L"FirstPersonRoomscaleDeadzoneMetres",

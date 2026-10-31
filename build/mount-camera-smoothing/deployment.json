@@ -1,0 +1,10 @@
+﻿{
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\mount-camera-smoothing\\before-20261030-231519",
+    "new_sha256":  "4A58F99B069B714F8F120EC9D56A098857615A3529E7A966371219CCCA659280",
+    "headset_verified":  false,
+    "regression_checks":  1212201,
+    "release_build":  "passed",
+    "ini_sha256":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88",
+    "deployed_at":  "2026-10-30T23:15:20.2113545-04:00",
+    "old_sha256":  "B20F636F125CEB728B76C90C69926174B057B48F78BEFF7BA6A742A7B5C74322"
+}

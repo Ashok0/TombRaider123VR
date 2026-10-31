@@ -163,6 +163,25 @@ background controller polling and tracking/roomscale improvements. Full-body
 IK, spatial inventory and TR3 physical crouch are enabled by default; camera
 wall collision for physical leaning is opt-in. See the port record for controls, settings and validation.
 
+### Climbing arm appearance
+
+Ledge hanging, pull-ups and all TR3 monkey-bar movement states now share the
+grip arm solver. Previously the moving monkey states (76-79) bypassed the
+fitting and arms-only visibility used for stationary hanging, causing a change
+of rendering behavior during traversal.
+
+Headset-driven shoulder movement is limited to the native arm's reach. Upper
+arms and forearms retain their lengths, and the hands keep the native animation's
+exact contact position and orientation. Nearly straight elbows blend toward a
+body-relative bend direction instead of letting tiny animation noise choose an
+arbitrary plane. Game collision, movement, grip timing and native shadow poses
+remain authoritative.
+
+The Release build and 1,210,602 regression checks passed, including large head
+offsets, stationary-to-moving monkey states, classic and remapped HD skeletons,
+both eye passes, fixed hand contacts, rigid arm lengths and untouched simulation
+data. Headset testing is still needed to judge the visual result.
+
 ### Valve Index controllers
 
 Set these keys under `[VR]` in the installed `TombRaiderVR.ini`, then restart:
@@ -515,6 +534,30 @@ Automated tests cover all three games, native state gating, modern auto-grab,
 tank grab release, native clearance decisions, tracking loss, retry behavior and
 sampling at 30/60/90/144 Hz. Physical gesture comfort and timing still need
 headset confirmation.
+
+### Mount-to-standing camera smoothing (2026-10-31)
+
+The first-person camera now eases the remaining position difference when Lara
+finishes climbing onto a crate or ledge. `FirstPersonMountSmoothingSeconds=0.16`
+sets a 160 ms transition; `0` disables it. Positive values are limited to
+0.03–0.40 seconds and require `FirstPersonMovementStabilization=1`.
+
+Only the animation handoff is blended. Head tracking and movement remain live,
+and jumping, falling, camera changes and large relocations cancel the blend.
+The existing post-mount root-height correction and camera collision checks
+remain in place. Existing INIs use the new default when the key is absent.
+
+The refined blend carries the incoming climbing speed toward the standing
+position instead of starting from rest. Speed is bounded to avoid overshoot,
+and the handoff starts from the camera position after wall/floor correction.
+Repeated render passes preserve the measured speed; stale samples after a
+stall are discarded. Large relocations also cancel an already-running blend.
+
+Release/x64 builds successfully; 1,213,584 regression checks pass, covering
+TR1/2/3 mount handoffs, repeated render calls, frame-rate independence and
+transition cancellation, plus incoming speed, overshoot prevention, collision
+corrections and immediate movement across the supported blend durations.
+Visual comfort still needs headset confirmation.
 
 ### Post-mount camera flicker correction (2026-10-09)
 
@@ -2922,6 +2965,19 @@ The physics self-test defaults to `PDB\tomb123.exe`. To validate other builds'
 embedded skin shaders too, pass their executable paths as arguments to
 `build_physics_selftest.cmd`. Use absolute paths because the script runs the
 test from `build\test`.
+
+## Hands-only climbing transitions
+
+In first person, crate vaults, ledge pull-ups and water exits show only the hands,
+with opaque black wrist caps. The arms remain hidden during post-climb body and
+camera recovery, then return when recovery finishes. Normal hanging, shimmying,
+and TR3 monkey-bar traversal retain their arms. Third-person and shadow rendering
+keep their native behavior.
+
+This uses the existing cap renderer and preserves the current climbing contacts,
+controller wrist poses, original arm-recovery timing, and mount-camera smoothing.
+No additional INI setting is required. `tests/transition_hands_selftest.cpp` checks
+the production draw scopes for all three games without running the full test suite.
 
 ## Repository layout
 

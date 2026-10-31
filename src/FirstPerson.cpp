@@ -278,6 +278,7 @@ bool g_crouchDrive=false;
 float g_crouchTravelYaw=0;
 stabilization::MountBodyTransition g_mountBodyTransition;
 stabilization::MountRootHeight g_mountRootHeight;
+stabilization::MountCameraTransition g_mountCamera;
 firstperson::LedgePullGesture g_ledgePull;
 LedgeCatchHaptics g_ledgeCatch;
 struct BlockCamera {
@@ -441,6 +442,7 @@ firstperson::BodyFollowSettings BodyFollowSettings() {
     s.followSpeed=Cfg().firstPersonBodyFollowSpeedMetres;return s;
 }
 void ResetBodyFollower() {
+    g_mountCamera.Reset();
     g_pistolRoll={};
     g_pistolArmPose.valid=false;
     g_bodyFollower.Reset();g_roomscaleFollower={};g_roomscaleFollowTime={};
@@ -957,8 +959,9 @@ uint32_t FirstPersonBodyMask(const uint8_t* item) {
     const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
     const auto mask=g_bodyVisibility.Update(item,AppFlag(drva::app_off::level),TurnTime(),
         locomotion::IsLedgeArmsOnlyState(state,BoundGame()),UseLandingCamera(item),
-        g_mountBodyTransition.active || g_torsoPose.recovering);
-    return IsHandsOnlyBodyState(item) ? firstperson::HandMeshBits : mask;
+        g_mountBodyTransition.active || g_torsoPose.recovering || g_mountCamera.active);
+    return IsHandsOnlyBodyState(item) || firstperson::TraversalTransitionHandsOnly(state,BoundGame(),mask)
+        ? firstperson::HandMeshBits : mask;
 }
 
 // TR3's native crawl capsule and state table; these IDs are not crouching in TR1/2.
@@ -1193,6 +1196,10 @@ public:
 // Floating empty hands need the same rigid skin and wrist cap as weapon hands.
 // Keep this separate from weapon eligibility so rendering cannot enable firing.
 bool g_unarmedHandScope=false;
+// Pose the complete skeleton, then expose only its solved wrist to the existing
+// rigid-hand shader/cap renderer. Native climbing grips and controller handoffs
+// keep their existing targets; this scope changes visibility only.
+int g_transitionHand=-1;
 
 void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
     if (DrawingNativeShadow()) {
@@ -1215,6 +1222,25 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
     const bool armsOnly=bodyMask==firstperson::ArmMeshBits;
     const bool trackedWeapon=lara && (MotionReady() || FlareIKReady());
     const UnarmedRestHandScope restHands(static_cast<uint8_t*>(item),lara && !trackedWeapon ? useMeshBits : 0);
+    const bool transitionHands=lara && firstperson::TraversalTransitionHandsOnly(
+        *reinterpret_cast<const int16_t*>(static_cast<const uint8_t*>(item)+off::item_anim_state),BoundGame(),g_bodyVisibility.mask);
+    if(lara && handsOnly && transitionHands && !trackedWeapon) {
+        if(DrawingHeadGeometry(static_cast<const uint8_t*>(item))) return;
+        auto& bits=*reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(item)+off::item_mesh_bits);
+        const uint32_t saved=bits,hands=(useMeshBits ? saved : UINT32_MAX)&bodyMask;
+        const int previousArm=g_renderArm,previousTransition=g_transitionHand;
+        const bool previousScope=g_bodySkinScope,previousPistol=g_pistolBodyScope;
+        g_renderArm=-1;g_bodySkinScope=true;g_pistolBodyScope=false;
+        for(int hand=0;hand<2;++hand) {
+            const uint32_t bit=1u<<(hand ? 10 : 13);
+            if(!(hands&bit)) continue;
+            bits=bit;g_transitionHand=hand;g_renderWrist=-1;g_bodySkinReady=false;
+            g_hDrawCreatureHD.Original<Fn_DrawCreatureHD>()(item,1);
+        }
+        bits=saved;g_renderArm=previousArm;g_transitionHand=previousTransition;g_renderWrist=-1;
+        g_bodySkinScope=previousScope;g_bodySkinReady=false;g_pistolBodyScope=previousPistol;
+        return;
+    }
     if(lara && handsOnly && !trackedWeapon && UnarmedIKReady()) {
         if(DrawingHeadGeometry(static_cast<const uint8_t*>(item))) return;
         auto& bits=*reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(item)+off::item_mesh_bits);
@@ -1307,7 +1333,7 @@ void __cdecl Detour_DrawCreatureHD(void* item, int32_t useMeshBits) {
 void __cdecl Detour_DrawHair(int32_t arg) {
     const auto* item=g_active && g_boundDll && g_boundBase ? *Ptr<uint8_t*>(g_boundDll->laraItem) : nullptr;
     const bool restricted=!DrawingNativeShadow() && item && (IsHandsOnlyBodyState(item) ||
-        FirstPersonBodyMask(item)==firstperson::ArmMeshBits || UseLandingCamera(item));
+        FirstPersonBodyMask(item)==firstperson::ArmMeshBits || FirstPersonBodyMask(item)==firstperson::HandMeshBits || UseLandingCamera(item));
     if (!DrawingNativeShadow() && g_active && (g_headHidden || g_rollHidden || g_crouchHidden ||
                      g_ledgeArmsOnly || restricted)) {
         ++g_hairSkips;
@@ -1857,7 +1883,7 @@ bool ReadIKJoint(const uint8_t* obj,const float* joints,int count,int bones,
 
 bool FullBodyGripState(const uint8_t* item) {
     const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
-    return locomotion::IsLedgeHangState(state) || locomotion::IsLedgeMountState(state,BoundGame());
+    return locomotion::IsLedgeArmsOnlyState(state,BoundGame());
 }
 bool FullBodyIKReady() {
     if(!Cfg().firstPersonFullBodyIK || ControllerTrackingBlockedReason() || !Gate()) return false;
@@ -2246,13 +2272,18 @@ bool ApplyFullBodyIK(uint8_t* item,float* joints,int count) {
         const float side=hand ? 1.f : -1.f;
         Vec pole{side*.6f*std::cos(heading)-.25f*std::sin(heading),1.f,
                  -side*.6f*std::sin(heading)-.25f*std::cos(heading)};
-        if(grip) pole=Sub(native[first+1].origin,native[first].origin);
+        if(grip) {
+            const Frame authored[3]={native[first],native[first+1],native[first+2]};
+            Frame solved[3]{};
+            if(!firstperson::SolveGripArm(authored,posed[first].origin,pole,solved)) return false;
+            for(int i=0;i<3;++i) posed[first+i]=solved[i];
+            continue;
+        }
         const Frame armBind[3]={bind[first],bind[first+1],bind[first+2]};
         if(!grip && MotionReady() && CurrentMotionWeapon()==1 &&
            !firstperson::PistolArmReference(posed[7],bind[7],armBind,pistolBodyScale,chain)) return false;
         auto roll=g_pistolBodyScope ? PistolRollSeed(hand,item) : firstperson::ArmRollContinuity{};
-        if(grip ? !firstperson::SolveArm(chain,target,pole,changes,nullptr,nullptr,false)
-                : !firstperson::SolveTrackedArm(chain,target,pole,armBind,changes,true,g_pistolBodyScope ? &roll : nullptr)) return false;
+        if(!firstperson::SolveTrackedArm(chain,target,pole,armBind,changes,true,g_pistolBodyScope ? &roll : nullptr)) return false;
         if(g_pistolBodyScope) {
             g_pistolRoll.current[hand]=roll;
             g_pistolRoll.minConfidence[hand]=std::min(g_pistolRoll.minConfidence[hand],roll.confidence);
@@ -2552,6 +2583,18 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
                     if(HolsterCameraOffset(item,g_bodyRenderPalette,count,holsterCamera))
                         CaptureHolsterAnchors(item,g_bodyRenderPalette,count,holsterCamera);
                     g_bodySkinReady=true;
+                    if(g_transitionHand>=0) {
+                        const int nativeJoint=g_transitionHand ? 10 : 13;
+                        const auto* obj=geom-off::object_geom;
+                        const auto* poses=bones>0 ? *reinterpret_cast<const float* const*>(geom+72) : nullptr;
+                        motiongun::Frame wrist{};
+                        if(ReadIKJoint(obj,g_bodyRenderPalette,count,bones,mapping,poses,nativeJoint,wrist)) {
+                            for(int i=0;i<count;++i) if((mapping ? mapping[i] : i)==nativeJoint) {
+                                std::memcpy(g_handSkinPalette,g_bodyRenderPalette,sizeof(g_handSkinPalette));
+                                g_handSkinCentre=wrist.origin;g_renderWrist=i;break;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -4060,9 +4103,24 @@ void UpdateInventorySceneCamera(PHD_3DPOS& pose) {
         g_inventoryScenePoseValid=true;
     }
 }
+void UpdateMountCamera(const uint8_t* item,PHD_3DPOS& pose,double now) {
+    if(!Cfg().firstPersonMovementStabilization || !g_active || !g_haveHeading ||
+       !Gate() || !item || item!=g_headingItem || !GroundBodyAvailable(item) ||
+       (*reinterpret_cast<const uint16_t*>(item+off::item_flags)&8u)) {
+        g_mountCamera.Reset();return;
+    }
+    const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    const auto result=g_mountCamera.Apply(item,AppFlag(drva::app_off::level),
+        locomotion::IsLedgeMountState(state,BoundGame()),
+        g_groundEye.valid && CanWalk(item) && !UseLandingCamera(item),
+        {float(pose.x_pos),float(pose.y_pos),float(pose.z_pos)},now,
+        Cfg().firstPersonMountSmoothingSeconds,LiveWorldUnitsPerMetre());
+    pose.x_pos=int32_t(std::lround(result.x));pose.y_pos=int32_t(std::lround(result.y));pose.z_pos=int32_t(std::lround(result.z));
+}
 void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
     const void* caller=_ReturnAddress();
     if(pose && IsSceneCall(caller) && InInventory() && WorldInventoryActive()) {
+        g_mountCamera.Reset();
         UpdateInventorySceneCamera(*pose);
         g_hGenerateW2V.Original<Fn_GenerateW2V>()(pose);
         return;
@@ -4119,15 +4177,19 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             const PHD_3DPOS animatedHead=*pose;
             UpdateLocomotion(*pose);
             UpdateBlockCamera(item,*pose,TurnTime());
+            const double mountCameraTime=TurnTime();
+            UpdateMountCamera(item,*pose,mountCameraTime);
             FitBodyToRenderedEye(item, *pose, animatedHead);
             const locomotion::Vec unclampedEye{float(pose->x_pos),float(pose->z_pos)};
             ClampRenderedHeadToCollision(item, *pose);
             g_bodyWallOffset=locomotion::Vec{float(pose->x_pos),float(pose->z_pos)}-unclampedEye;
             ClampLowAnimationCameraToFloor(item, *pose);
+            g_mountCamera.Presented({float(pose->x_pos),float(pose->y_pos),float(pose->z_pos)},mountCameraTime);
             g_scenePose=*pose;
             g_scenePoseValid=true;
         }
         else {
+            g_mountCamera.Reset();
             g_gunTriggers.Reset(); g_gunEquip.Reset();
             g_unarmedTwist[0]={}; g_unarmedTwist[1]={};
             g_scenePoseValid=false;
@@ -4727,14 +4789,14 @@ uint32_t FirstPersonBodyWristSeamMask() {
 }
 const float* FirstPersonBodySkin(uint32_t& visibleJoints) {
     visibleJoints=g_bodySkinMask;
-    return g_bodySkinScope && g_bodySkinReady && g_renderArm<0 ? g_bodyRenderPalette : nullptr;
+    return g_bodySkinScope && g_bodySkinReady && g_renderArm<0 && g_transitionHand<0 ? g_bodyRenderPalette : nullptr;
 }
 const float* FirstPersonHandSkin(int& wristJoint) {
     wristJoint=g_renderWrist;
-    return g_renderArm>=0 && g_renderWrist>=0 ? g_handSkinPalette : nullptr;
+    return (g_renderArm>=0 || g_transitionHand>=0) && g_renderWrist>=0 ? g_handSkinPalette : nullptr;
 }
 bool FirstPersonWristCentre(float out[3]) {
-    if (g_renderArm<0 || g_renderWrist<0) return false;
+    if ((g_renderArm<0 && g_transitionHand<0) || g_renderWrist<0) return false;
     out[0]=g_handSkinCentre.x; out[1]=g_handSkinCentre.y; out[2]=g_handSkinCentre.z;
     return true;
 }

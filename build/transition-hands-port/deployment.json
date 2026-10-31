@@ -1,0 +1,17 @@
+﻿{
+    "deployed":  "2026-10-31T00:34:17.2508922-04:00",
+    "focused_checks":  2864,
+    "full_suite_run":  false,
+    "files":  {
+                  "src/FirstPerson.cpp":  "96F5FC4386AA1895B441EE1AC1D133EF795E1059C74738D11F074161D89093E1",
+                  "src/FirstPersonVisibility.h":  "36BAD3C74555908FB95E9850C079AA85CD24A73359424436BA051A9DAF233328",
+                  "tests/build_transition_hands.cmd":  "E40FD6568533DCD910B23DFEBD00595E67B0E57F03522A0A064EE90C1B3DDB3C",
+                  "README.md":  "85BA69FB7264842E05A28E91C3ED46452AD47DC417540A301C2E1F1359CE8F6E",
+                  "tests/transition_hands_selftest.cpp":  "835D3304492CD64C5AFE90AF2C9B37B8105E97F6F432E6BE96C6D66A7ECF6D98",
+                  "tests/climbing_arm_selftest.h":  "9CCDA3C63DE586810408CBCB179EFE9644A672F5EA18C7742C2B073A675BA198"
+              },
+    "headset_tested":  false,
+    "dll":  "68E1553632D1FF5AC2945BA5F58353E348345AFEF4AF0646175BC8973B8BAFAE",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\transition-hands-port\\before-20261031-003416",
+    "ini_unchanged":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88"
+}

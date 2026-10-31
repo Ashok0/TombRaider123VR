@@ -36,6 +36,37 @@ inline Basis LimitRotation(Basis rotation,float radians) {
     return angle>radians && Unit(q.v,axis) ? RotationMatrix(AxisRotation(axis,radians)) : rotation;
 }
 
+// Native climbing animation owns the contact and hand orientation. Headset
+// fitting may move the shoulder only within reach, never elongate either bone.
+inline bool SolveGripArm(const Frame (&native)[3],Vec shoulder,Vec fallbackPole,Frame (&posed)[3]) {
+    for(const auto& joint:native) if(!Finite(joint)) return false;
+    if(!Finite({IdentityBasis(),shoulder})) return false;
+    const Vec offset=Sub(shoulder,native[0].origin);
+    const Vec shift=Scale(offset,ArmClearanceFraction(native,offset));
+    Frame chain[3]{},changes[3]{};
+    for(int i=0;i<3;++i) { chain[i]=native[i];chain[i].origin=Add(chain[i].origin,shift); }
+    const Vec upper=Sub(native[1].origin,native[0].origin);
+    Vec axis{};if(!Unit(Sub(native[2].origin,native[0].origin),axis) && !Unit(upper,axis)) return false;
+    const Vec bend=Sub(upper,Scale(axis,Dot(upper,axis)));
+    const float length=Length(upper)+Length(Sub(native[2].origin,native[1].origin));
+    // A straight authored elbow has no meaningful bend plane; tiny animation
+    // noise must not choose an arbitrary world axis or flip the elbow inward.
+    Vec pole{};
+    if(!Unit(Sub(fallbackPole,Scale(axis,Dot(fallbackPole,axis))),pole))
+        Unit(Cross(axis,std::fabs(axis.x)<.8f ? Vec{1,0,0} : Vec{0,1,0}),pole);
+    Vec authored{};
+    if(Unit(bend,authored) && length>1.e-3f) {
+        float weight=std::clamp((Length(bend)/length-.02f)/.06f,0.f,1.f);
+        weight=weight*weight*(3-2*weight);
+        const float angle=std::acos(std::clamp(Dot(pole,authored),-1.f,1.f));
+        pole=Transform(LimitRotation(Align(pole,authored),angle*weight),pole);
+    }
+    if(!SolveArm(chain,native[2],pole,changes,nullptr,nullptr,false,{},true)) return false;
+    for(int i=0;i<3;++i) posed[i]=Multiply(changes[i],chain[i]);
+    posed[2]=native[2];
+    return true;
+}
+
 inline bool SolveBody(const Frame (&native)[15],Vec headDelta,
                       const Basis& headRotation,Vec forward,float scale,
                       Frame (&posed)[15]) {

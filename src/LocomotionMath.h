@@ -130,7 +130,8 @@ inline bool IsLedgeMountState(int state,int game=0) {
     return state==19 || state==54 || IsWaterExitState(state,game);
 }
 inline bool IsLedgeArmsOnlyState(int state,int game=0) {
-    return IsLedgeHangState(state) || IsLedgeMountState(state,game);
+    return IsLedgeHangState(state) || IsLedgeMountState(state,game) ||
+        (game==3 && IsMonkeyBarState(state));
 }
 inline bool IsClimbingCameraState(int state,int game=0) {
     // TR1-3 wall-climb stance, steps and transitions. Pull-up has a native

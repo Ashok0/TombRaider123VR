@@ -187,6 +187,7 @@ struct Config {
     float firstPersonTurnDegreesPerSecond = 120.0f;
     float firstPersonTurnDeadzone = 0.25f;
     bool  firstPersonMovementStabilization = true;
+    float firstPersonMountSmoothingSeconds = .16f;
     bool  firstPersonDriftLog = true;
 
     // Rotate the movement stick into the direction the player is looking, so

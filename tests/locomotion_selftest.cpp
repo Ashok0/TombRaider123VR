@@ -378,8 +378,12 @@ void TestResponsiveEntry() {
 #include "physical_body_hide_selftest.h"
 #include "index_input_selftest.h"
 #include "unarmed_wrist_cap_selftest.h"
+#include "climbing_arm_selftest.h"
+#include "mount_camera_smoothing_selftest.h"
 
 int main() {
+    TestMountCameraSmoothing();
+    TestClimbingArms();
     TestUnarmedWristCaps();
     TestIndexInput();
     TestPhysicalBodyHide();

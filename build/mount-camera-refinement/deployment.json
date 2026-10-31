@@ -1,0 +1,10 @@
+﻿{
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\mount-camera-refinement\\before-20261031-000412",
+    "new_sha256":  "E8232F08D9750B2F09DE94B90A4D4DEF0307607AFFF60D81FD8072721C3B68E5",
+    "headset_verified":  false,
+    "regression_checks":  1213584,
+    "release_build":  "passed",
+    "ini_sha256":  "A778AF426F96142C5FC2CD6CB3A961BAF0BB6490B4B69055CF361CC4CE22DE88",
+    "deployed_at":  "2026-10-31T00:04:12.8118435-04:00",
+    "old_sha256":  "4A58F99B069B714F8F120EC9D56A098857615A3529E7A966371219CCCA659280"
+}
