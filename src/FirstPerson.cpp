@@ -977,13 +977,20 @@ bool CanUseCrouchCamera(const uint8_t* item) {
 }
 
 bool CanSteerCrouch(const uint8_t* item) {
-    if (!CanUseCrouchCamera(item) ||
-        *reinterpret_cast<const int16_t*>(item+off::item_required_state)!=0) return false;
-    switch (*reinterpret_cast<const int16_t*>(item+off::item_goal_state)) {
-    case 2: case 71: case 80: case 81: case 84: case 85: case 86:
-    case 89: case 90: return true;
-    default: return false;
-    }
+    if (!CanUseCrouchCamera(item)) return false;
+    const auto posture=[](int state) {
+        switch(state) {
+        case 2: case 71: case 80: case 81: case 84: case 85: case 86:
+        case 89: case 90: return true;
+        default: return false;
+        }
+    };
+    // Ordinary queued crouch/crawl postures still belong to player locomotion.
+    // Preserve the queue and native ceiling checks; interactions/hangs/rolls
+    // retain their authored control. These state IDs are TR3-only above.
+    const int required=*reinterpret_cast<const int16_t*>(item+off::item_required_state);
+    return (!required || posture(required)) &&
+        posture(*reinterpret_cast<const int16_t*>(item+off::item_goal_state));
 }
 
 void ApplyCrouchTravelHeading(uint8_t* item) {
@@ -1775,8 +1782,11 @@ bool UnarmedIKReadyForPass(bool shadow) {
         !Cfg().positionalTracking || !Cfg().firstPersonHeadTranslation ||
         !(AppFlag(drva::app_off::cfg_flags)&1)) return false;
     const auto* item=*Ptr<uint8_t*>(g_boundDll->laraItem);
-    if (!item || item!=g_headingItem || LaraWaterStatus()!=0 ||
-        *Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status)!=0) return false;
+    if (!item || item!=g_headingItem || LaraWaterStatus()!=0) return false;
+    const int status=*Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status);
+    // Native ALL4S uses hands-busy even without a weapon or interaction.
+    // Keep controller hands available without changing that native flag.
+    if (status!=0 && !(status==1 && CanSteerCrouch(item))) return false;
     const int gun=*Ptr<int16_t>(g_boundDll->lara+4);
     if (gun!=0 && !MotionWeaponSupported(gun)) return false;
     const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
@@ -1958,7 +1968,7 @@ bool FullBodyIKReady() {
     const int status=*Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status);
     if(!item || LaraWaterStatus()!=0 || *reinterpret_cast<const int16_t*>(item+off::item_hit_points)<=0) return false;
     if(!CanFitStandingBody(item) && !CanSteerCrouch(item) && !FullBodyGripState(item)) return false;
-    if(status==1 && !FullBodyGripState(item)) return false;
+    if(status==1 && !FullBodyGripState(item) && !CanSteerCrouch(item)) return false;
     if(status!=0 && status!=1 && !MotionWeaponSupported(CurrentMotionWeapon())) return false;
     return true;
 }

@@ -1,0 +1,12 @@
+﻿{
+    "dll":  "BB7216B29E71E230296284D42A02EC5954EA46C46A603A429FB7E39BC1193B1D",
+    "full_suite_run":  false,
+    "release_build_passed":  true,
+    "change":  "TR3 first-person queued crouch/crawl transitions retain headset-relative steering and controller hands during native hands-busy status; TR1/2 physical posture preserved",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\crouch-transition\\before-install-20261101-122844",
+    "headset_tested":  false,
+    "previous_dll":  "ED80723AC267DA94446AC6BD7C17EF6189397A4C18D0C1D95B2BB4A050D148F1",
+    "ini_unchanged":  "C363724E2E97AD0D30A0E6BF16C980C4CA1C736851D78C1EEF4633EB88DE9A99",
+    "deployed":  "2026-11-01T12:28:44.5210350-05:00",
+    "focused_crouch_transition_checks":  5490
+}

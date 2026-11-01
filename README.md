@@ -315,6 +315,19 @@ Validation: the Release build and 160 standalone checks in
 handlers across all five supported TR3 fixtures (15 complete-function comparisons).
 No game DLL code was executed by that check. Headset behavior remains unverified.
 
+2026-11-01 TR3 crouch-transition correction: ordinary queued crouch/crawl
+postures keep headset-relative steering. Native all-fours movement marks Lara's
+hands busy; those normal crouch states now retain tracked hands and body IK.
+The fix preserves the queued posture, native ceiling/wall checks and guards for
+interactions, hangs, rolls and vehicles. TR1/2 have no native crawl states;
+their existing physical-squat body hiding is unchanged.
+
+The Release build and 5,490 focused checks in `tests/crouch_transition_test.cpp`
+passed, including production movement hooks with synthetic native callbacks,
+both controller targets, standing release and TR1/2 exclusions. The test
+reproduced the queued-posture failure before the fix. No game DLL code or full
+self-test was run. Headset confirmation is still needed.
+
 ### Crate clearance and VRIK gait stability (2026-10-28)
 
 Two further fixes are ported from TombRaider456VR to all three games:
