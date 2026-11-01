@@ -1,0 +1,12 @@
+﻿{
+    "dll":  "a348380e872964f029553acdabdced5b95613f06975c29460dc6d6789c6d2fc0",
+    "change":  "Classic render fit includes residual roomscale displacement; walking remains centered as collision consumes movement",
+    "full_suite_run":  false,
+    "verified_game_layouts":  13,
+    "headset_tested":  false,
+    "classic_body_checks":  551,
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\vr-options\\before-classic-roomscale-20261031-221906",
+    "ini_unchanged":  "C363724E2E97AD0D30A0E6BF16C980C4CA1C736851D78C1EEF4633EB88DE9A99",
+    "walking_regression_failed_before_fix":  true,
+    "deployed":  "2026-10-31T22:19:07.2683673-04:00"
+}

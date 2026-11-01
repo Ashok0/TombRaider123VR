@@ -3056,3 +3056,10 @@ third_party\     OpenVR headers
 
 `PDB\` is what makes the tooling reproducible; the address tables are only as
 checkable as the symbols they came from.
+
+### Title-menu graphics toggle
+
+Y + RT toggles Classic/Remastered graphics in the title ring as well as during
+gameplay, without requiring first-person mode. On Meta Touch, hold Y on the
+left controller and press the right trigger. Native Start handles the switch;
+holding the chord does not repeatedly toggle it.

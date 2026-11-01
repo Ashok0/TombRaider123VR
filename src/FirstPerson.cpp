@@ -15,6 +15,7 @@
 #include "MotionGunInput.h"
 #include "FirstPersonIK.h"
 #include "BodyFollower.h"
+#include "ClassicBodyRender.h"
 #include "PistolAnimationBlend.h"
 #include "PhysicalHolster.h"
 #include "CollectionParity.h"
@@ -1343,12 +1344,20 @@ void __cdecl Detour_DrawHair(int32_t arg) {
     g_hDrawHair.Original<Fn_DrawHair>()(arg);
 }
 
+bool RemasteredBodyRendering() {
+    return (AppFlag(drva::app_off::cfg_flags)&1)!=0;
+}
+
 void TurnBodyToHead(uint8_t* item, float dt) {
+    // Classic does not run the HD body solver. Its last facing is stale
+    // after a graphics switch and must never override live headset turning.
+    const bool remastered=RemasteredBodyRendering();
+    if(!remastered) g_bodyFollower.Reset();
     if (!Cfg().firstPersonBodyFollowsHead || !CanWalk(item))
         return;
     using namespace locomotion;
     auto& pos = *reinterpret_cast<PHD_3DPOS*>(item + off::item_pos);
-    if(Cfg().firstPersonFullBodyIK && g_bodyFollower.valid) { pos.y_rot=Angle(g_bodyFollower.yaw); return; }
+    if(remastered && Cfg().firstPersonFullBodyIK && g_bodyFollower.valid) { pos.y_rot=Angle(g_bodyFollower.yaw); return; }
     const float delta = Wrap(g_heading.World(VR().HeadYawRadians()) - Radians(pos.y_rot));
     const float dead = std::clamp(Cfg().firstPersonBodyDeadzoneDegrees, 0.0f, 90.0f) * Pi / 180;
     const float move = std::copysign(std::max(0.0f, std::fabs(delta) - dead), delta);
@@ -1864,6 +1873,49 @@ bool BodyVisualOffsetApplies(const uint8_t* item) {
 
 locomotion::Vec BodyRenderOffset() {
     return g_bodyVisualOffset+g_bodyWallOffset;
+}
+
+// Classic DrawLara builds its origin separately from the HD joint palette.
+// Match the specific Lara draw call as well as both item-position pointers;
+// other item draws, shadows and native gameplay queries remain untouched.
+struct ClassicBodyDll { uint32_t timestamp,setItemMatrix,drawReturns[4]; };
+#include "ClassicBodyAddresses.inl"
+const ClassicBodyDll* g_classicBodyDll=nullptr;
+hook::InlineHook g_hClassicItemMatrix;
+void __cdecl Detour_ClassicItemMatrix(const PHD_3DPOS* previous,const PHD_3DPOS* current) {
+    const auto original=g_hClassicItemMatrix.Original<void (__cdecl*)(const PHD_3DPOS*,const PHD_3DPOS*)>();
+    auto* item=g_headingItem;
+    const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+    bool laraDraw=false;
+    if(g_classicBodyDll) for(auto ret:g_classicBodyDll->drawReturns)
+        if(ret && caller==g_boundBase+ret) laraDraw=true;
+    if(g_classicBodyDll && g_boundBase && g_boundDll && g_active && g_scenePoseValid &&
+       !RemasteredBodyRendering() && !DrawingNativeShadow() &&
+       laraDraw &&
+       item && item==*Ptr<uint8_t*>(g_boundDll->laraItem) &&
+       previous==reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos_prev) &&
+       current==reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos) && BodyVisualOffsetApplies(item)) {
+        PHD_3DPOS renderPrevious{},renderCurrent{};
+        if(firstperson::ClassicBodyPositions(*previous,*current,BodyRenderOffset(),renderPrevious,renderCurrent)) {
+            original(&renderPrevious,&renderCurrent);return;
+        }
+    }
+    original(previous,current);
+}
+bool InstallClassicBody(const GameDllLayout& d,uint64_t base) {
+    for(const auto& entry:kClassicBodyDlls) if(entry.timestamp==d.timestamp) {
+        for(auto ret:entry.drawReturns) if(ret) {
+            const auto* call=reinterpret_cast<const uint8_t*>(base+ret-5);
+            int32_t delta=0;std::memcpy(&delta,call+1,4);
+            if(call[0]!=0xe8 || int64_t(ret)+delta!=entry.setItemMatrix) return false;
+        }
+        constexpr uint8_t prologue[]={0x48,0x89,0x5c,0x24,0x08};
+        if(!g_hClassicItemMatrix.Install(reinterpret_cast<void*>(base+entry.setItemMatrix),
+            reinterpret_cast<void*>(&Detour_ClassicItemMatrix),5,prologue,5,"ClassicBodyRenderOrigin")) return false;
+        g_classicBodyDll=&entry;
+        Log("firstperson: Classic Lara render centering ready");return true;
+    }
+    return false;
 }
 
 bool ReadIKBind(const uint8_t* obj,int count,int bones,const int32_t* mapping,
@@ -4102,6 +4154,7 @@ void FitBodyToRenderedEye(const uint8_t* item,const PHD_3DPOS& pose,
     // placement instead. Recompute from the live eye/root every render: no
     // stale takeoff offset, accumulation between eyes, or physical recenter.
     if(airborne) floor={};
+    floor=firstperson::RenderFitFloor(RemasteredBodyRendering(),floor);
     const float bodyYaw=Radians(prev.y_rot)+Wrap(Radians(pos.y_rot)-Radians(prev.y_rot))*(frac/256.f);
     const Vec eyeFromRoot{float(pose.x_pos-Lerp(prev.x_pos,pos.x_pos,frac)),
                           float(pose.z_pos-Lerp(prev.z_pos,pos.z_pos,frac))};
@@ -4370,6 +4423,7 @@ bool Install(const GameDllLayout& d, uint64_t base) {
     if (d.module[4]==L'3' && !g_hCrouchDraw.Install(
             reinterpret_cast<void*>(base+d.drawLara),reinterpret_cast<void*>(&Detour_CrouchDraw),
             6,kCrouchDrawPrologue,sizeof(kCrouchDrawPrologue),"FirstPersonBodyDraw")) return false;
+    if(!InstallClassicBody(d,base)) return false;
     bool blockInstalled=false;
     if (d.module[4]==L'1')
         blockInstalled=g_hBlockCollision.Install(reinterpret_cast<void*>(base+d.movableBlockCollision),
@@ -4565,6 +4619,7 @@ void Remove() {
     g_hDrawActionIndicators.Remove();
     g_hDrawHair.Remove();
     g_hDrawCreatureHD.Remove();
+    g_hClassicItemMatrix.Remove();g_classicBodyDll=nullptr;
     g_hCrouchDraw.Remove();
     g_crouchDrive=false;g_crouchWeaponScope=nullptr;
     g_hGetJoints.Remove();

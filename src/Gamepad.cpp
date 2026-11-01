@@ -298,7 +298,9 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     // view/graphics switch cannot also use Action, draw guns or shoot.
     const bool yHeld = (mine.Gamepad.wButtons & XB_Y) != 0;
     const bool viewToggle = gameplay && yHeld && mine.Gamepad.bLeftTrigger > 30;
-    const bool graphicsToggle = gameplay && !viewToggle && yHeld &&
+    // Title-ring graphics switching does not require gameplay or first person.
+    // Native START handles the graphics flag and one toggle per press.
+    const bool graphicsToggle = (gameplay || InTitle()) && !viewToggle && yHeld &&
                                 mine.Gamepad.bRightTrigger > 30;
     if (viewToggle && !g_viewToggleHeld) FirstPersonToggle();
     g_viewToggleHeld = viewToggle;
@@ -308,7 +310,7 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     } else if (graphicsToggle) {
         mine.Gamepad.wButtons &= static_cast<uint16_t>(~XB_Y);
         mine.Gamepad.wButtons |= XB_START;
-        mine.Gamepad.bRightTrigger = 0;
+        mine.Gamepad.bLeftTrigger = mine.Gamepad.bRightTrigger = 0;
     }
     if (FirstPersonGunTriggers(mine.Gamepad.bLeftTrigger,
                                mine.Gamepad.bRightTrigger,
