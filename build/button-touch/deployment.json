@@ -1,0 +1,14 @@
+﻿{
+    "dll":  "79CF34A1028BC6C7D8937C1828F6729A26B8F9C8383737AE40C8B9988EC088A8",
+    "full_suite_run":  false,
+    "release_build_passed":  true,
+    "change":  "TR2/3 push-button touch with either controller, both idle faces, native timers and triggers; TR1 grip levers preserved",
+    "push_button_native_layouts_verified":  6,
+    "level_data_files_verified":  62,
+    "headset_tested":  false,
+    "button_profiles_verified":  14,
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\button-touch\\before-install-20261101-090209",
+    "ini_unchanged":  "C363724E2E97AD0D30A0E6BF16C980C4CA1C736851D78C1EEF4633EB88DE9A99",
+    "focused_interaction_checks":  8912,
+    "deployed":  "2026-11-01T09:02:09.9735342-05:00"
+}

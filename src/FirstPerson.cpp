@@ -1,5 +1,7 @@
 #include "FirstPerson.h"
 #include "SwitchPosePath.h"
+#include "ButtonTouch.h"
+#include "ValveTurn.h"
 #include "GameDll.h"
 #include "Engine.h"
 #include "Config.h"
@@ -1709,6 +1711,7 @@ bool TrackedControllerWrist(int hand,motiongun::Frame& out,motiongun::Basis& con
 bool ReadIKBind(const uint8_t* obj,int count,int bones,const int32_t* mapping,
                 const float* poses,int joint,motiongun::Frame& bind);
 #include "PhysicalSwitch.inl"
+#include "PhysicalButton.inl"
 
 struct GunPose {
     motiongun::Basis basis{};
@@ -3764,6 +3767,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     g_groundMoveAction = 0;
     g_crouchDrive=false;
     g_stabilizeRoot = g_hardStopRoot = false;
+    AdvancePhysicalButton(item,nativeCollision,GetTickCount64());
 }
 
 void UpdateLocomotion(PHD_3DPOS& pose) {

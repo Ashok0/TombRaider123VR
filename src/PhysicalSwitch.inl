@@ -1,5 +1,5 @@
-// Included inside FirstPerson.cpp's anonymous namespace. Only ordinary wall
-// levers use this path; all switch activation, commands and level-specific
+// Included inside FirstPerson.cpp's anonymous namespace. Wall/small levers
+// and airlock wheels use this path; activation, commands and level-specific
 // callbacks remain in the verified native SwitchCollision handler.
 struct SwitchDll {
     uint32_t timestamp,collision,testPosition,movePosition,bounds,getBounds,items,count;
@@ -31,7 +31,9 @@ uint8_t* g_switchCommit=nullptr;
 void RestoreSwitchPreview();
 void RestoreParkedSwitches();
 
+void ResetPhysicalButtons();
 void ResetPhysicalSwitch() {
+    ResetPhysicalButtons();
     RestoreSwitchPreview();
     RestoreParkedSwitches();
     g_switchCandidate={};g_switchGrab={};g_switchCompleted=false;
@@ -86,6 +88,10 @@ struct SwitchPreview {
     int16_t animation=0,frame=0;
     int32_t onScreen=0;
     int32_t savedMatrices[792]{};
+    bool valve=false;
+    firstperson::ValveTurn valveTurn{};
+    motiongun::Frame valveFrame{};
+    motiongun::Vec valveLocal{};
 } g_switchPreview;
 struct ParkedSwitch {
     SwitchCandidate candidate; SwitchPreview preview;
@@ -154,12 +160,16 @@ void ParkSwitchPreview() {
     } else RestoreSwitchPreview();
 }
 
+bool RegripSpecialPreview(uint8_t* item,motiongun::Vec hand);
 bool ResumeSwitchPreview(uint8_t* target,motiongun::Vec hand,uint64_t now) {
     for (auto it=g_parkedSwitches.begin();it!=g_parkedSwitches.end();) {
         uint8_t* item=nullptr;
         if (!ParkedSwitchUnchanged(*it,item)) { it=g_parkedSwitches.erase(it);continue; }
         if (item!=target) { ++it;continue; }
         g_switchPreview=it->preview;
+        if(g_switchPreview.valve && !RegripSpecialPreview(item,hand)) {
+            g_switchPreview.active=g_switchPreview.attached=false;return false;
+        }
         g_switchPreview.active=g_switchPreview.attached=true;
         g_switchPreview.lastTime=now;g_switchPreview.lastHand=hand;
         g_switchPreview.handOffset=Sub(g_switchPreview.grip,hand);
@@ -203,6 +213,8 @@ motiongun::Frame SwitchJoint(const uint8_t* item,int joint) {
     return motiongun::ReadRows(rows);
 }
 
+#include "SpecialSwitch.inl"
+
 int WallSwitchObject() {
     return g_boundDll->module[4]==L'1' ? 55 : g_boundDll->module[4]==L'2' ? 104 : 129;
 }
@@ -213,6 +225,7 @@ bool BeginSwitchPreview(uint8_t* item,motiongun::Vec hand,uint64_t now) {
        !g_switchDll->changes || !g_switchDll->ranges || !g_switchDll->commands) return false;
     if (ResumeSwitchPreview(item,hand,now)) return true;
     auto& p=g_switchPreview;
+    const auto* special=SpecialSwitch(item);p.valve=special && special->wheel;
     const int object=*reinterpret_cast<int16_t*>(item+16);
     if(object<0) return false;
     const auto* obj=Ptr<uint8_t>(g_boundDll->objects)+object*off::object_stride;
@@ -224,7 +237,10 @@ bool BeginSwitchPreview(uint8_t* item,motiongun::Vec hand,uint64_t now) {
     if(joints<1 || joints>33) return false;
     const int state=*reinterpret_cast<int16_t*>(item+18);
     p.animation=*reinterpret_cast<int16_t*>(item+24);p.frame=*reinterpret_cast<int16_t*>(item+26);
-    if(!p.path.Build(*Ptr<firstperson::SwitchAnim*>(g_boundDll->anims),
+    if(p.valve && special->game==2) {
+        if(!BuildAirlockPath(p.path,*Ptr<firstperson::SwitchAnim*>(g_boundDll->anims),
+            *reinterpret_cast<const int16_t*>(obj+72),{p.animation,p.frame,int16_t(state)})) return false;
+    } else if(!p.path.Build(*Ptr<firstperson::SwitchAnim*>(g_boundDll->anims),
         *Ptr<firstperson::SwitchChange*>(g_switchDll->changes),*Ptr<firstperson::SwitchRange*>(g_switchDll->ranges),
         *Ptr<int16_t*>(g_switchDll->commands),{p.animation,p.frame,int16_t(state)},1-state)) return false;
     alignas(16) uint8_t probe[off::item_stride];std::memcpy(probe,item,sizeof(probe));
@@ -236,7 +252,15 @@ bool BeginSwitchPreview(uint8_t* item,motiongun::Vec hand,uint64_t now) {
     SwitchPoseMatrices(probe,p.path.poses[p.path.count-1]);
     float best=0;Vec local{};p.joint=-1;
     const float scale=LiveWorldUnitsPerMetre();
-    for(int j=0;j<joints;++j) {
+    if(special) {
+        Vec grip{};if(!SpecialGripPoint(item,hand,local,grip)) return false;
+        p.joint=special->joint;
+        if(p.valve) {
+            if(!BuildAirlockTrajectory(item,local)) return false;
+            p.valveTurn.Grab(std::atan2(local.y,local.x));
+        }
+    }
+    for(int j=0;!special && j<joints;++j) {
         Frame inverse{};if(!Inverse(start[j],inverse)) continue;
         const auto end=SwitchJoint(probe,j);
         const Vec at=Add(inverse.origin,Transform(inverse.basis,Sub(hand,origin)));
@@ -248,7 +272,7 @@ bool BeginSwitchPreview(uint8_t* item,motiongun::Vec hand,uint64_t now) {
         if(score>best) { best=score;p.joint=j;local=at; }
     }
     if(p.joint<0) return false;
-    for(int i=0;i<p.path.count;++i) {
+    for(int i=0;!p.valve && i<p.path.count;++i) {
         SwitchPoseMatrices(probe,p.path.poses[i]);
         const auto frame=SwitchJoint(probe,p.joint);
         p.points[i]=Add(origin,Add(frame.origin,Transform(frame.basis,local)));
@@ -282,6 +306,27 @@ bool UpdateSwitchPreview(uint8_t* item,motiongun::Vec hand,uint64_t now) {
     }
     p.lastTime=now;p.lastHand=hand;
     const auto contact=Add(hand,p.handOffset);
+    if(p.valve) {
+        motiongun::Frame inverse{};
+        if(!motiongun::Inverse(p.valveFrame,inverse)) { ParkSwitchPreview();g_switchGripClaimed=false;return false; }
+        const auto v=motiongun::Transform(inverse,contact);
+        const float r=std::hypot(v.x,v.y),radius=std::hypot(p.valveLocal.x,p.valveLocal.y);
+        const int previousSelected=p.selected;const float previousProgress=p.valveTurn.progress;
+        if(r<radius*.5f || std::fabs(r-radius)>scale*.16f || std::fabs(v.z-p.valveLocal.z)>scale*.16f ||
+           !p.valveTurn.Track(std::atan2(v.y,v.x))) {
+            ParkSwitchPreview();g_switchGripClaimed=false;return false;
+        }
+        p.selected=p.valveTurn.Pose();p.grip=p.points[p.selected];
+        if(SwitchLength(Sub(contact,p.grip))>scale*.16f) {
+            // Retain the last displayed pose if the hand pulls off the rim.
+            // Do not park a newly selected frame that was never displayed.
+            p.selected=previousSelected;p.grip=p.points[p.selected];p.valveTurn.progress=previousProgress;
+            ParkSwitchPreview();g_switchGripClaimed=false;return false;
+        }
+        SwitchPoseMatrices(item,p.path.poses[p.selected]);
+        std::memcpy(item+off::item_joints_prev,item+off::item_joints_cur,1584);
+        return p.valveTurn.Complete();
+    }
     float nearest=1.e30f;int selected=p.selected;
     for(int i=0;i<p.path.count;++i) {
         const auto delta=Sub(contact,p.points[i]);const float distance=motiongun::Dot(delta,delta);
@@ -305,7 +350,8 @@ bool SwitchReach(uint8_t* target,uint8_t* lara,motiongun::Vec hand,float& distan
     const int object=*reinterpret_cast<const int16_t*>(target+16);
     const int state=*reinterpret_cast<const int16_t*>(target+off::item_anim_state);
     const int idleAnimation=g_boundDll->module[4]==L'3' ? 103 : 11;
-    if (object!=WallSwitchObject() || (state!=0 && state!=1) ||
+    const auto* special=SpecialSwitch(target);
+    if ((object!=WallSwitchObject() && !special) || (special && special->wheel && special->game==2 && state!=0) || (state!=0 && state!=1) ||
         (*reinterpret_cast<const uint16_t*>(target+off::item_flags)&6) ||
         (*reinterpret_cast<const uint16_t*>(target+44)&0x100) ||
         *reinterpret_cast<const int16_t*>(lara+off::item_anim_state)!=2 ||
@@ -336,6 +382,13 @@ bool SwitchReach(uint8_t* target,uint8_t* lara,motiongun::Vec hand,float& distan
     const float dx=bodyLocal.x-std::clamp(bodyLocal.x,float(nativeBounds[0]),float(nativeBounds[1]));
     const float dz=bodyLocal.z-std::clamp(bodyLocal.z,float(nativeBounds[4]),float(nativeBounds[5]));
     if (!std::isfinite(scale) || scale<=1 || dx*dx+dz*dz>scale*scale*.9f*.9f) return false;
+    if(special) {
+        motiongun::Vec jointLocal{},grip{};
+        if(!SpecialGripPoint(target,hand,jointLocal,grip)) return false;
+        const auto delta=Sub(grip,hand);distance=motiongun::Dot(delta,delta);
+        const float radius=scale*(grabbed ? .25f : .10f);
+        return std::isfinite(distance) && distance<=radius*radius;
+    }
     const float p[3]={local.x,hand.y-pos.y_pos,local.z};distance=0;
     for(int i=0;i<3;++i) {
         const float d=p[i]-std::clamp(p[i],float(nativeBounds[2*i]),float(nativeBounds[2*i+1]));
@@ -358,7 +411,7 @@ SwitchCandidate FindPhysicalSwitch(uint8_t* lara,motiongun::Vec hand,uint64_t no
     for (int i=0;i<count;++i) {
         auto* target=items+i*off::item_stride;
         const int object=*reinterpret_cast<const int16_t*>(target+16);
-        if (object<0 || object!=WallSwitchObject()) continue;
+        if (object<0 || (object!=WallSwitchObject() && !SpecialSwitch(target))) continue;
         const auto* definition=Ptr<uint8_t>(g_boundDll->objects)+object*off::object_stride;
         if (*reinterpret_cast<Fn_SwitchCollision const*>(definition+64)!=collision) continue;
         float distance=0;
@@ -427,7 +480,7 @@ void CommitPhysicalSwitch(int16_t index,uint8_t* target,uint8_t* lara,void* coll
     SwitchPoseMatrices(target,{*reinterpret_cast<int16_t*>(target+24),*reinterpret_cast<int16_t*>(target+26),
         *reinterpret_cast<int16_t*>(target+18)});
     std::memcpy(target+off::item_joints_prev,target+off::item_joints_cur,1584);
-    g_switchPreview.grip=grip;g_switchPreview.attached=true;
+    g_switchPreview.grip=grip;g_switchPreview.attached=!g_switchPreview.valve;
     LogF("vr-switch: pull committed item=%d state=%d goal=%d status=%u; native activation, FP retained",
         index,*reinterpret_cast<int16_t*>(target+18),*reinterpret_cast<int16_t*>(target+20),
         (*reinterpret_cast<uint16_t*>(target+off::item_flags)>>1)&3);
@@ -547,5 +600,5 @@ void InstallPhysicalSwitches(const GameDllLayout& d,uint64_t base) {
             reinterpret_cast<void*>(&Detour_PhysicalSwitchCollision),sizeof(collide),collide,sizeof(collide),"VRWallSwitch")) {
         RemovePhysicalSwitches();Log("vr-switch: hook byte checks failed; native interaction retained");return;
     }
-    Log("vr-switch: hand-attached wall levers enabled; pose follows grip, native completion at end stop");
+    Log("vr-switch: hand-attached wall/small levers and TR2/3 airlock wheels enabled; native completion at end stop");
 }

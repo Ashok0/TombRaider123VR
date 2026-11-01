@@ -1,0 +1,14 @@
+﻿{
+    "dll":  "ED80723AC267DA94446AC6BD7C17EF6189397A4C18D0C1D95B2BB4A050D148F1",
+    "full_suite_run":  false,
+    "release_build_passed":  true,
+    "change":  "TR2/3 small switches and airlock wheels: Right Grip hand-driven motion, retained progress/regrip, native completion and post-use motion; prior buttons/levers preserved",
+    "special_object_animation_tables_verified":  47,
+    "headset_tested":  false,
+    "special_switch_profiles_verified":  9,
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\special-switch\\before-install-20261101-091903",
+    "ini_unchanged":  "C363724E2E97AD0D30A0E6BF16C980C4CA1C736851D78C1EEF4633EB88DE9A99",
+    "focused_interaction_checks":  56804,
+    "native_layouts_verified":  6,
+    "deployed":  "2026-11-01T09:19:04.0435351-05:00"
+}

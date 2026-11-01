@@ -1663,7 +1663,7 @@ Input priority remains as ported: either trigger, System, Photo Mode or Action
 cancels a grab so equipping weapons and changing modes take precedence.
 
 This interaction is ported from TR4/5 for TR1, TR2 and TR3 ordinary wall levers.
-Underwater switches, small switches, pushbuttons, airlocks and other special
+Underwater switches and other unsupported special
 mechanisms retain native **Y / Action**, including its temporary third-person
 animation. Recentring, explicit reset, and native Action takeover restore the
 original lever pose; retained previews cannot overwrite script-modified items.
@@ -1671,8 +1671,8 @@ TR3 uses its own standing animation (103) for grab eligibility; TR1/2 use 11.
 No INI changes are required. The existing motion-gun
 and unarmed-IK settings control whether the attached hand is visible.
 TR5's type-4 subtype does not exist in TR1–3's native switch handlers; these
-games select switch mechanisms by object ID. Small switches, push switches
-and airlocks would require separate interaction support.
+games select switch mechanisms by object ID. Small switches and airlocks now
+use the dedicated physical paths described below. Push buttons use touch.
 The TR4 train floor/rail lever has no matching native mechanism here; its
 object-specific handler and floor-handle geometry are not installed in TR1-3.
 
@@ -3063,3 +3063,51 @@ Y + RT toggles Classic/Remastered graphics in the title ring as well as during
 gameplay, without requiring first-person mode. On Meta Touch, hold Y on the
 left controller and press the right trigger. Native Start handles the switch;
 holding the chord does not repeatedly toggle it.
+
+### Touching push buttons in VR (TR2/3)
+
+With weapons holstered in first person, touch a push button's visible face with
+either tracked controller. No Grip, trigger or Action icon is required. Move
+your hand away before pressing again. Both idle positions of toggling buttons
+are supported, including the exposed reverse face of the rotating button.
+
+Coverage uses 14 measured PUSH_SWITCH mesh variants in TR2/3, including matching
+expansion assets. TR1 has no corresponding native push-button object; ordinary
+wall levers retain their existing Right Grip interaction. Small lever switches and airlock wheels have dedicated Right Grip interactions;
+underwater switches retain their native interaction.
+
+The native collision/control handlers own button animation, timers and linked
+mechanisms. Lara's position, animation and first-person camera are preserved.
+Disabled or active buttons cannot be forced, walls block touches, and tracking
+loss/recentering cannot create a press. No INI changes are required.
+
+`tests/build_button_touch.cmd` runs only focused lever/button tests using native
+and tracking stand-ins, including both hands, four orientations, both button
+states, re-arming and availability guards. `tools/verify_button_touch.py` checks
+installed meshes and PDP poses without loading a game DLL. Headset validation
+remains pending.
+
+### Physical small switches and airlock wheels (TR2/3)
+
+With weapons holstered in first person, grab a small wall switch handle with
+Right Grip and move it through its authored travel. Both directions work.
+For airlock wheels, grab the rim with Right Grip and rotate your hand around
+the axle. Release and re-grab to continue; partial progress is retained and
+reverse hand movement unwinds it. The Action icon is not required.
+
+The five small-switch mesh variants and four airlock-wheel variants have
+measured handle/rim contacts, including TR3's House handle and Shore wheel.
+TR2 airlocks retain their one-way activation and native post-use movement;
+TR3 airlocks use their reversible native states. Activation, timers, command
+completion and linked mechanisms stay under native switch handlers.
+Native Action still works. Recentring/leaving first person clears previews;
+partial previews are not a new persistent savegame feature. No INI change is
+required. Underwater interaction and TR1's ordinary lever behavior are unchanged.
+
+`tests/build_special_switch.cmd` runs focused interaction tests, including
+installed PDP animation sampling, release/regrab, both switch states, four item
+orientations, native completion and Lara-pose preservation. It does not load
+a game DLL or run the full locomotion self-test. Headset validation is pending.
+
+`tools/verify_special_switches.py` checks nine mesh profiles, 47 installed
+special-object animation tables and native registrations in six TR2/3 builds.
