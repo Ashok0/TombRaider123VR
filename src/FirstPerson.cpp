@@ -14,6 +14,7 @@
 #include "FirstPersonVisibility.h"
 #include "FirstPersonActionIcon.h"
 #include "MotionGunMath.h"
+#include "FlareThrowMotion.h"
 #include "MotionGunInput.h"
 #include "FirstPersonIK.h"
 #include "BodyFollower.h"
@@ -1773,6 +1774,11 @@ bool FlareIKReady() {
     return BuildControllerWrist(0,wrist,basis);
 }
 
+int FlareLevel() {return AppFlag(drva::app_off::level);}
+float FlareHeading() {return g_heading.base;}
+uint32_t FlareLOS() {return g_boundDll ? g_boundDll->los : 0;}
+#include "PhysicalFlareThrow.inl"
+
 bool UnarmedIKReadyForPass(bool shadow) {
     if(!shadow && FlareIKReady()) return true;
     if (!Cfg().firstPersonUnarmedIK || !Cfg().firstPersonMotionGuns ||
@@ -1830,6 +1836,7 @@ bool BuildGunPose(int hand, GunPose& out) {
 }
 
 void __cdecl Detour_ShotgunEffectJoint(uint8_t* item,int32_t* point,int32_t joint) {
+    if(PhysicalFlareSpawnPoint(item,point,joint)) return;
     using Fn=void (__cdecl*)(uint8_t*,int32_t*,int32_t);
     const auto original=g_hShotgunEffectJoint.Original<Fn>();
     if (g_boundDll && g_boundBase && point) {
@@ -3244,6 +3251,7 @@ void __cdecl Detour_AnimateLara(uint8_t* item) {
 
 void __cdecl Detour_LaraGun() {
     if (g_crouchWeaponScope) g_crouchWeaponScope->Finish();
+    CommitPhysicalFlareThrow();
     bool injected=false;
     bool observed=false;
     uint32_t beforeInput=0;
@@ -3845,7 +3853,7 @@ void UpdateLocomotion(PHD_3DPOS& pose) {
         g_dragPrevious = g_dragCurrent = g_dragShown = {};
         g_renderTurn.Reset();
         g_bodyTime = {};
-        ResetPhysicalSwitch(); VR().RecenterHead();
+        ResetPhysicalSwitch(); ResetPhysicalFlareThrow(); VR().RecenterHead();
         LogF("locomotion: aligned base=%.1f body=%.1f controls=%s",
              g_heading.base * 180 / Pi, Radians(pos.y_rot) * 180 / Pi,
              NewControls() ? "modern" : "tank");
@@ -4246,7 +4254,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         if(Cfg().firstPersonFullBodyIK && g_boundDll && g_boundBase &&
            g_autoBodyCalibration.Observe(AppFlag(drva::app_off::level),LaraWaterStatus())) {
             ResetBodyFollower();g_groundEye.Reset();g_stanceEye.Reset();
-            VR().RecenterHead();
+            ResetPhysicalFlareThrow(); VR().RecenterHead();
         }
         const bool wasActive = g_active;
         auto* item = g_boundDll && g_boundBase
@@ -4259,7 +4267,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
             ++g_skipped;
         }
         FirstPersonControlModeUpdate();
-        if (wasActive && !g_active) { ResetPhysicalSwitch(); VR().RecenterHead(); }
+        if (wasActive && !g_active) { ResetPhysicalSwitch(); ResetPhysicalFlareThrow(); VR().RecenterHead(); }
         // Roll visibility belongs only to the active first-person gameplay
         // scene. The title, inventory and other UI scenes reuse this camera
         // path and Lara's last animation state, so evaluating the state before
@@ -4274,7 +4282,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
         // game. The recenter key re-takes it whenever they like.
         if (g_active && !g_neutralTaken) {
             g_neutralTaken = true;
-            ResetPhysicalSwitch(); VR().RecenterHead();
+            ResetPhysicalSwitch(); ResetPhysicalFlareThrow(); VR().RecenterHead();
             Log("firstperson: taking the neutral head position now that first "
                 "person is live -- press the recenter key to set it again");
         }
@@ -4287,7 +4295,7 @@ void __cdecl Detour_GenerateW2V(PHD_3DPOS* pose) {
                 !UseLandingCamera(item) && !g_mountBodyTransition.active && !g_stanceEye.transition && VR().HeadPose(head);
             if(g_autoBodyCalibration.Ready(standing,{head.m[0][3],head.m[1][3],head.m[2][3]},TurnTime())) {
                 ResetBodyFollower();ResetPhysicalHolsters();g_groundEye.Reset();g_stanceEye.Reset();
-                VR().RecenterHead();g_dragPrevious=g_dragCurrent=g_dragShown={};
+                ResetPhysicalFlareThrow(); VR().RecenterHead();g_dragPrevious=g_dragCurrent=g_dragShown={};
                 Log("firstperson: standing body recalibrated after level/water transition");
             }
             const PHD_3DPOS animatedHead=*pose;
@@ -4625,11 +4633,13 @@ bool Install(const GameDllLayout& d, uint64_t base) {
             sizeof(kDrawHairRipFixups) / sizeof(kDrawHairRipFixups[0])))
         Log("firstperson: DrawHair could not be hooked -- the braid will still "
             "sweep through the view.");
+    InstallPhysicalFlareThrow(d.timestamp,d.module[4]!=L'1' && g_hShotgunEffectJoint.installed() && g_hLaraGun.installed());
     InstallPhysicalSwitches(d,base);
     return true;
 }
 
 void Remove() {
+    ResetPhysicalFlareThrow();g_flareThrowDll=nullptr;
     g_nativeJumpCompression=nullptr;
     ResetBodyFollower();ResetPhysicalHolsters();g_autoBodyCalibration={};
     RemovePhysicalSwitches();
@@ -4731,7 +4741,7 @@ void FirstPersonUpdate() {
         if (down && !held) {
             ResetBodyFollower();ResetPhysicalHolsters();
             g_autoBodyCalibration.pending=g_autoBodyCalibration.waiting=false;
-            ResetPhysicalSwitch(); VR().RecenterHead();
+            ResetPhysicalSwitch(); ResetPhysicalFlareThrow(); VR().RecenterHead();
             g_dragPrevious = g_dragCurrent = g_dragShown = {};
             Log("firstperson: head position recentered; world heading preserved");
         }
@@ -4778,7 +4788,7 @@ void FirstPersonTrackingOriginChanged(float yawCorrection) {
     const float oldBase=g_heading.base;
     g_heading.base=locomotion::Wrap(oldBase+yawCorrection);
     g_groundEye.Resume(true,oldBase,g_heading.base,0);
-    VR().RecenterHead();
+    ResetPhysicalFlareThrow(); VR().RecenterHead();
     g_dragPrevious=g_dragCurrent=g_dragShown={};
     g_ledgePull.Reset();g_groundJump.Reset();g_ledgeCatch.Reset();
     g_renderTurn.Reset();g_rootMotion.Reset();
@@ -4816,6 +4826,7 @@ bool FirstPersonPhysicalDuck(bool allowed,bool stand) {
 }
 
 void FirstPersonToggle() {
+    ResetPhysicalFlareThrow();
     ResetPhysicalHolsters();
     ResetBodyFollower();
     ResetPhysicalSwitch();
@@ -4866,6 +4877,8 @@ void FirstPersonToggle() {
     LogF("firstperson: Y+LT switched to %s",
          g_runtimeEnabled ? "FIRST PERSON" : "third person");
 }
+
+void FirstPersonFlareMotion(bool allowed) {PhysicalFlareMotion(allowed);}
 
 void FirstPersonShutdown() {
     g_calibrationActive=false;

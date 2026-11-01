@@ -176,6 +176,8 @@ void BuildState(XState& out, bool& shifted, bool gameplay, bool& gripAction) {
     const bool switchGrip = FirstPersonSwitchGrip(R.grip > 0.5f,
         gameplay && !(holsterGrips&2) && !gripAction && !photoChord && !L.btnUpper && !L.btnLower &&
         L.trigger <= 0.12f && R.trigger <= 0.12f);
+    FirstPersonFlareMotion(gameplay && L.valid && !holsterGrips && !switchGrip && !gripAction &&
+        !L.btnUpper && !L.btnLower && !photoChord && L.trigger<=.12f && R.trigger<=.12f);
     uint16_t dpad = 0;
     if (Cfg().dpadShift && R.stickClick && !photoChord) {
         const float dz = Cfg().dpadShiftDeadzone;

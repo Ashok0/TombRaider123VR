@@ -3140,3 +3140,20 @@ a game DLL or run the full locomotion self-test. Headset validation is pending.
 
 `tools/verify_special_switches.py` checks nine mesh profiles, 47 installed
 special-object animation tables and native registrations in six TR2/3 builds.
+
+
+### Physical flare throwing (TR2-5)
+
+In first person with Remastered graphics and tracked flare hands, light/equip a
+flare normally, then **swing the left controller to throw it**. No button
+press or release is needed. Left grip keeps its normal crouch binding. Direction
+and speed come from your hand motion; normal flare burn time, lighting and native
+collision behavior remain intact. Enabled automatically; no new INI setting.
+TR1 has no flares.
+
+The gesture accepts natural underhand, overhand and sideways arm swings after
+the hand settles; moving the hand farther away from the HMD is not required.
+Small movements, a backwards windup behind the head, and moving the hand and HMD
+together while crouching or walking do not trigger a throw. Tracking loss,
+recentring, menu/equip/Action chords and view/level changes cancel the gesture.
+Third person and Classic graphics retain their normal flare controls.

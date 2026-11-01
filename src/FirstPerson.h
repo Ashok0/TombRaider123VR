@@ -10,6 +10,8 @@
 // physical movement drags the body through native collision queries; the
 // engine keeps animation and movement triggers.
 #pragma once
+
+namespace tr { void FirstPersonFlareMotion(bool allowed); }
 #include <cstdint>
 
 namespace tr {
