@@ -328,6 +328,22 @@ both controller targets, standing release and TR1/2 exclusions. The test
 reproduced the queued-posture failure before the fix. No game DLL code or full
 self-test was run. Headset confirmation is still needed.
 
+2026-11-01 standing-movement correction: TR3 shared TR4/5's blanket required-state
+guard, so a queued DUCK (71) could disable instant forward/side/back gait changes
+and faster backpedal startup after Lara stood up. First person now permits those
+ordinary gait changes while that inactive queue remains. The queue is preserved;
+native floor, ceiling and wall checks still decide whether movement can proceed.
+Active physical/button crouching, the Modern Controls crouch toggle, interactions,
+vehicles and authored transitions retain native control. This exception is TR3-only:
+TR1/2 do not use that native crouch state and keep their existing behavior.
+
+`tests/build_ground_queue_tests.cmd` reproduced the failure before correction and
+passed 11,716 focused checks afterward, covering four directions, reversals,
+head-relative movement, native collision, queue preservation and TR1/2 exclusions.
+The existing crouch regression passed 5,490 focused checks and the Release build
+passed. All 140 installed TR1/2/3 gait tables passed read-only asset verification.
+No full self-test or game DLL code was executed. Headset confirmation is pending.
+
 ### Crate clearance and VRIK gait stability (2026-10-28)
 
 Two further fixes are ported from TombRaider456VR to all three games:

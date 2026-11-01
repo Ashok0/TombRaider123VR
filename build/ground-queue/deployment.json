@@ -1,0 +1,14 @@
+﻿{
+    "dll":  "663760C0B16FB11257D6CAD3502C12B55843A44F5F529D1924EC7B1FBE1A6097",
+    "installed_gait_tables":  140,
+    "focused_ground_queue_checks":  11716,
+    "release_build_passed":  true,
+    "change":  "TR3-only first-person standing movement and backpedal startup accept an inactive queued DUCK state, preserving the queue, active crouch toggle, native collision and TR1/2 behavior",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\ground-queue\\before-install-20261101-133353",
+    "headset_tested":  false,
+    "previous_dll":  "BB7216B29E71E230296284D42A02EC5954EA46C46A603A429FB7E39BC1193B1D",
+    "ini_unchanged":  "C363724E2E97AD0D30A0E6BF16C980C4CA1C736851D78C1EEF4633EB88DE9A99",
+    "full_suite_run":  false,
+    "deployed":  "2026-11-01T13:33:53.9263671-05:00",
+    "focused_crouch_transition_checks":  5490
+}

@@ -3129,6 +3129,21 @@ void AdvanceLaraAnimation(uint8_t* item) {
          beforeState,afterState,beforeAnimation,afterAnimation,g_lastHeadWorld*180/Pi,g_lastBodyYaw*180/Pi);
 }
 
+bool GroundGaitQueueAvailable(const uint8_t* item) {
+    const int required=*reinterpret_cast<const int16_t*>(item+off::item_required_state);
+    if(!required) return true;
+    // TR3 can retain required DUCK after standing. As in TR4/5, that queue
+    // must not disable immediate ordinary gait entry or fast backpedal starts.
+    // Keep the queue intact and let native standing control check clearance.
+    // State 71 is not native crouching in TR1/2. An actual TR3 crouch request,
+    // including its Modern Controls toggle, must still own the transition.
+    if(!g_active || BoundGame()!=3 || required!=71 || !GroundBodyAvailable(item) ||
+       !CanModifyGroundMotion(item) || g_heightCrouch.active ||
+       (*Ptr<uint32_t>(g_boundDll->input)&firstperson::PhysicalCrouchInputScope::Duck)) return false;
+    return !(NewControls() && AppFlag(drva::app_off::level_type)!=3 &&
+        (*Ptr<uint32_t>(g_boundDll->lara+0x40)&firstperson::PhysicalCrouchInputScope::Latch));
+}
+
 void AccelerateBackpedalStart(uint8_t* item,uint32_t action) {
     // Animation 41 holds a slow 2-unit step for 16 frames before the normal
     // 10-unit backward loop. Shorten that command-free startup, rather than
@@ -3137,7 +3152,7 @@ void AccelerateBackpedalStart(uint8_t* item,uint32_t action) {
         *reinterpret_cast<const int16_t*>(item+off::item_anim_state)!=16 ||
         *reinterpret_cast<const int16_t*>(item+off::item_goal_state)!=16 ||
         *reinterpret_cast<const int16_t*>(item+off::item_anim_number)!=41 ||
-        *reinterpret_cast<const int16_t*>(item+off::item_required_state)!=0) return;
+        !GroundGaitQueueAvailable(item)) return;
     const auto* anims=*Ptr<const uint8_t*>(g_boundDll->anims);
     if (!anims) return;
     const auto* start=anims+41*off::anim_stride;
@@ -3348,7 +3363,7 @@ void PrepareGroundDirection(uint8_t* item,uint32_t action) {
     // Never splice a landing, step-up/down, jump or interaction animation.
     if (!g_boundDll->anims || !CanModifyGroundMotion(item) ||
         (*Ptr<uint32_t>(g_boundDll->input)&(0x10|0x40|0x100|0x1000)) ||
-        *reinterpret_cast<const int16_t*>(item+off::item_required_state)!=0) return; // required state
+        !GroundGaitQueueAvailable(item)) return;
     const auto direction=action&Directions;
     if (direction!=StepLeft && direction!=StepRight && direction!=Back && direction!=Forward) return;
     const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
