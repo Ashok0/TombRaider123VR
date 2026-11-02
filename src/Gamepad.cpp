@@ -334,7 +334,8 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     // TR3 still applies physical Duck inside simulation, after native debounce.
     FirstPersonPhysicalDuck(gameplay && !gripAction && !photoChord && !viewToggle && !graphicsToggle,
         !shifted && (jumpPressed || (mine.Gamepad.wButtons & XB_LEFT_SHOULDER)!=0));
-    FirstPersonInput(lx, ly, rx, shifted, jumpPressed);
+    const bool walkPressed = (mine.Gamepad.wButtons & XB_X) != 0;
+    FirstPersonInput(lx, ly, rx, shifted, jumpPressed, walkPressed);
     mine.Gamepad.sThumbLX = Axis(lx);
     mine.Gamepad.sThumbLY = Axis(ly);
     mine.Gamepad.sThumbRX = Axis(rx);

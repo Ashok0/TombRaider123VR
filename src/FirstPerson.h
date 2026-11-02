@@ -67,6 +67,6 @@ bool FirstPersonGunTriggers(uint8_t& left, uint8_t& right, bool chordConsumed, b
 // simulation hook and applies HMD-relative steering through jump preparation
 // and flight. Physical displacement never enters the gamepad axes.
 void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
-                      bool jumpPressed);
+                      bool jumpPressed, bool walkPressed = false);
 
 } // namespace tr

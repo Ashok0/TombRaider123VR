@@ -329,6 +329,7 @@ locomotion::Vec g_manualWorld;
 bool g_haveManualInput = false;
 bool g_shifted = false;
 bool g_jumpPressed = false;
+bool g_thirdPersonBackHopPressed = false;
 struct GroundJumpIntent {
     bool held=false, pending=false;
     bool edgeWaiting=false, edgeBlocked=false;
@@ -3657,6 +3658,8 @@ bool PhysicalCrouchEligible(const uint8_t* item) {
     return BoundGame()==3 && PhysicalPostureEligible(item);
 }
 
+#include "ThirdPersonBackHop.inl"
+
 void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
     using namespace locomotion;
     FinishFirstPersonLanding(item);
@@ -3792,6 +3795,7 @@ void __cdecl Detour_LaraAboveWater(uint8_t* item, void* nativeCollision) {
         IdleTrackedGunHeadingScope idleGunHeading(item);
         DirectionalJumpAxesScope jumpAxes(item);
         RoomscaleCollisionScope roomscaleCollision(item);
+        ThirdPersonBackHopScope backHop(item);
         g_hLaraAboveWater.Original<Fn_LaraAboveWater>()(item, nativeCollision);
     }
     AdvancePhysicalSwitch(item,nativeCollision,GetTickCount64());
@@ -4860,7 +4864,7 @@ void FirstPersonToggle() {
     g_headingItem = nullptr;
     g_haveManualInput = false;
     g_shifted = false;
-    g_jumpPressed = false;
+    g_jumpPressed = g_thirdPersonBackHopPressed = false;
     g_groundMoveAction = 0;
     g_rootMotion.Reset();
     g_dragPrevious = g_dragCurrent = g_dragShown = {};
@@ -5049,11 +5053,15 @@ bool FirstPersonGunTriggers(uint8_t& left,uint8_t& right,bool chordConsumed,bool
 }
 
 void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
-                      bool jumpPressed) {
+                      bool jumpPressed, bool walkPressed) {
     using namespace locomotion;
     g_haveManualInput = false;
     g_shifted = shifted;
     g_jumpPressed = jumpPressed;
+    // Record the untransformed chord even when the first-person view is off.
+    // A suspended first-person camera must not enable a third-person shortcut.
+    g_thirdPersonBackHopPressed=walkPressed && !shifted && !jumpPressed &&
+        leftY < -.20f && std::fabs(leftY)>=std::fabs(leftX);
     const auto* jumpItem=(g_boundDll && g_boundBase) ? *Ptr<uint8_t*>(g_boundDll->laraItem) : nullptr;
     g_groundJump.Bind(jumpItem,AppFlag(drva::app_off::level));
     g_groundJump.Observe(jumpPressed,GroundJumpReady(jumpItem),TurnTime());
