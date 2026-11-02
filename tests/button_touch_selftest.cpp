@@ -65,10 +65,19 @@ void TestButtons() {
         const auto from=motiongun::Transform(frame,{x,y,outside});auto& p=LeverField<PHD_3DPOS>(88);
         p.x_pos=int32_t(std::round(initial.x-from.x));p.y_pos=int32_t(std::round(initial.y-from.y));p.z_pos=int32_t(std::round(initial.z-from.z));Field<PHD_3DPOS>(88)=p;
         Check(ButtonFrame(leverItem,object,profile,inv,face) && motiongun::Inverse(inv,frame) && leverMatrixPtr==leverStack,"pose sampling restores matrix stack");
-        uint64_t now=GetTickCount64();auto tick=[&](float z) {auto d=Sub(motiongun::Transform(frame,{x,y,z}),initial);testControllerOffset[hand]={d.x/1000,d.y/1000,d.z/1000};AdvancePhysicalButton(item,nullptr,++now);};
+        uint64_t now=GetTickCount64();auto tick=[&](float z) {
+            auto d=Sub(motiongun::Transform(frame,{x,y,z}),initial);testControllerOffset[hand]={d.x/1000,d.y/1000,d.z/1000};
+            const int before=leverActivations,left=testHapticShots[0],right=testHapticShots[1];
+            AdvancePhysicalButton(item,nullptr,++now);
+            Check(testHapticShots[0]==left && testHapticShots[1]-right==leverActivations-before,
+                "each successful button press acknowledges exactly once on the right, regardless of touching hand");
+        };
         uint8_t savedItem[sizeof(item)],savedLara[432];std::memcpy(savedItem,item,sizeof(item));std::memcpy(savedLara,Ptr<uint8_t>(dll.lara),432);
         *Ptr<uint32_t>(dll.input)=0x800;*Ptr<uint32_t>(dll.input+4)=0xdeadbeef;
-        tick(face.z);Check(!leverActivations,"initial hand overlap is not a press");tick(outside);tick(face.z);
+        tick(face.z);Check(!leverActivations,"initial hand overlap is not a press");
+        buttonReject=true;tick(outside);tick(face.z);buttonReject=false;
+        Check(!leverActivations,"native rejection gives neither activation nor haptic acknowledgement");
+        tick(outside);tick(face.z);
         Check(leverActivations==1 && LeverField<int16_t>(20)==1-state,"touch toggles native button from both idle positions");
         Check(!std::memcmp(savedItem,item,sizeof(item)) && !std::memcmp(savedLara,Ptr<uint8_t>(dll.lara),432),"touch restores Lara position, animation and globals");
         Check(LeverField<int16_t>(42)==900 && *Ptr<uint32_t>(dll.input)==0x800 && *Ptr<uint32_t>(dll.input+4)==0xdeadbeef,"timer and adjacent input preserved");

@@ -81,7 +81,10 @@ bool ActivatePhysicalButton(int16_t index,uint8_t* target,uint8_t* lara,void* co
     *Ptr<uint16_t>(g_boundDll->lara+60)=flags;
     const bool activated=(*reinterpret_cast<uint16_t*>(target+off::item_flags)&6)==2;
     // The native control loop owns animation, timer and linked-door triggers.
-    if(activated) LogF("vr-button: touched push button item=%d; native control continues",index);
+    if(activated) {
+        VR().ButtonPressHaptic();
+        LogF("vr-button: touched push button item=%d; native control continues",index);
+    }
     return activated;
 }
 bool ButtonSight(uint8_t* lara,motiongun::Vec hand) {

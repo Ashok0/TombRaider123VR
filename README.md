@@ -71,6 +71,13 @@ Physical interactions below require first person and holstered weapons. The
 Action icon need not be visible. Native Y/Action remains available; third-person
 object interactions retain their original controls.
 
+Each successful physical push-button activation in TR2/3 gives a short
+80 ms vibration on the **right controller**, even when the left hand presses.
+Holding contact or a rejected activation does not repeat the feedback. It
+uses the existing Touch/Index haptics path automatically, with no new INI
+setting. TR1 has no supported push-button family, and this collection has
+no matching physical numeric-keypad path.
+
 | Mechanism | Games | Physical input |
 |---|---|---|
 | Ordinary wall levers | TR1, TR2, TR3 | Right Grip near the visible handle, then move along its arc. Partial pulls survive release, movement and regrabbing without snapping back. See [first-person lever controls](#first-person). |
