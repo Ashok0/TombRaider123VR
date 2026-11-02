@@ -1,0 +1,8 @@
+{
+  "regression_checks": 1217464,
+  "release_build": "passed",
+  "asset_geometry": "64 vertices, 47 faces verified",
+  "native_static_replay": "passed",
+  "second_side": "stopped position captured; moving attempt not recorded",
+  "headset_verified": false
+}

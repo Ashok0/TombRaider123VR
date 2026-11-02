@@ -1,0 +1,11 @@
+﻿{
+    "headset_verified":  false,
+    "native_collision_replay":  "passed",
+    "regression_checks":  1217464,
+    "new_sha256":  "F4C26C1B54B97EBF086D7FC2E484DDC54A8B013BC79000BEDA691C3636D7616E",
+    "deployed_at":  "2026-11-02T07:33:32.0747100-05:00",
+    "release_build":  "passed",
+    "old_sha256":  "6D2FC2F2C7C10D8FEFEA3B4F98BF9E7E7EE6E8CE322EA8F223615707F25AA6A1",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\piano-shape-refinement\\before-20261102-073331",
+    "ini_sha256":  "C363724E2E97AD0D30A0E6BF16C980C4CA1C736851D78C1EEF4633EB88DE9A99"
+}

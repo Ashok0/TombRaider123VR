@@ -380,8 +380,10 @@ void TestResponsiveEntry() {
 #include "unarmed_wrist_cap_selftest.h"
 #include "climbing_arm_selftest.h"
 #include "mount_camera_smoothing_selftest.h"
+#include "manor_piano_selftest.h"
 
 int main() {
+    TestManorPiano();
     TestMountCameraSmoothing();
     TestClimbingArms();
     TestUnarmedWristCaps();

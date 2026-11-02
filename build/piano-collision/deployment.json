@@ -1,0 +1,11 @@
+﻿{
+    "headset_verified":  false,
+    "native_collision_replay":  "passed",
+    "regression_checks":  1217372,
+    "new_sha256":  "6D2FC2F2C7C10D8FEFEA3B4F98BF9E7E7EE6E8CE322EA8F223615707F25AA6A1",
+    "deployed_at":  "2026-11-02T03:32:18.4123633-05:00",
+    "release_build":  "passed",
+    "old_sha256":  "373AFBE93CAEFAEC80FC2CC57921852B3F0BEE39D25732755343C9203C286193",
+    "backup":  "C:\\dev\\TombRaider123VR\\build\\piano-collision\\before-20261102-033218",
+    "ini_sha256":  "C363724E2E97AD0D30A0E6BF16C980C4CA1C736851D78C1EEF4633EB88DE9A99"
+}

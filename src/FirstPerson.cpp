@@ -9,6 +9,7 @@
 #include "VRSystem.h"
 #include "Log.h"
 #include "LocomotionMath.h"
+#include "ManorPianoCollision.h"
 #include "FirstPersonStabilization.h"
 #include "FirstPersonClearance.h"
 #include "FirstPersonVisibility.h"
@@ -1424,8 +1425,64 @@ struct RoomscaleCollisionScope {
         g_roomscaleNativeCollision=previous;g_roomscaleNativeItem=previousItem;
     }
 };
+// Replace only the verified Manor piano's rectangular phantom corners. Hide
+// this one instance from the native static pass for the duration of the query;
+// all terrain and other statics still go through the original collision code.
+uint64_t g_manorPianoQueries=0,g_manorPianoContacts=0;
+struct ManorPianoCollisionScope {
+    int32_t* meshY=nullptr;
+    int32_t savedY=0;
+    int feet=0,bodyHeight=0;
+    explicit ManorPianoCollisionScope(const RoomCollision* coll,int32_t x,int32_t y,int32_t z,int room,int height) {
+        // Furniture collision is shared by both camera modes. In particular,
+        // startup third person and camera overrides must not restore the box.
+        if(!coll || !Cfg().enabled || !g_boundDll || !g_boundBase || BoundGame()!=2 ||
+           room!=8 || !g_boundDll->room || !g_boundDll->numberRooms ||
+           coll->radius<=0 || coll->radius>400 || height<=0 || height>2048 ||
+           int64_t(y)<=-1377 || int64_t(y)-height>=-27 ||
+           std::abs(int64_t(x)-45568)>4096 || std::abs(int64_t(z)-83456)>4096) return;
+        const int count=*Ptr<int16_t>(g_boundDll->numberRooms);
+        auto* rooms=*Ptr<uint8_t*>(g_boundDll->room);
+        if(!rooms || count!=99) return;
+        auto* r=rooms+8*168;
+        if(*reinterpret_cast<int32_t*>(r+40)!=34816 || *reinterpret_cast<int32_t*>(r+48)!=75776 ||
+           *reinterpret_cast<int16_t*>(r+60)!=11 || *reinterpret_cast<int16_t*>(r+62)!=14 ||
+           *reinterpret_cast<int16_t*>(r+72)!=2) return;
+        auto* meshes=*reinterpret_cast<uint8_t**>(r+32);
+        if(!meshes) return;
+        const auto matches=[](const uint8_t* m,int x,int z,int yaw,int type) {
+            return *reinterpret_cast<const int32_t*>(m)==x && *reinterpret_cast<const int32_t*>(m+4)==0 &&
+                *reinterpret_cast<const int32_t*>(m+8)==z && *reinterpret_cast<const int16_t*>(m+12)==yaw &&
+                *reinterpret_cast<const int16_t*>(m+18)==type;
+        };
+        if(!matches(meshes,45568,83456,-16384,13) || !matches(meshes+20,44544,81408,0,12)) return;
+        feet=y;bodyHeight=height;
+        meshY=reinterpret_cast<int32_t*>(meshes+4);savedY=*meshY;*meshY=32768;
+        if(g_manorPianoQueries++==0)
+            Log("collision: TR2 Manor piano outline active in both camera modes");
+    }
+    void Restore() { if(meshY) *meshY=savedY; }
+    ~ManorPianoCollisionScope() { Restore(); }
+    void Finish(RoomCollision* coll,int x,int z) {
+        if(!meshY) return;
+        Restore();
+        const locomotion::Vec from{float(coll->old[0]),float(coll->old[2])};
+        const locomotion::Vec target{float(x)+coll->shift[0],float(z)+coll->shift[2]};
+        locomotion::Vec resolved;
+        if(!firstperson::SweepManorPiano(from,target,float(coll->radius),resolved,float(feet),float(bodyHeight))) return;
+        ++g_manorPianoContacts;
+        // At a second obstacle, keep the last valid position rather than
+        // allowing one collision correction to push through the other.
+        if(coll->type || coll->hitStatic) resolved=from;
+        coll->shift[0]=int32_t(std::lround(resolved.x))-x;
+        coll->shift[2]=int32_t(std::lround(resolved.z))-z;
+        coll->hitStatic=1;
+        if(!coll->type) coll->type=1; // Native front-obstruction response.
+    }
+};
 void __cdecl Detour_GetCollisionInfo(RoomCollision* coll,int32_t x,int32_t y,int32_t z,
                                     int16_t room,int32_t height) {
+    ManorPianoCollisionScope piano(coll,x,y,z,room,height);
     const bool roomscale=coll && coll==g_roomscaleNativeCollision && g_roomscaleNativeItem &&
         height==762 && CanWalk(g_roomscaleNativeItem) &&
         !(*reinterpret_cast<const uint16_t*>(g_roomscaleNativeItem+off::item_flags)&8);
@@ -1433,6 +1490,7 @@ void __cdecl Detour_GetCollisionInfo(RoomCollision* coll,int32_t x,int32_t y,int
     const uint16_t lavaPit=coll ? coll->flags&4u : 0;
     if(roomscale) { coll->badPos=32512;coll->flags=uint16_t(coll->flags&~4u); }
     g_hGetCollisionInfo.Original<Fn_GetCollisionInfo>()(coll,x,y,z,room,height);
+    piano.Finish(coll,x,z);
     if(roomscale) {
         coll->badPos=badPos;
         coll->flags=uint16_t((coll->flags&~4u)|lavaPit);

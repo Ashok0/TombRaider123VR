@@ -5,6 +5,28 @@ Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered
 
 ## Recent updates
 
+### TR2 Manor piano collision (2026-11-02)
+
+Movement beside the Manor piano uses separate collision shapes for the body,
+keyboard, legs, bench and raised lid in both camera modes. The original rectangular
+box blocks empty floor beside the diagonal piano. The first replacement used a
+single convex outline, which still blocked empty space beneath the raised lid and
+beside the shaped body; the revised shapes preserve those openings and are clipped
+to Lara's actual vertical span before testing movement.
+
+The correction is limited to the verified 99-room Manor scene, room 8 and its
+exact two furniture instances. The shapes cover all 64 vertices and 47 faces of
+the classic piano mesh. Swept collision prevents crossing the furniture between
+frames. Other statics and terrain still use native collision; the piano instance
+is excluded only during that query and restored immediately. Level files and saved
+games are not modified. Diagnostic counters track queries and solid contacts.
+
+Regression coverage includes both recorded stopped positions, both camera modes,
+height-specific lid contact, sweeps from all directions, contact/escape behavior
+and preservation of other obstacles. `tools/verify_manor_piano.py` verifies the
+geometry against ASSAULT.TR2 and reproduces the original obstruction using native
+code in private memory. In-headset verification remains pending.
+
 Current behavior reviewed through **2026-11-02**, covering the past week's changes
 (October 26–November 2). This summary takes precedence over older development
 snapshots below. The game starts in third person; **Y + LT** toggles first person.
