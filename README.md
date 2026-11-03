@@ -5,6 +5,14 @@ Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered
 
 ## Recent updates
 
+### Key and puzzle-item camera (2026-11-03)
+
+In all three games, using a key or inserting a puzzle item temporarily shows
+Lara in third person for the complete native use animation, then automatically
+resumes first person. This works with Classic and Remastered graphics. Selecting
+third person manually during the animation keeps that view afterward. Inventory,
+item consumption and puzzle completion remain controlled by the game.
+
 ### TR2 Manor piano collision (2026-11-02)
 
 Movement beside the Manor piano uses separate collision shapes for the body,

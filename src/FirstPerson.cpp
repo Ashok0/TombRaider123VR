@@ -622,7 +622,12 @@ bool Gate() {
     // own that animation; first person resumes automatically on a live Lara.
     if (!item || !firstperson::UseHeadCamera(
             *reinterpret_cast<const int16_t*>(item+off::item_hit_points))) return false;
-    if (locomotion::IsSwitchAnimation(*reinterpret_cast<const int16_t*>(item+off::item_anim_state))) return false;
+    // Keep native camera, complete body and input through the actual use
+    // animation, even when its goal has already returned to STOP. The normal
+    // camera handoff resumes FP without toggling the player's preference.
+    const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    if (locomotion::IsSwitchAnimation(state) ||
+        firstperson::QuestItemUsesThirdPerson(BoundGame(),state)) return false;
     // TR3's special switch uses the extra animation bank (state IDs 0/4),
     // rather than ordinary switch states 40/41. Keep its native camera too.
     if (g_boundDll->module[4]==L'3' && (*Ptr<uint16_t>(g_boundDll->lara+60)&4u)) return false;

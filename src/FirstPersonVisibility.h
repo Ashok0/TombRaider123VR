@@ -41,6 +41,12 @@ inline bool HideDirectionalJumpBody(int state) {
 
 inline bool UseHeadCamera(int hitPoints) { return hitPoints > 0; }
 
+inline bool QuestItemUsesThirdPerson(int game,int state) {
+    // Native USEKEY/USEPUZZLE share these state IDs in TR1, TR2 and TR3.
+    // TR4/5's custom socket state 89 is a crawling state in TR3.
+    return game>=1 && game<=3 && (state==42 || state==43);
+}
+
 // Unarmed ground-movement arms are revealed only by looking down. Separate
 // show/hide thresholds avoid flickering at the edge of a downward glance.
 struct UnarmedArmVisibility {
