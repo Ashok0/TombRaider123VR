@@ -5,13 +5,15 @@
 
 namespace {
 int transitionDraws=0;
+uint32_t observedBits=0;
 bool expectTransition=true;
 void __cdecl ObserveTransition(void* target,int32_t masked) {
     using namespace tr;
+    observedBits|=Field<uint32_t>(off::item_mesh_bits);
     Detour_GetJoints(static_cast<uint8_t*>(target));
     int pivot=-1;const float* palette=FirstPersonHandSkin(pivot);float centre[3]{};
     if(!expectTransition) {
-        Check(!palette && !FirstPersonWristCentre(centre),"native third person and shadows never inherit transition caps");
+        Check(!palette && !FirstPersonWristCentre(centre),"standing, third person and shadows never inherit transition caps");
         return;
     }
     Check(masked==1 && g_transitionHand>=0 && g_renderArm==-1,"transition solves the body underneath an isolated hand draw");
@@ -75,12 +77,24 @@ int main() {
                 Check(!std::memcmp(saved,item,sizeof(item)),"transition draw leaves simulation and native mesh mask intact");
             }
         }
-        Field<int16_t>(off::item_anim_state)=2;g_torsoPose.recovering=true;
-        Check(FirstPersonBodyMask(item)==firstperson::HandMeshBits,"post-climb recovery continues hiding arms");
-        expectTransition=true;transitionDraws=0;Field<uint32_t>(off::item_mesh_bits)=0x7fff;Detour_DrawCreatureHD(item,0);
-        Check(transitionDraws==2,"standing handoff retains sealed hands");
+        // A queued standing goal must not reveal arms during the actual mount.
+        Field<int16_t>(off::item_goal_state)=2;
+        Check(FirstPersonBodyMask(item)==firstperson::HandMeshBits,"queued standing goal keeps the active mount hands-only");
+        g_torsoPose.recovering=true;
+        for(int state:{2,0,1,5,6,7,16,20,21,22,73}) {
+            if(state==73 && game!=3) continue;
+            Field<int16_t>(off::item_anim_state)=int16_t(state);
+            Check(FirstPersonBodyMask(item)==firstperson::ArmMeshBits,"first upright frame restores arms during ongoing torso recovery");
+            for(int eye:{0,1}) for(uint32_t bits:{0x7fffu,0x2400u,0u}) {
+                (void)eye;expectTransition=false;transitionDraws=0;observedBits=0;
+                Field<uint32_t>(off::item_mesh_bits)=bits;
+                Detour_DrawCreatureHD(item,0);
+                Check(observedBits==firstperson::ArmMeshBits && transitionDraws==0,"each standing eye draw immediately shows complete arms, even with a stale hand-only mask");
+                Check(Field<uint32_t>(off::item_mesh_bits)==bits,"standing arm visibility remains draw-local");
+            }
+        }
         g_torsoPose.recovering=false;g_mountBodyTransition.Reset();g_mountCamera.Reset();g_bodyVisibility.until=0;
-        Check(FirstPersonBodyMask(item)==UINT32_MAX,"arms return when recovery ends");
+        Check(FirstPersonBodyMask(item)==UINT32_MAX,"torso returns when recovery ends");
         for(int state:{10,30,31,75,76,77,78,79,82,83}) {
             if(game!=3 && state>=75) continue;
             Field<int16_t>(off::item_anim_state)=int16_t(state);

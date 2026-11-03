@@ -39,7 +39,7 @@ snapshots below. The game starts in third person; **Y + LT** toggles first perso
 | Classic graphics | Physical turning and roomscale body centering now use the Classic render origin instead of stale Remastered body-follow state. **Y + RT** toggles graphics in the title ring as well as gameplay. |
 | Physical crouching | Enabled by default. In TR3, the legs bend through a partial squat before a 55 cm headset drop requests native crouch; rising within 23 cm of standing releases it subject to ceiling clearance. In TR1/2 the same posture hides/restores the body but does not add native crawling. |
 | Crouch and standing responsiveness | TR3 keeps headset-relative crawl steering and tracked hands through queued crouch transitions. A leftover DUCK queue after standing no longer delays ordinary gait changes. TR1/2 keep their own state rules. |
-| Climbing and body recovery | Ledge and TR3 monkey-bar arms preserve native grip contacts with stable elbows. Mount/recovery draws show only hands with opaque black wrist caps. The mount-to-standing camera blend defaults to 160 ms; original arm-recovery timing is retained. |
+| Climbing and body recovery | Ledge and TR3 monkey-bar arms preserve native grip contacts with stable elbows. Mount draws show only hands with opaque black wrist caps. Arms return on the first standing or ground-movement frame, without waiting for recovery timers. The mount-to-standing camera blend defaults to 160 ms; original torso, arm and wrist recovery timing is retained. |
 | Native VR Options | **Options > VR Options** is inside the existing title-ring Options page, not a new ring object or popup. Controller Type, Color Scheme and Hybrid Modern/Tank Controls display their selected values. Dark is the default; Brighter applies immediately. |
 | Valve Index | Optional SteamVR action bindings separate face buttons from grip squeeze. `ValveIndexControllers=0` remains the default; choosing Index requires restarting and the shipped bindings folder. |
 | Physical switches | Ordinary TR1–3 wall levers support direct RG grabs without an Action icon, calibrated palm attachment and retained partial travel. TR2/3 add touch push buttons, small wall levers and rotating airlock wheels. See coverage below. |
@@ -3217,8 +3217,9 @@ test from `build\test`.
 ## Hands-only climbing transitions
 
 In first person, crate vaults, ledge pull-ups and water exits show only the hands,
-with opaque black wrist caps. The arms remain hidden during post-climb body and
-camera recovery, then return when recovery finishes. Normal hanging, shimmying,
+with opaque black wrist caps. Complete arms return on the first standing or
+ground-movement frame, even while body, camera and wrist recovery continue.
+The torso retains its recovery protection. Normal hanging, shimmying,
 and TR3 monkey-bar traversal retain their arms. Third-person and shadow rendering
 keep their native behavior.
 

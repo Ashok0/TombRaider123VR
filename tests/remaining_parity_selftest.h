@@ -52,7 +52,7 @@ void TestRemainingParity() {
                 Check(Field<uint32_t>(off::item_mesh_bits)==0x3600,"recovery weapon pass restores its native mask");
                 Field<uint32_t>(off::item_mesh_bits)=0x7fff;
             }
-            Check(jumpDrawBits==HandMeshBits,"first standing draw retains hands without flashing the recovering torso");
+            Check(jumpDrawBits==ArmMeshBits,"first standing draw restores arms without flashing the recovering torso");
             g_bodyVisibility.until=TurnTime()-1;g_mountBodyTransition.Reset();g_torsoPose.recovering=false;
             jumpDrawBits=0;Detour_DrawCreatureHD(item,0);
             Check((jumpDrawBits&0xffu)==0xffu,"body returns when recovery and hold finish");
