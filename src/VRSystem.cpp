@@ -84,6 +84,8 @@ Affine FromHmd(const vr::HmdMatrix34_t& m) {
 
 VRSystem& VR() { return g_vr; }
 
+#include "ControllerProbe.inl"
+
 bool VRSystem::Init() {
     m_dll = LoadLibraryW(L"openvr_api.dll");
     if (!m_dll) {
@@ -185,17 +187,23 @@ bool VRSystem::Init() {
     if(Cfg().valveIndexControllers) {
         err=vr::VRInitError_None;
         m_input=static_cast<vr::IVRInput*>(g_getInterface(vr::IVRInput_Version,&err));
+        m_inputInterfaceError=err;
         const auto path=IndexManifestPath();
         const auto result=m_input && err==vr::VRInitError_None && !path.empty()
             ? m_indexInput.Init(*m_input,path.c_str()) : vr::VRInputError_InvalidParam;
         if(result==vr::VRInputError_None)
-            LogF("vr: Index actions ready; grip press=%.2f release=%.2f; manifest=%s",
+            LogF("vr: Index actions ready (handles resolved; F7 checks live bindings); grip press=%.2f release=%.2f; manifest=%s",
                 Cfg().valveIndexGripPress,Cfg().valveIndexGripRelease,path.c_str());
         else {
+            LogF("vr: Index init failed: interface=%s error=%d; stage=%s input-error=%s(%d); manifest=%s",
+                vr::IVRInput_Version,int(err),m_indexInput.Diagnostic().initStage,InputErrorName(result),int(result),path.c_str());
             m_input=nullptr;
             LogF("vr: Index actions unavailable (error %d). Install TombRaiderVRBindings beside TombRaiderVR.dll, or set ValveIndexControllers=0 and restart. Legacy fallback disabled to avoid conflicting controls.",int(result));
         }
     }
+
+    LogF("vr: controller diagnostic available: F7 starts a 20-second capture in TombRaiderVR.log; Index=%d Gamepad=%d",
+        Cfg().valveIndexControllers,Cfg().gamepadEnabled);
 
     // Latch the per-eye constants. These do not change while the runtime is up.
     for (int e = 0; e < 2; ++e) {
@@ -247,6 +255,7 @@ void VRSystem::Shutdown() {
     VRMenuShutdown();
     m_gunHaptics.Reset();
     m_input=nullptr;m_indexInput.Reset();m_indexReadError=vr::VRInputError_None;
+    m_controllerProbe={};
     if (m_system && g_shutdownInternal) g_shutdownInternal();
     m_system     = nullptr;
     m_compositor = nullptr;
@@ -778,7 +787,7 @@ void VRSystem::ReadControllers(HandState out[2]) const {
             const auto error=m_indexInput.Read(*m_input,hands,Cfg().valveIndexGripPress,Cfg().valveIndexGripRelease);
             out[0]=hands[0];out[1]=hands[1];
             if(error!=m_indexReadError) {
-                LogF("vr: Index action polling error=%d (0=recovered)",int(error));
+                LogF("vr: Index action polling error=%s(%d) (0=recovered)",InputErrorName(error),int(error));
                 m_indexReadError=error;
             }
         }

@@ -48,10 +48,11 @@ struct Slot {
     bool scope=false,attempted=false;
     vrmenu::Options123Selection options123;
     Option6 option{};
-    std::array<Option6,2> controllerOptions{};
+    std::array<Option6,vrmenu::SettingCount> controllerOptions{};
     alignas(8) std::array<uint8_t,160> controllerMenu{};
-    std::array<void*,5> texts{};
-    std::array<std::array<char,128>,5> textValues{};
+    static constexpr int TextCount=vrmenu::SettingCount+3; // heading, settings, navigation, help
+    std::array<void*,TextCount> texts{};
+    std::array<std::array<char,128>,TextCount> textValues{};
     void* menu6=nullptr;
 };
 Slot g_slots[6];
@@ -62,17 +63,17 @@ template<class T> T& At(Slot& s,uint32_t rva) { return *reinterpret_cast<T*>(rei
 template<class T> T& Field(void* p,size_t off) { return *reinterpret_cast<T*>(static_cast<uint8_t*>(p)+off); }
 uint32_t HookRva(const Slot& s) { return s.extra->options ? s.extra->options : s.row->title; }
 void OpenPage(Slot& s) {
-    const auto values=vrmenu::ReadSettings();s.page.Open(values[0]!=0,values[1]!=0);
+    const auto values=vrmenu::ReadSettings();s.page.Open(values[0]!=0,values[1]!=0,values[2]!=0);
 }
 bool PageInput(Slot& s,uint64_t input) {
     if(s.page.Input(input)==vrmenu::Action::Change) {
         auto original=vrmenu::ReadSettings(),values=original;
         const int row=s.page.selected;
-        const bool enabled=row==0 ? s.page.index : s.page.bright;
+        const bool enabled=s.page.Enabled(row);
         values[row]=enabled ? 0.f : 1.f;
         std::wstring error;
         s.page.saveFailed=!vrmenu::SaveSettings(values,original,error);
-        if(!s.page.saveFailed) { s.page.index=values[0]!=0;s.page.bright=values[1]!=0; }
+        if(!s.page.saveFailed) { s.page.index=values[0]!=0;s.page.bright=values[1]!=0;s.page.hybrid=values[2]!=0; }
     }
     return s.page.open;
 }
@@ -82,14 +83,15 @@ void Text45(Slot& s,float x,float y,uint8_t color,const char* text,uint16_t flag
 }
 void DrawPage45(Slot& s) {
     Text45(s,0,28,6,Label,8,1);
-    for(int row=0;row<2;++row) {
+    for(int row=0;row<vrmenu::SettingCount;++row) {
         const uint8_t color=s.page.selected==row ? 1 : 2;
         Text45(s,21,69+row*24.f,color,s.page.Name(row),4);
         Text45(s,-20,69+row*24.f,color,s.page.Value(row),2);
     }
-    Text45(s,0,133,2,"Up/Down: select   Left/Right: change");
-    Text45(s,0,153,2,"Back: return");
-    Text45(s,0,181,s.page.saveFailed ? 3 : 2,s.page.Message());
+    const float footer=69+vrmenu::SettingCount*24.f+5;
+    Text45(s,0,footer,2,"Up/Down: select   Left/Right: change");
+    Text45(s,0,footer+20,2,"Back: return");
+    Text45(s,0,footer+48,s.page.saveFailed ? 3 : 2,s.page.Message());
 }
 
 template<int G> void* AddString(float x,float y,uint8_t color,const char* text,uint16_t flags) {
@@ -149,7 +151,7 @@ bool OwnText(Slot& s,int i) {
 }
 void ClearTexts(Slot& s) {
     if(!s.extra->textCount) return;
-    for(int i=0;i<5;++i) {
+    for(int i=0;i<Slot::TextCount;++i) {
         if(OwnText(s,i)) ReleaseText123(s,s.texts[i]);
         s.texts[i]=nullptr;
     }
@@ -167,14 +169,17 @@ void WriteText123(Slot& s,int i,const char* label,int16_t y,int16_t color) {
     } else s.texts[i]=nullptr;
 }
 void DrawPage123(Slot& s) {
-    char values[2][128]{};
     // T_Decode consumes <...> as an icon token (unknown tokens draw nothing).
     // Keep setting values as plain text so every choice remains visible.
-    for(int row=0;row<2;++row)
-        sprintf_s(values[row],"%s%s: %s",s.page.selected==row ? "> " : "  ",s.page.Name(row),s.page.Value(row));
-    const char* labels[]={Label,values[0],values[1],"Up/Down: select  Left/Right: change  Back: return",s.page.Message()};
-    constexpr int16_t ys[]={-78,-46,-18,22,50};
-    for(int i=0;i<5;++i) WriteText123(s,i,labels[i],ys[i],i==1 || i==2 ? 1 : 0);
+    WriteText123(s,0,Label,-90,0);
+    for(int row=0;row<vrmenu::SettingCount;++row) {
+        char value[128]{};
+        sprintf_s(value,"%s%s: %s",s.page.selected==row ? "> " : "  ",s.page.Name(row),s.page.Value(row));
+        WriteText123(s,row+1,value,int16_t(-58+row*28),1);
+    }
+    const int16_t footer=int16_t(-58+vrmenu::SettingCount*28+12);
+    WriteText123(s,vrmenu::SettingCount+1,"Up/Down: select  Left/Right: change  Back: return",footer,0);
+    WriteText123(s,vrmenu::SettingCount+2,s.page.Message(),footer+28,0);
 }
 
 void ClearNativeTexts123(Slot& s) {
@@ -243,13 +248,13 @@ bool InsertOption6(Slot& s,void* menu) {
     return true;
 }
 void PreparePage6(Slot& s) {
-    for(int row=0;row<2;++row) {
+    for(int row=0;row<vrmenu::SettingCount;++row) {
         sprintf_s(s.textValues[row].data(),s.textValues[row].size(),"%s: %s",s.page.Name(row),s.page.Value(row));
-        s.controllerOptions[row]={row==0 ? &s.controllerOptions[1] : nullptr,row==1 ? &s.controllerOptions[0] : nullptr,
+        s.controllerOptions[row]={row+1<vrmenu::SettingCount ? &s.controllerOptions[row+1] : nullptr,row ? &s.controllerOptions[row-1] : nullptr,
             0x80000000u,-1,nullptr,nullptr,s.textValues[row].data(),1,0,{}};
     }
     auto* menu=s.controllerMenu.data();
-    Field<uint8_t>(menu,106)=2;Field<uint8_t>(menu,107)=uint8_t(s.page.selected);
+    Field<uint8_t>(menu,106)=vrmenu::SettingCount;Field<uint8_t>(menu,107)=uint8_t(s.page.selected);
     Field<Option6*>(menu,120)=s.controllerOptions.data();
 }
 void DrawPage6(Slot& s) {
@@ -265,7 +270,7 @@ void DrawPage6(Slot& s) {
     At<int32_t>(s,e.font)=4;At<uint32_t>(s,e.color)=0xc07ebefe;
     text(At<int32_t>(s,e.left)+40,32,Label,0);
     At<int32_t>(s,e.font)=2;At<uint32_t>(s,e.color)=0xfefefefe;
-    text(At<int32_t>(s,e.left)+40,400,s.page.Message(),0);
+    text(At<int32_t>(s,e.left)+40,400,s.page.Message(true),0);
     At<int32_t>(s,e.font)=oldFont;At<uint32_t>(s,e.color)=oldColor;
 }
 uint8_t Options6(void* menu,uint8_t event) {

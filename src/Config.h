@@ -522,6 +522,9 @@ struct Config {
     // Dark preserves the original VR presentation; Brighter enables native sRGB render targets.
     bool vrBrighterColors = false;
     // Opt-in native Index actions; requires shipped TombRaiderVRBindings files.
+    // Hybrid Modern/Tank Controls: opt-in third-person Walk + back hop.
+    // Off preserves native controls, including Modern camera-relative walking.
+    bool hybridModernTankControls = false;
     bool  valveIndexControllers = false;
     float valveIndexGripPress = .55f;
     float valveIndexGripRelease = .35f;

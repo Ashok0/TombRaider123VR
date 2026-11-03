@@ -197,6 +197,8 @@
     <ClInclude Include="src\StereoRenderer.h" />
     <ClInclude Include="src\VRSystem.h" />
     <ClInclude Include="src\IndexInput.h" />
+    <ClInclude Include="src\ControllerProbe.h" />
+    <ClInclude Include="src\ControllerProbe.inl" />
     <ClInclude Include="src\BodyFollower.h" />
     <ClInclude Include="src\CollectionParity.h" />
     <ClInclude Include="src\InventoryProjection.h" />

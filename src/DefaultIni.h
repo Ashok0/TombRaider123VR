@@ -1,14 +1,14 @@
 // DefaultIni.h -- the stock TombRaiderVR.ini, embedded.
 //
 // GENERATED FILE. Do not edit by hand: change TombRaiderVR.ini in the repo root
-// and run  python tools\\gen_default_ini.py
+// and run  python tools\gen_default_ini.py
 //
 // The DLL writes this out when no ini exists beside it, so a fresh install gets
 // the documented, working configuration rather than bare struct defaults -- the
 // comments in the template carry most of what was learned tuning this thing,
 // and a generated key=value dump would throw all of it away.
 //
-// Source: TombRaiderVR.ini, 39199 bytes, 823 lines.
+// Source: TombRaiderVR.ini, 40375 bytes, 830 lines.
 #pragma once
 
 namespace tr {
@@ -178,8 +178,7 @@ CullObjects=1
 ; glitch, because it turns "that wall is missing" into a room number.
 CullDumpKey=0
 
-)INI"
-           R"INI(; TR world units per metre -- the main scale control.
+; TR world units per metre -- the main scale control.
 ;
 ; RAISE IT if the world feels too big and depth feels flat. Those are the same
 ; symptom: your IPD is fixed, so a world rendered too large leaves the eye
@@ -327,7 +326,8 @@ FirstPersonInteractionAnchorZ=16
 ; Legacy FirstPersonYawFromLara is ignored by this path.
 FirstPersonYawFromLara=0
 
-; Translation is relative to the head position captured on entry. END retakes
+)INI"
+           R"INI(; Translation is relative to the head position captured on entry. END retakes
 ; it without changing your world heading. Rotation is always tracked.
 FirstPersonHeadTranslation=1
 FirstPersonRecenterKey=0x23
@@ -348,8 +348,7 @@ FirstPersonTurnDeadzone=0.25
 FirstPersonMovementStabilization=1
 ; Ease the camera handoff from a crate/ledge mount to standing, in seconds.
 ; Only the animation offset is blended; head tracking and movement stay live.
-)INI"
-           R"INI(; 0 disables; positive values are limited to 0.03..0.40 seconds.
+; 0 disables; positive values are limited to 0.03..0.40 seconds.
 FirstPersonMountSmoothingSeconds=0.16
 
 ; HD motion guns are enabled by default. Each controller places its hand; shots
@@ -507,8 +506,7 @@ ProjOffsetScale=1.0
 ; test has) such a pass looks world-space. Handing it a perspective frustum
 ; would divide an ortho layout by a depth it was never built for.
 ;
-)INI"
-           R"INI(; Unlike PreserveProjOffset above, this one IS expected to fire here:
+; Unlike PreserveProjOffset above, this one IS expected to fire here:
 ; vid_setOrtho3D is a real 78-byte function in tomb123.exe (RVA 0x0000A590) and
 ; the game calls it. On TR4-6 the equivalent path never fired once across a TR4
 ; and a TR5 session. The ortho3D= counter in the health report says what it is
@@ -611,12 +609,19 @@ VideoFlipV=0
 ; first/third person. Y/trigger input is left untouched in menus and cutscenes.
 GamepadEnabled=1
 
+; Hybrid Modern/Tank Controls: 0 = Off (default), 1 = On. Restart after editing.
+; Off: Walk + stick down uses native controls (towards the camera in Modern).
+; On: Walk + stick down requests a Lara-relative backward hop in third person
+; in TR1-5. First-person movement/crawling and TR6 native controls are unchanged.
+HybridModernTankControls=0
+
 ; Set to 1 for Valve Index controllers, then restart the game. Uses explicit
 ; SteamVR Input bindings to separate A/B, thumbstick clicks and grip squeeze.
 ; Keep the TombRaiderVRBindings folder beside TombRaiderVR.dll.
 ; 0 retains the existing Touch-style legacy input for other controllers.
 ValveIndexControllers=0
-; Grip force thresholds (0..1). Lower Press for a lighter squeeze. Release must
+)INI"
+           R"INI(; Grip force thresholds (0..1). Lower Press for a lighter squeeze. Release must
 ; be below Press; the gap prevents chatter. Resting fingers alone do not grip.
 ValveIndexGripPress=0.55
 ValveIndexGripRelease=0.35
@@ -659,8 +664,7 @@ DecoupledPitch=1
 ; setting instead, which made the same chord decouple pitch or restore it
 ; depending on a value you cannot see while playing.
 ;
-)INI"
-           R"INI(; KNOW WHAT RB IS HERE. Touch has no physical shoulder buttons: the RIGHT GRIP
+; KNOW WHAT RB IS HERE. Touch has no physical shoulder buttons: the RIGHT GRIP
 ; synthesises XB_X and XB_RIGHT_SHOULDER together, because X is what the game
 ; binds Walk to and RIGHT_SHOULDER is what makes this pitch chord reachable.
 ; So this chord is right grip + right trigger, which in play reads as

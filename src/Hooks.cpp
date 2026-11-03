@@ -1382,6 +1382,7 @@ void __cdecl Detour_ogl_present() {
     // Re-assert the XInput pointer every frame: cheap, and it self-heals if the
     // game re-resolves XInput or if we got here before WinMain had.
     GamepadUpdate();
+    VR().PollControllerProbe();
 
     // Re-resolve tomb1/2/3.dll every frame. The three are loaded and unloaded as
     // the player moves between games from the title screen, so this is not a

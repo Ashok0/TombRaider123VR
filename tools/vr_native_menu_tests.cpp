@@ -64,10 +64,20 @@ int main() {
     check(!slot.page.bright && slot.page.saveFailed,"failed color save preserves the displayed color scheme");
     vrmenu::saveOK=true;PageInput(slot,0x80000000);
     check(slot.page.bright && vrmenu::saved[1]==1 && vrmenu::saved[0]==1,"color change saves only colors and preserves controller type");
+    PageInput(slot,0x20000000);
+    check(slot.page.selected==2 && !slot.page.hybrid,"Down selects the default-Off hybrid row");
+    vrmenu::saveOK=false;PageInput(slot,0x100000);
+    check(!slot.page.hybrid && slot.page.saveFailed && vrmenu::saved[2]==0,"failed hybrid save keeps the displayed Off choice");
+    vrmenu::saveOK=true;PageInput(slot,0x80000000);
+    check(slot.page.hybrid && vrmenu::saved[2]==1 && vrmenu::saved[0]==1 && vrmenu::saved[1]==1,
+        "hybrid change saves only its own value and updates the display");
     PreparePage6(slot);
-    check(Field<uint8_t>(slot.controllerMenu.data(),106)==2 && Field<uint8_t>(slot.controllerMenu.data(),107)==1,"TR6 native page exposes and selects second row");
-    check(slot.controllerOptions[0].next==&slot.controllerOptions[1] && slot.controllerOptions[1].last==&slot.controllerOptions[0] && !slot.controllerOptions[1].next,"TR6 child row links are bounded and independent");
+    check(Field<uint8_t>(slot.controllerMenu.data(),106)==3 && Field<uint8_t>(slot.controllerMenu.data(),107)==2,"TR6 native page exposes and selects third row");
+    for(int i=0;i<vrmenu::SettingCount;++i)
+        check(slot.controllerOptions[i].next==(i+1<vrmenu::SettingCount ? &slot.controllerOptions[i+1] : nullptr) &&
+            slot.controllerOptions[i].last==(i ? &slot.controllerOptions[i-1] : nullptr),"TR6 child row links are bounded and independent");
     check(std::strcmp(slot.controllerOptions[1].text,"Color Scheme: Brighter")==0,"TR6 draws the saved bright choice");
+    check(std::strcmp(slot.controllerOptions[2].text,"Hybrid Modern/Tank Controls: On")==0,"TR6 draws the hybrid value");
     check(!PageInput(slot,0x200000),"Back closes native child page");
     row.game=1;row.transition=0x800;extra.textCount=300;
     extra.textPool=0x1000;extra.textBuffers=0x3000;extra.nativeTexts=512;extra.firstVisible=480;
@@ -90,23 +100,30 @@ int main() {
     At<int16_t>(slot,300)=21;ClearNativeTexts123(slot);
     for(int i=0;i<20;++i) check(!At<void*>(slot,extra.nativeTexts+i*8),"opening child releases all native parent text references");
     check(At<int16_t>(slot,300)==1 && (Field<uint32_t>(text,0)&1),"parent cleanup preserves unrelated ring text");
-    for(int i=0;i<5;++i) { slot.texts[i]=record(i+27,"old");strcpy_s(slot.textValues[i].data(),128,"old"); }
-    At<int16_t>(slot,300)=6;slot.page.Open(true,false);
+    for(int i=0;i<Slot::TextCount;++i) { slot.texts[i]=record(i+27,"old");strcpy_s(slot.textValues[i].data(),128,"old"); }
+    At<int16_t>(slot,300)=Slot::TextCount+1;vrmenu::saved={1,0,0};OpenPage(slot);
     PageInput(slot,vrmenu::Options123Buttons(0x4000));
     check(slot.page.selected==1,"TR123 native Down selects Color Scheme");
     PageInput(slot,vrmenu::Options123Buttons(0x10000));DrawPage123(slot);
     check(slot.page.bright && std::strcmp(Field<char*>(slot.texts[2],72),"> Color Scheme: Brighter")==0,"TR123 Right saves and draws the selected bright scheme");
-    for(bool index:{false,true}) for(bool bright:{false,true}) for(int selected:{0,1}) {
-        slot.page.Open(index,bright);slot.page.selected=selected;DrawPage123(slot);
+    PageInput(slot,vrmenu::Options123Buttons(0x4000));
+    check(slot.page.selected==2,"TR123 native Down reaches hybrid controls");
+    PageInput(slot,vrmenu::Options123Buttons(0x10000));DrawPage123(slot);
+    check(slot.page.hybrid && std::strcmp(Field<char*>(slot.texts[3],72),"> Hybrid Modern/Tank Controls: On")==0,
+        "TR123 Right saves and draws the hybrid On value");
+    for(bool index:{false,true}) for(bool bright:{false,true}) for(bool hybrid:{false,true}) for(int selected:{0,1,2}) {
+        slot.page.Open(index,bright,hybrid);slot.page.selected=selected;DrawPage123(slot);
         const char* controller=Field<char*>(slot.texts[1],72);
         const char* colors=Field<char*>(slot.texts[2],72);
+        const char* hybridText=Field<char*>(slot.texts[3],72);
         check(std::strstr(controller,index ? "Controller Type: Valve Index" : "Controller Type: Meta Touch") &&
-              std::strstr(colors,bright ? "Color Scheme: Brighter" : "Color Scheme: Dark"),
-              "TR123 draws both saved values for every setting and selection combination");
+              std::strstr(colors,bright ? "Color Scheme: Brighter" : "Color Scheme: Dark") &&
+              std::strstr(hybridText,hybrid ? "Hybrid Modern/Tank Controls: On" : "Hybrid Modern/Tank Controls: Off"),
+              "TR123 draws all saved values for every setting and selection combination");
         bool plain=true;
         for(auto* entry:slot.texts) if(std::strchr(Field<char*>(entry,72),'<')) plain=false;
         check(plain,"TR123 labels and values never enter the native angle-bracket icon decoder");
-        check((controller[0]=='>')==(selected==0) && (colors[0]=='>')==(selected==1),
+        check((controller[0]=='>')==(selected==0) && (colors[0]=='>')==(selected==1) && (hybridText[0]=='>')==(selected==2),
               "the active row stays marked without wrapping values in icon tokens");
     }
     const auto savedBeforeBack=vrmenu::saved;
@@ -114,10 +131,10 @@ int main() {
     uint8_t ringBefore[96];std::memset(&At<uint8_t>(slot,row.transition),0xa5,96);std::memcpy(ringBefore,&At<uint8_t>(slot,row.transition),96);
     Restore(slot);
     check(std::memcmp(ringBefore,&At<uint8_t>(slot,row.transition),96)==0,"cleanup never changes original ring objects, count or selection");
-    check(At<int16_t>(slot,300)==1,"all five child text records are released on exit");
+    check(At<int16_t>(slot,300)==1,"all six child text records are released on exit");
     for(int repeat=0;repeat<100;++repeat) {
-        for(int i=0;i<5;++i) { slot.texts[i]=record(i+27,"old");strcpy_s(slot.textValues[i].data(),128,"old"); }
-        At<int16_t>(slot,300)=6;DrawPage123(slot);ClearTexts(slot);
+        for(int i=0;i<Slot::TextCount;++i) { slot.texts[i]=record(i+27,"old");strcpy_s(slot.textValues[i].data(),128,"old"); }
+        At<int16_t>(slot,300)=Slot::TextCount+1;DrawPage123(slot);ClearTexts(slot);
     }
     check(At<int16_t>(slot,300)==1,"repeated page visits do not exhaust the 64-slot native text pool");
     auto* background=record(13,"background");auto* highlight=record(15,"highlight");

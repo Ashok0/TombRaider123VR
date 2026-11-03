@@ -5118,7 +5118,7 @@ void FirstPersonInput(float& leftX, float& leftY, float& rightX, bool shifted,
     g_jumpPressed = jumpPressed;
     // Record the untransformed chord even when the first-person view is off.
     // A suspended first-person camera must not enable a third-person shortcut.
-    g_thirdPersonBackHopPressed=walkPressed && !shifted && !jumpPressed &&
+    g_thirdPersonBackHopPressed=Cfg().hybridModernTankControls && walkPressed && !shifted && !jumpPressed &&
         leftY < -.20f && std::fabs(leftY)>=std::fabs(leftX);
     const auto* jumpItem=(g_boundDll && g_boundBase) ? *Ptr<uint8_t*>(g_boundDll->laraItem) : nullptr;
     g_groundJump.Bind(jumpItem,AppFlag(drva::app_off::level));

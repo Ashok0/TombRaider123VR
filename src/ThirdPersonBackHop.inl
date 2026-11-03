@@ -1,4 +1,4 @@
-// RG + LS down is a third-person-only, Lara-relative native back-hop.
+// Opt-in Hybrid Modern/Tank Controls: RG + LS down requests a third-person back-hop.
 // Do not use the HMD heading or require a first-person camera anchor.
 struct ThirdPersonBackHopScope {
     uint32_t* input=nullptr;
@@ -7,7 +7,7 @@ struct ThirdPersonBackHopScope {
     int16_t savedAxes[4]{};
     explicit ThirdPersonBackHopScope(uint8_t* item) {
         using namespace locomotion;
-        if(!g_thirdPersonBackHopPressed || g_active || g_runtimeEnabled ||
+        if(!Cfg().hybridModernTankControls || !g_thirdPersonBackHopPressed || g_active || g_runtimeEnabled ||
            !item || !g_boundDll || !g_boundBase || !Cfg().enabled || !Cfg().gamepadEnabled ||
            !VR().active() || !VR().poseValid() || g_shifted || g_jumpPressed ||
            InInventory() || InTitle() || InCutscene() || !GroundJumpControlsAvailable() ||

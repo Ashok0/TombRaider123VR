@@ -33,14 +33,14 @@ snapshots below. The game starts in third person; **Y + LT** toggles first perso
 
 | Area | Current behavior |
 |---|---|
-| Third-person backward hop | **RG + LS down**, without Jump, requests a short native hop behind Lara in TR1, TR2 and TR3, armed or unarmed. The shortcut is **third-person only**; first-person backward walking and vent crawling retain their original behavior. See [backward hop](#third-person-backward-hop). |
+| Hybrid Modern/Tank Controls | **Off by default.** `HybridModernTankControls=0` leaves Walk + stick down to native movement, walking towards the camera with Modern Controls. Set it to `1` for the **third-person-only** RG + LS down hop in TR1-3. First-person movement and crawling are unchanged. See [backward hop](#third-person-backward-hop). |
 | Jump parity | The TR4/5 takeoff, soft-landing and camera-interruption fixes are ported: no preparatory knee dip/foot shuffle, immediate ordinary landing recovery, stable sideways cameras and correct armed backward/sideways directions. Hard falls, clearance and airborne physics remain native. |
 | Physical-turn and roomscale corrections | Neutral jumps stay neutral after physical turning; forward jumps keep the selected direction. The body stays centered after roomscale jumps, physical steps can leave ledges, and TR1's unused vehicle field no longer disables the jump fixes. |
 | Classic graphics | Physical turning and roomscale body centering now use the Classic render origin instead of stale Remastered body-follow state. **Y + RT** toggles graphics in the title ring as well as gameplay. |
 | Physical crouching | Enabled by default. In TR3, the legs bend through a partial squat before a 55 cm headset drop requests native crouch; rising within 23 cm of standing releases it subject to ceiling clearance. In TR1/2 the same posture hides/restores the body but does not add native crawling. |
 | Crouch and standing responsiveness | TR3 keeps headset-relative crawl steering and tracked hands through queued crouch transitions. A leftover DUCK queue after standing no longer delays ordinary gait changes. TR1/2 keep their own state rules. |
 | Climbing and body recovery | Ledge and TR3 monkey-bar arms preserve native grip contacts with stable elbows. Mount/recovery draws show only hands with opaque black wrist caps. The mount-to-standing camera blend defaults to 160 ms; original arm-recovery timing is retained. |
-| Native VR Options | **Options > VR Options** is inside the existing title-ring Options page, not a new ring object or popup. Controller Type and Color Scheme display their selected values. Dark is the default; Brighter applies immediately. |
+| Native VR Options | **Options > VR Options** is inside the existing title-ring Options page, not a new ring object or popup. Controller Type, Color Scheme and Hybrid Modern/Tank Controls display their selected values. Dark is the default; Brighter applies immediately. |
 | Valve Index | Optional SteamVR action bindings separate face buttons from grip squeeze. `ValveIndexControllers=0` remains the default; choosing Index requires restarting and the shipped bindings folder. |
 | Physical switches | Ordinary TR1–3 wall levers support direct RG grabs without an Action icon, calibrated palm attachment and retained partial travel. TR2/3 add touch push buttons, small wall levers and rotating airlock wheels. See coverage below. |
 | Physical flare throwing | In TR2/3 Remastered first person, swing the left controller to throw a lit flare. No release button is required; left grip retains crouch. TR1 has no flares. |
@@ -56,7 +56,7 @@ for its equivalent face buttons.
 |---|---|
 | Toggle first person | Y + LT during gameplay; launches still start in third person. |
 | Toggle Classic/Remastered | Y + RT in gameplay or the title ring. |
-| Backward hop | RG + LS down, **third person only**, without pressing Jump. |
+| Backward hop (optional) | Enable `HybridModernTankControls=1`, then RG + LS down, **third person only**, without Jump. |
 | First-person backward walking | LS down; holding RG retains the existing first-person behavior. |
 | Physical crouch | Lower the headset after calibrating upright; rise to release. TR3 crouches natively; TR1/2 only hide the body. |
 | Physical lever/airlock wheel | Hold RG on the handle/rim and move the right controller; release/regrab to continue. |
@@ -102,13 +102,14 @@ about every decorative reflective surface.
 | INI setting under `[VR]` | Default | Purpose |
 |---|---|---|
 | `FirstPersonPhysicalCrouch` | `1` | TR3 native crouch; TR1/2 physical posture-driven body hiding. Requires full-body IK and positional tracking. |
+| `HybridModernTankControls` | `0` | Hybrid Modern/Tank Controls: Off uses native walking; On enables the third-person Walk + back hop. |
 | `FirstPersonMountSmoothingSeconds` | `0.16` | First-person mount-to-standing camera blend; `0` disables it. |
 | `ValveIndexControllers` | `0` | Legacy Touch-style input; `1` selects the Index-oriented action path after restart. |
 | `ValveIndexGripPress` / `ValveIndexGripRelease` | `0.55` / `0.35` | Squeeze thresholds in Index mode. |
 | `VRBrighterColors` | `0` | Dark presentation; `1` selects Brighter. Also available in VR Options. |
 
 Defaults apply to new INIs and missing keys; existing explicit values remain in
-effect. The hop, object interactions, flare gesture, wrist caps and Classic body
+effect. Object interactions, flare gesture, wrist caps and Classic body
 centering add no separate INI toggles. Older port records describe their original
 snapshots; use this README and the current shipped INI for current defaults.
 The detailed notes retain historical test counts. Automated checks do not replace
@@ -252,7 +253,7 @@ Open the original **Options** item in the title inventory ring, scroll to the
 bottom of its settings, and select **VR Options**. The ring retains its five
 original items; no extra ring object is added. This uses the game's native menu, with no popup.
 Use Up/Down to select a row, Left/Right or Select to change it, and Back to return.
-Both rows display their current selected value on the native page.
+All three rows display their current selected value on the native page.
 
 - **Controller Type:** Meta Touch or Valve Index. Changes apply after restarting.
 - **Color Scheme:** Dark (default) or Brighter. Changes apply immediately in the headset.
@@ -261,8 +262,12 @@ Both rows display their current selected value on the native page.
   color conversion before submission. Classic rendering retains its native
   conversion state. This changes neither game lighting nor saturation; final
   headset appearance still depends on the display.
+- **Hybrid Modern/Tank Controls:** Off (default) or On. Changes save and apply
+  immediately. Off retains native Modern walking towards the camera; On enables
+  the third-person Walk + back hop in TR1-3. First-person controls stay unchanged.
 
-Changes save automatically to `ValveIndexControllers` and `VRBrighterColors` in the
+Changes save automatically to `ValveIndexControllers`, `VRBrighterColors` and
+`HybridModernTankControls` in the
 installed INI. Existing INIs without a color setting keep Dark; new INIs include
 `VRBrighterColors=0`. Other settings stay unchanged, and the previous INI is backed
 up as `TombRaiderVR.ini.vr-options.bak`. Index mode uses the existing
@@ -398,6 +403,36 @@ suite, and `tests/validate_index_bindings.py`. The latter also accepts
 `--steamvr <installation path>` to check the binding against Valve's installed
 Index driver profile and force-sensor example. Physical Index hardware testing
 is still required. Action setup follows [Valve's SteamVR Input documentation](https://github.com/ValveSoftware/openvr/wiki/SteamVR-Input).
+
+### Controller troubleshooting with F7
+
+After selecting **Valve Index** in VR Options, fully exit and restart the game.
+Install the `TombRaiderVRBindings` folder beside `TombRaiderVR.dll`, including both
+`actions.json` and `bindings_index.json`. Selecting Index alone does not prove
+SteamVR has activated a controller binding. If a custom binding is selected,
+try the shipped **Tomb Raider Index** binding in SteamVR's binding editor.
+
+With the game window focused, press **F7** without modifiers to record a
+**20-second controller diagnostic** in `TombRaiderVR.log` beside the mod DLL.
+During the capture, move both sticks, click them, press A/B on each hand, pull
+both triggers and squeeze both grips. Hold each input briefly; do not press
+everything at once. F7 again stops early. The title menu is sufficient; no save
+or working controller input is required. The game continues to receive normal
+input, so a menu or clear safe spot is preferable. There is no popup.
+
+Send the **complete log before launching again**, since each launch replaces it.
+Look for `input-probe: BEGIN` and `input-probe: END`. Capture continues if desktop
+focus changes after it starts. Ctrl+F7 and Ctrl+Shift+F7 retain weapon calibration.
+No INI edit is needed to enable the probe; it also works with Index mode off or
+Index initialization failing.
+
+The capture reports the loaded build, saved versus running controller mode,
+binding-file presence, exact initialization stage/errors, connected device types
+and hand roles, pose validity, SteamVR input/focus state, live binding sources,
+per-action activity/errors/values, short button presses and analog peaks, and
+the final emulated gamepad state/poll count. It does not change bindings, inject
+input, send test haptics, or perform additional action-state refreshes. Raw legacy
+controller reads can be unavailable in action mode; that alone is not a failure.
 
 ### Physical crouch port from TR4/5 (2026-10-30)
 
@@ -3289,6 +3324,15 @@ recentring, menu/equip/Action chords and view/level changes cancel the gesture.
 Third person and Classic graphics retain their normal flare controls.
 
 ### Third-person backward hop
+
+**Hybrid Modern/Tank Controls is Off by default.** Under `[VR]` in
+`TombRaiderVR.ini`, `HybridModernTankControls=0` leaves Walk + stick down to the
+original game. With Modern Controls selected, Lara walks towards the camera.
+The mod does not change the third-person control style selected in the game.
+Set `HybridModernTankControls=1` and restart to enable the shortcut below.
+You can also change **Hybrid Modern/Tank Controls** in **Options > VR Options**.
+The menu shows **Off/On**, saves the same INI key and applies immediately without
+a restart.
 
 In TR1, TR2 and TR3 **third person only**, hold **Right Grip (RG) + LS down**
 to request Lara's short native backward hop. No Jump button is needed. It goes

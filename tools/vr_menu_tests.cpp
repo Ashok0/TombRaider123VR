@@ -18,7 +18,10 @@ int main() {
     const std::wstring ini=std::wstring(cwd)+L"\\vr-menu-test.ini";
     { std::ofstream f("vr-menu-test.ini");f<<"; keep comment\n[VR]\nValveIndexControllers=0\nValveIndexGripPress=0.63\nValveIndexGripRelease=0.31\nDpadShift=0\nFirstPersonTurnDegreesPerSecond=123\nFirstPersonMotionGunPitchDegrees=-17\n[Other]\nCustom=77\n"; }
     tr::LoadConfig(ini.c_str());
-    check(SettingCount==2 && std::wstring(Settings()[0].label)==L"Controller Type" && std::wstring(Settings()[1].label)==L"Color Scheme","both requested settings are exposed");
+    check(SettingCount==3 && std::wstring(Settings()[0].label)==L"Controller Type" &&
+        std::wstring(Settings()[1].label)==L"Color Scheme" &&
+        std::wstring(Settings()[2].label)==L"Hybrid Modern/Tank Controls","all three requested settings are exposed");
+    check(!tr::Cfg().hybridModernTankControls && ReadSettings()[2]==0,"older INIs show hybrid controls Off by default");
     check(!tr::Cfg().vrBrighterColors && ReadSettings()[1]==0,"old INIs without a color key retain the original dark look");
     auto original=ReadSettings(),next=original;std::wstring error;next[0]=1;
     check(SaveSettings(next,original,error),"Index selection saves");
@@ -43,6 +46,18 @@ int main() {
     original=ReadSettings();next=original;next[1]=.5f;
     check(!SaveSettings(next,original,error) && !tr::Cfg().vrBrighterColors,"invalid color choice cannot change live rendering");
     tr::LoadConfig(ini.c_str());check(!tr::Cfg().vrBrighterColors,"dark choice survives restart");
+    original=ReadSettings();next=original;next[2]=1;
+    check(SaveSettings(next,original,error) && tr::Cfg().hybridModernTankControls,"hybrid On applies immediately after a successful save");
+    check(ReadSettings()[2]==1 && ReadSettings()[0]==original[0] && ReadSettings()[1]==original[1],
+        "hybrid choice persists without changing controller type or colors");
+    tr::LoadConfig(ini.c_str());check(tr::Cfg().hybridModernTankControls,"hybrid On survives restart");
+    original=ReadSettings();next=original;next[2]=0;tr::g_iniPath=goodPath+L".missing";
+    check(!SaveSettings(next,original,error) && tr::Cfg().hybridModernTankControls,"failed hybrid save leaves live movement setting unchanged");
+    tr::g_iniPath=goodPath;
+    check(SaveSettings(next,original,error) && !tr::Cfg().hybridModernTankControls,"hybrid Off applies immediately");
+    original=ReadSettings();next=original;next[2]=.5f;
+    check(!SaveSettings(next,original,error) && !tr::Cfg().hybridModernTankControls,"invalid hybrid choice is rejected");
+    tr::LoadConfig(ini.c_str());check(!tr::Cfg().hybridModernTankControls,"hybrid Off survives restart");
     ControllerPage page;
     check(page.Input(0x100000)==Action::None,"closed page leaves native Select alone");
     page.Open(false);check(std::string(page.Value())=="Meta Touch","Touch name uses requested text");
@@ -55,6 +70,17 @@ int main() {
     check(page.Input(0x80000000)==Action::Change && page.selected==1,"Right changes the selected color row");
     check(std::string(page.Message())=="Colors apply immediately","color row explains immediate application");
     check(page.Input(0x10000000)==Action::None && page.selected==0,"Up returns to Controller Type");
+    check(page.Input(0x10000000)==Action::None && page.selected==2,"Up from first row wraps to hybrid controls");
+    check(std::string(page.Name(2))=="Hybrid Modern/Tank Controls" && std::string(page.Value(2))=="Off",
+        "hybrid row uses the requested label and readable Off value");
+    check(page.Input(0x80000000)==Action::Change && page.selected==2,"Right adjusts hybrid controls");
+    check(page.Input(0x30000000)==Action::None && page.selected==2,"opposite directions do not move the third row");
+    check(page.Input(0x20100000)==Action::None && page.selected==0,"Down wraps and cannot toggle when Select arrives with navigation");
+    check(page.Input(0x20000000)==Action::None && page.selected==1,"Down visits color row");
+    check(page.Input(0x20000000)==Action::None && page.selected==2,"Down visits hybrid row");
+    check(std::string(page.Message())=="Third person only; applies immediately","hybrid row explains live application");
+    check(std::string(page.Message(true)).find("TR6 uses native controls")!=std::string::npos,"TR6 explains the option's game scope");
+    page.hybrid=true;check(std::string(page.Value(2))=="On","enabled hybrid choice has readable On value");
     check(page.Input(0x300000)==Action::Back && !page.open,"Back takes precedence and returns one level");
     page.Open(true);check(std::string(page.Value())=="Valve Index","Index name uses requested text");
     OptionsSelection selection;uint64_t input=0x20000000;

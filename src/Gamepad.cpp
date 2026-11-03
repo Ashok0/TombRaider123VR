@@ -56,6 +56,10 @@ Fn_XInputGetState* g_slot     = nullptr;   // the engine's _XInputGetState globa
 Fn_XInputGetState  g_original = nullptr;   // the real one, for a physical pad
 bool               g_installed = false;
 uint32_t           g_packet    = 0;
+bool g_probeCapture=false;
+uint64_t g_probePolls=0;
+XGamepad g_probePad{};
+uint16_t g_probeButtons=0;
 uint64_t           g_lastRaw[2] = { 0, 0 };
 bool               g_loggedOnce = false;
 int                g_lastWater  = -2;
@@ -394,10 +398,23 @@ uint32_t __stdcall Detour_XInputGetState(uint32_t userIndex, XState* state) {
     if (Cfg().decoupledPitch && !chord && !swimming) mine.Gamepad.sThumbRY = 0;
 
     *state = mine;
+    if(g_probeCapture) {
+        ++g_probePolls;g_probePad=mine.Gamepad;g_probeButtons|=mine.Gamepad.wButtons;
+    }
     return ERROR_SUCCESS;
 }
 
 } // namespace
+
+void GamepadControllerProbe(bool begin,bool end) {
+    if(begin) { g_probeCapture=true;g_probePolls=0;g_probePad={};g_probeButtons=0; }
+    LogF("input-probe: game-pad hook=%d enabled=%d polls=%llu buttons=%04x seen=%04x triggers=%u,%u sticks=%d,%d/%d,%d",
+        g_slot && *g_slot==&Detour_XInputGetState,Cfg().gamepadEnabled,
+        static_cast<unsigned long long>(g_probePolls),g_probePad.wButtons,g_probeButtons,
+        g_probePad.bLeftTrigger,g_probePad.bRightTrigger,g_probePad.sThumbLX,g_probePad.sThumbLY,
+        g_probePad.sThumbRX,g_probePad.sThumbRY);
+    if(end) g_probeCapture=false;
+}
 
 bool WorldInventoryActive() {
     g_worldInventory.Sync(WorldInventoryAllowed(),InInventory(),CurrentGame(),GetTickCount64());

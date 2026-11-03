@@ -4,9 +4,11 @@
 #undef main
 namespace {
 uint32_t seenHopInput=0;
+int16_t seenHopAxes[4]{};
 bool captureOnly=false;
 void __cdecl BackHopAboveWater(uint8_t* target,void* collision) {
     seenHopInput=*Ptr<uint32_t>(dll.input);
+    std::memcpy(seenHopAxes,Ptr<int16_t>(dll.analogInput),sizeof(seenHopAxes));
     if(captureOnly) return;
     auto& state=Field<int16_t>(18);auto& goal=Field<int16_t>(20);
     if(state==2 && (seenHopInput&Back) && !(seenHopInput&Walk)) {
@@ -27,6 +29,7 @@ void HopSetup(int game,bool modern,bool armed,bool smooth,float head,int clip) {
     g_heightCrouch={};g_physicalCrouchCamera=false;g_jumpLanding.Reset();
     Field<int16_t>(24)=int16_t(clip);Field<int16_t>(26)=animationTable[clip].first;
     testConfig.firstPersonMoveWithHead=true;testConfig.gamepadEnabled=true;
+    testConfig.hybridModernTankControls=true;
     *Ptr<int16_t>(dll.lara+2)=armed ? 4 : 0;*Ptr<int16_t>(dll.lara+4)=armed ? 1 : 0;
     g_hLaraAboveWater.m_trampoline=reinterpret_cast<void*>(&BackHopAboveWater);
     seenHopInput=0;captureOnly=false;
@@ -41,6 +44,30 @@ void HopInput(float x,float z,bool grip,bool shifted=false) {
 }
 }
 int main() {
+    Check(!Config{}.hybridModernTankControls,"Hybrid Modern/Tank Controls defaults Off");
+    for(int game:{1,2,3}) for(bool modern:{false,true}) for(bool armed:{false,true})
+    for(bool smooth:{false,true}) for(float head:{0.f,.7f}) for(int clip:{103,40,12,13,44,69}) {
+        HopSetup(game,modern,armed,smooth,head,clip);
+        testConfig.hybridModernTankControls=false;captureOnly=true;
+        float x=.1f,z=-1,turn=.3f;
+        FirstPersonInput(x,z,turn,false,false,true);
+        Check(!g_thirdPersonBackHopPressed && x==.1f && z==-1 && turn==.3f,
+            "disabled hybrid preserves third-person stick input without queuing a hop");
+        auto* axes=Ptr<int16_t>(dll.analogInput);axes[0]=1234;axes[1]=-23456;
+        *Ptr<uint32_t>(dll.input)=Back|Walk;
+        const int16_t originalAxes[4]={axes[0],axes[1],axes[2],axes[3]};
+        const int originalState=Field<int16_t>(18),originalAnim=Field<int16_t>(24);
+        Detour_LaraAboveWater(item,nullptr);
+        Check(seenHopInput==(Back|Walk) && !std::memcmp(seenHopAxes,originalAxes,sizeof(originalAxes)),
+            "disabled hybrid forwards native Walk/direction bits and camera-relative analog axes");
+        Check(Field<int16_t>(18)==originalState && Field<int16_t>(24)==originalAnim,
+            "disabled hybrid does not force a standing or hop animation");
+        g_thirdPersonBackHopPressed=true;
+        { ThirdPersonBackHopScope stale(item);
+          Check(*Ptr<uint32_t>(dll.input)==(Back|Walk) && !std::memcmp(axes,originalAxes,sizeof(originalAxes)),
+              "disabled hybrid also rejects a previously queued hop at simulation time"); }
+    }
+
     for(int game:{1,2,3}) for(bool modern:{false,true}) for(bool armed:{false,true})
     for(bool smooth:{false,true}) for(float head:{0.f,.7f}) for(int clip:{103,40,12,13,44,69}) {
         HopSetup(game,modern,armed,smooth,head,clip);HopInput(0,-1,true);
@@ -59,8 +86,9 @@ int main() {
         Check(Field<PHD_3DPOS>(88).x_pos==before.x_pos && Field<PHD_3DPOS>(88).z_pos==before.z_pos,"native wall collision remains final");
     }
     for(int game:{1,2,3}) {
-        for(bool grip:{false,true}) {
+        for(bool hybrid:{false,true}) for(bool grip:{false,true}) {
             HopSetup(game,true,false,true,0,103);
+            testConfig.hybridModernTankControls=hybrid;
             g_active=g_runtimeEnabled=g_haveHeading=true;g_headingItem=item;
             HopInput(0,-1,grip);Detour_LaraAboveWater(item,nullptr);
             Check(Field<int16_t>(18)==16 && (seenHopInput&Walk),"first-person movement is unchanged with RG held or released");

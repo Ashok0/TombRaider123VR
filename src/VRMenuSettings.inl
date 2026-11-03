@@ -3,7 +3,8 @@ namespace vrmenu {
 const std::array<Setting,SettingCount>& Settings() {
     static const std::array<Setting,SettingCount> settings{{
         {L"ValveIndexControllers",L"Controller Type",0,1,1,true,[]{return Cfg().valveIndexControllers ? 1.f : 0.f;}},
-        {L"VRBrighterColors",L"Color Scheme",0,1,1,true,[]{return Cfg().vrBrighterColors ? 1.f : 0.f;}}
+        {L"VRBrighterColors",L"Color Scheme",0,1,1,true,[]{return Cfg().vrBrighterColors ? 1.f : 0.f;}},
+        {L"HybridModernTankControls",L"Hybrid Modern/Tank Controls",0,1,1,true,[]{return Cfg().hybridModernTankControls ? 1.f : 0.f;}}
     }};
     return settings;
 }
@@ -25,11 +26,11 @@ Values ReadSettings() {
 }
 bool SaveSettings(const Values& values,const Values& original,std::wstring& error) {
     error.clear();
-    if(g_iniPath.empty() || !ValidSettings(values)) { error=L"Invalid controller settings. Nothing saved.";return false; }
+    if(g_iniPath.empty() || !ValidSettings(values)) { error=L"Invalid VR settings. Nothing saved.";return false; }
     bool changed=false;for(int i=0;i<SettingCount;++i) changed|=values[i]!=original[i];
     if(!changed) return true;
     // Edit a copy beside the INI, then replace it atomically. Write only changed
-    // controller keys, retaining comments and unrelated or externally edited settings.
+    // setting keys, retaining comments and unrelated or externally edited settings.
     const std::wstring temp=g_iniPath+L".vr-options.tmp",backup=g_iniPath+L".vr-options.bak";
     if(!CopyFileW(g_iniPath.c_str(),temp.c_str(),FALSE)) { error=L"Could not prepare INI. Nothing saved.";return false; }
     bool ok=true;
@@ -51,7 +52,8 @@ bool SaveSettings(const Values& values,const Values& original,std::wstring& erro
     // Rendering reads this on every submit. Apply only after a successful save;
     // controller bindings still require a restart, so leave that config alone.
     if(values[1]!=original[1]) g_cfg.vrBrighterColors=values[1]!=0;
-    Log("VR Options saved; colors apply immediately, controller type requires restart");
+    if(values[2]!=original[2]) g_cfg.hybridModernTankControls=values[2]!=0;
+    Log("VR Options saved; colors and Hybrid Modern/Tank Controls apply immediately, controller type requires restart");
     return true;
 }
 }

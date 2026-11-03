@@ -34,6 +34,8 @@ void WorldInventoryRecenter();
 // survives the game re-resolving XInput, and so it self-heals if we install
 // before WinMain has run.
 void GamepadUpdate();
+// Read-only F7 capture of the final pad state actually returned to the game.
+void GamepadControllerProbe(bool begin,bool end);
 
 // Undo the override.
 void GamepadShutdown();
