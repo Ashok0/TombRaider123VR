@@ -948,7 +948,7 @@ void __cdecl Detour_validate_draw() {
         ++g_skyDraws;
         if (!g_loggedSky) {
             g_loggedSky = true;
-            LogF("sky: first DrawSkyHD draw (shader %d) -- rotation-only eye "
+            LogF("sky: first sky draw (shader %d) -- rotation-only eye "
                  "transform, far-plane depth", vs.shader);
         }
     }

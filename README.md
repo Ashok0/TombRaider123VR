@@ -312,8 +312,9 @@ rewrite also has independent maths tests and verifies its newly required
   decoupled stick pitch and a two-grip Action chord for blocks.
 - Ceiling clearance clamp, so standing up in a crawlspace does not put your head
   through the ceiling.
-- Sky at optical infinity, so the HD dome does not sit a few metres away in
-  stereo or paint over distant geometry.
+- Sky at optical infinity for Remastered TR1–3 and Classic TR2/3 horizons,
+  so backgrounds do not sit a few metres away in stereo or cover distant scenery.
+  TR1 has no separate Classic horizon renderer.
 - First person: the camera rides Lara's animated head instead of the chase
   camera, interpolated so it does not judder against the world, with her head
   hidden and the rest of her body still visible. Base-camera wall collision
@@ -1296,7 +1297,8 @@ you look away from the game camera. `PortalCulling=0` returns the stock
 behaviour exactly. See "Culling Fix" below for what it does, how it differs from
 the TR4-6 attempt, and how to read its log lines.
 
-The sky fix hooks `DrawSkyHD` in the live game DLL. `SkyAtInfinity=0` returns
+The sky fix hooks `DrawSkyHD` and the verified Classic TR2/3 horizon draw call.
+`SkyAtInfinity=0` returns
 the stock finite-dome stereo. See "Sky at infinity" below.
 
 First person is confirmed working in the headset on TR1: the camera rides Lara's
@@ -1746,8 +1748,9 @@ vertices still sit at a finite mesh radius, so that translation gives them
 stereo disparity equal to a few metres, and `glDepthRange` is still the engine's
 own, so the dome's depth values can occlude farther world geometry.
 
-The PDBs say this is the only sky draw path. There is no `DrawFlatSky`,
-`DrawSkySegment` or `SkyDrawPhase` in these DLLs. `tools\xrefs.py` against
+This is the Remastered sky path. Classic TR2/3 instead draw a horizon mesh
+through `ins_mesh` inside `DrawRooms`. There is no separate `DrawFlatSky`,
+`DrawSkySegment` or `SkyDrawPhase` entry point in these DLLs. `tools\xrefs.py` against
 `tomb1.dll` reports a single caller:
 
 ```
@@ -1756,7 +1759,12 @@ DrawSkyHD            <- PrintRoomsList (x1)
 
 The exe PDB names the shader blobs (`ogl_SKY_vs`, `ogl_SKY_HD_vs`, and the
 matching pixel shaders) but no extra draw entry point. `hd_sun` is 24 bytes of
-data, not a function. One hook covers every sky triangle the remaster issues.
+data, not a function. `DrawSkyHD` covers the Remastered dome. The Classic
+hook only recognizes the verified horizon call site, flushes preceding world
+commands before entering its scope, and submits the queued horizon inside the
+scope. Ordinary object meshes keep native stereo depth. All six supported
+TR2/3 DLL builds have verified addresses in `src/SkyBindings.h`; TR1 needs no
+additional Classic hook. The existing `SkyAtInfinity=1` default enables both paths.
 
 **Fix.** `src\Sky.cpp` hooks `DrawSkyHD` and sets a flag for the life of that
 call. Every `validate_draw` that runs underneath it uses the **rotation** of `E`
@@ -1788,7 +1796,7 @@ and it is the same bytes in all three DLLs:
 
 ```
 sky: hooked tomb1.dll (Tomb Raider I) -- sky draws use rotation-only eye transform (optical infinity) and far-plane depth
-sky: first DrawSkyHD draw (shader N) -- rotation-only eye transform, far-plane depth
+sky: first sky draw (shader N) -- rotation-only eye transform, far-plane depth
 ```
 
 The health report's `sky=` count is per injected eye. Outdoors it should be
@@ -3237,7 +3245,7 @@ src\             the mod
   GameDll.cpp      binding and address table for tomb1/2/3.dll
   PortalCull.cpp   head-driven room culling, hooked into the game DLL
   PortalGeom.h     the frustum maths behind it, tested by tests\
-  Sky.cpp          DrawSkyHD hook: sky draws at optical infinity
+  Sky.cpp          Classic/Remastered scopes: sky draws at optical infinity
   FirstPerson.cpp  scene camera, locomotion, block/torso follow and tracked guns
   StereoMath.h     matrix maths against this engine's conventions
   proxy\           the winmm shim

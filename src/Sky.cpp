@@ -1,4 +1,7 @@
 #include "Sky.h"
+#include "SkyBindings.h"
+#include <intrin.h>
+#include <cstring>
 #include "GameDll.h"
 #include "Config.h"
 #include "InlineHook.h"
@@ -9,7 +12,8 @@
 namespace tr {
 namespace {
 
-hook::InlineHook g_hDrawSkyHD;
+hook::InlineHook g_hDrawSkyHD,g_hClassicMesh;
+const sky::Binding* g_classic=nullptr;
 
 typedef void (__cdecl* Fn_DrawSkyHD)(void);
 
@@ -24,10 +28,39 @@ uint64_t             g_failedBase = 0;
 bool g_inSky       = false;
 bool g_loggedFirst = false;
 
+struct SkyScope {
+    bool previous=g_inSky;
+    explicit SkyScope() { g_inSky=true; }
+    ~SkyScope() { g_inSky=previous; }
+};
 void __cdecl Detour_DrawSkyHD() {
-    g_inSky = true;
+    const SkyScope scope;
     g_hDrawSkyHD.Original<Fn_DrawSkyHD>()();
-    g_inSky = false;
+}
+using Fn_InsMesh=void(__cdecl*)(void*,int32_t);
+void DrawClassicMesh(void* mesh,int32_t clip,uint64_t caller) {
+    const auto original=g_hClassicMesh.Original<Fn_InsMesh>();
+    if(caller!=g_boundBase+g_classic->skyReturn) { original(mesh,clip);return; }
+    // ins_mesh queues geometry: flush preceding world work outside the scope,
+    // then the horizon inside it. No ordinary object can inherit infinity depth.
+    const auto flush=reinterpret_cast<Fn_DrawSkyHD>(g_boundBase+g_classic->flush);
+    flush();
+    const SkyScope scope;
+    original(mesh,clip);
+    flush();
+}
+void __cdecl Detour_InsMesh(void* mesh,int32_t clip) {
+    DrawClassicMesh(mesh,clip,reinterpret_cast<uint64_t>(_ReturnAddress()));
+}
+bool InstallClassic(const sky::Binding& b,uint64_t base) {
+    const auto* call=reinterpret_cast<const uint8_t*>(base+b.skyReturn-5);
+    int32_t displacement=0;std::memcpy(&displacement,call+1,sizeof(displacement));
+    if(*call!=0xE8 || base+b.skyReturn+displacement!=base+b.entry) {
+        Log("sky: Classic horizon call-site mismatch; keeping native drawing");return false;
+    }
+    const uint8_t prologue[]={0x48,0x89,0x5C,0x24,0x18};
+    return g_hClassicMesh.Install(reinterpret_cast<void*>(base+b.entry),
+        reinterpret_cast<void*>(&Detour_InsMesh),5,prologue,sizeof(prologue),"Classic horizon mesh");
 }
 
 bool Install(const GameDllLayout& d, uint64_t base) {
@@ -41,6 +74,7 @@ bool Install(const GameDllLayout& d, uint64_t base) {
 
 void Remove() {
     g_inSky = false;
+    g_hClassicMesh.Remove();g_classic=nullptr;
     g_hDrawSkyHD.Remove();
     g_boundDll  = nullptr;
     g_boundBase = 0;
@@ -71,6 +105,12 @@ void SkyUpdate() {
         Remove();
         g_failedBase = base;
         return;
+    }
+    g_classic=sky::Find(d->timestamp);
+    if(g_classic) {
+        if(InstallClassic(*g_classic,base))
+            LogF("sky: Classic horizon in %S uses optical infinity",d->module);
+        else g_classic=nullptr;
     }
     if (!g_loggedFirst) {
         g_loggedFirst = true;

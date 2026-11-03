@@ -122,7 +122,7 @@ struct Config {
     // added, which is the first thing worth knowing about any culling glitch.
     int   cullDumpKey           = 0;
 
-    // Draw the HD sky at optical infinity. 1 = on and the default.
+    // Draw Classic/Remastered sky backgrounds at optical infinity. Default on.
     //
     // DrawSkyHD already zeros the camera translation of the matrix stack so
     // the sky dome stays centred on the game camera -- "at infinity" on a
