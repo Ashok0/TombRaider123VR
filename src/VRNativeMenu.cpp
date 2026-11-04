@@ -58,7 +58,9 @@ struct Slot {
 Slot g_slots[6];
 constexpr const wchar_t* Modules[]={L"tomb1.dll",L"tomb2.dll",L"tomb3.dll",L"tomb4.dll",L"tomb5.dll",L"tomb6.dll"};
 constexpr char Label[]="VR Options";
-bool Available() { return Cfg().enabled && VR().active() && InTitle(); }
+// These hooks run inside the native Options handlers at both title and pause.
+// Gameplay is not a reason to hide the VR submenu.
+bool Available() { return Cfg().enabled && VR().active(); }
 template<class T> T& At(Slot& s,uint32_t rva) { return *reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(s.module)+rva); }
 template<class T> T& Field(void* p,size_t off) { return *reinterpret_cast<T*>(static_cast<uint8_t*>(p)+off); }
 uint32_t HookRva(const Slot& s) { return s.extra->options ? s.extra->options : s.row->title; }
@@ -310,6 +312,14 @@ void Restore(Slot& s) {
         }
     }
 }
+void UpdateMenuState(Slot& s) {
+    // TR6 can show its pause Options ring without the collection inventory
+    // flag. Its active-menu pointer identifies that native menu directly.
+    const bool options6=s.row->game==6 && s.extra->active && s.extra->optionsMenu &&
+        At<void*>(s,s.extra->active) && At<void*>(s,s.extra->active)==At<void*>(s,s.extra->optionsMenu);
+    if(Available() && (InTitle() || InInventory() || options6)) return;
+    Restore(s);s.selection={};s.options123={};s.page={};s.scope=false;
+}
 void Detach(Slot& s,bool mapped) {
     if(mapped) { Restore(s);s.draw.Remove();s.title.Remove(); }
     else { s.draw.Abandon();s.title.Abandon(); }
@@ -358,9 +368,7 @@ void VRNativeMenuUpdate() {
         auto& s=g_slots[i];const auto module=GetModuleHandleW(Modules[i]);
         if(s.module && (module!=s.module || (s.title.installed() && At<uint8_t>(s,HookRva(s))!=0xe9))) Detach(s,false);
         if(module && !s.attempted && Cfg().enabled && VR().active()) Attach(s,i,module);
-        if(s.title.installed()) {
-            if(!InTitle()) { Restore(s);s.selection={};s.options123={};s.page={}; }
-        }
+        if(s.title.installed()) UpdateMenuState(s);
     }
 }
 void VRNativeMenuShutdown() {

@@ -1,17 +1,121 @@
 // Tests native menu ownership, cleanup and save failures without loading games.
+#include <array>
+#include <string>
+#include <vector>
+#define private public
+#include "../src/VRSystem.h"
+#include "../src/InlineHook.h"
+#undef private
 #include "../src/VRNativeMenu.cpp"
 #include <cstdio>
 #include <cstdlib>
 namespace tr {
-uint64_t Base() { return 0; }
-int AppFlag(uint32_t) { return 0; }
+alignas(8) int32_t testApp[2048]{};
+Config testConfig;
+uint64_t Base() { return reinterpret_cast<uint64_t>(testApp); }
+int AppFlag(uint32_t offset) { return *reinterpret_cast<int32_t*>(reinterpret_cast<uint8_t*>(testApp)+offset); }
 const Layout& L() { static Layout layout{};return layout; }
-const Config& Cfg() { static Config config{};return config; }
+const Config& Cfg() { return testConfig; }
 VRSystem& VR() { static VRSystem runtime;return runtime; }
 namespace vrmenu {
 bool saveOK=true;Values saved{};
 Values ReadSettings() { return saved; }
 bool SaveSettings(const Values& v,const Values&,std::wstring&) { if(saveOK) saved=v;return saveOK; }
+}
+}
+namespace {
+alignas(8) uint8_t menuMemory[65536]{};
+tr::Slot* testSlot=nullptr;
+int nativeOptionsCalls=0;
+int NativeOptions123() { ++nativeOptionsCalls;return 0; }
+int NativeOptions45(int inventory) { ++nativeOptionsCalls;return inventory==7 ? 7 : 0; }
+uint8_t NativeOptions6(void*,uint8_t) { ++nativeOptionsCalls;return 0; }
+void* NativeText45(float,float,uint8_t,const char*,uint16_t) { return nullptr; }
+void* NativeText123(int16_t,int16_t,int16_t,const char* value) {
+    using namespace tr;auto& s=*testSlot;
+    for(int i=0;i<64;++i) {
+        auto* text=&At<uint8_t>(s,s.extra->textPool+i*88);
+        if(Field<uint32_t>(text,0)&1) continue;
+        Field<uint32_t>(text,0)=1;
+        auto* buffer=&At<char>(s,s.extra->textBuffers+i*512);
+        Field<char*>(text,72)=buffer;strcpy_s(buffer,512,value);
+        ++At<int16_t>(s,s.extra->textCount);return text;
+    }
+    return nullptr;
+}
+void MenuContext(bool title,bool inventory) {
+    std::fill(std::begin(tr::testApp),std::end(tr::testApp),inventory ? 1 : 0);
+    tr::testApp[tr::drva::app_off::InTitle/4]=title ? 1 : 0;
+}
+template<class Check> void TestInGameMenus(Check check) {
+    using namespace tr;
+    const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    const auto rva=[&](const void* p) { return uint32_t(reinterpret_cast<uintptr_t>(p)-base); };
+    testConfig.enabled=true;VR().m_system=reinterpret_cast<vr::IVRSystem*>(1);
+    for(int game=1;game<=6;++game) for(bool title:{false,true}) {
+        std::memset(menuMemory,0,sizeof(menuMemory));MenuContext(title,!title);
+        auto& s=g_slots[game-1];s.row=nullptr;s.extra=nullptr;
+        s.selection={};s.options123={};s.page={};s.texts={};s.menu6=nullptr;
+        Row row{};Extra extra{};row.game=game;
+        row.input=rva(menuMemory+128);row.dbinput=rva(menuMemory+144);row.choice=rva(menuMemory+160);
+        extra.subpage=rva(menuMemory+176);extra.selection=rva(menuMemory+192);
+        extra.textCount=rva(menuMemory+208);extra.firstVisible=rva(menuMemory+224);
+        extra.nativeTexts=rva(menuMemory+256);extra.textPool=rva(menuMemory+4096);extra.textBuffers=rva(menuMemory+12288);
+        extra.text=rva(reinterpret_cast<void*>(&NativeText123));
+        extra.active=rva(menuMemory+432);extra.optionsMenu=rva(menuMemory+448);
+        s.module=reinterpret_cast<HMODULE>(base);s.row=&row;s.extra=&extra;testSlot=&s;
+        nativeOptionsCalls=0;check(Available(),"native VR Options is available at title and during gameplay");
+        if(game<=3) {
+            s.title.m_trampoline=reinterpret_cast<void*>(&NativeOptions123);
+            At<int16_t>(s,extra.selection)=12;At<int32_t>(s,extra.firstVisible)=3;
+            auto call=[&]() { return game==1 ? Options123<0>() : game==2 ? Options123<1>() : Options123<2>(); };
+            At<uint32_t>(s,row.dbinput)=0x4000;call();
+            check(s.options123.vr && nativeOptionsCalls==1,"in-game TR123 Options reaches VR row");
+            At<uint32_t>(s,row.dbinput)=0x100000;call();
+            check(s.page.open && nativeOptionsCalls==1,"TR123 opens VR child without triggering another native option");
+            UpdateMenuState(s);check(s.page.open && OwnText(s,0),"in-game frame update preserves child text and selection");
+            At<uint32_t>(s,row.dbinput)=0x200000;call();
+            check(!s.page.open && At<uint32_t>(s,row.dbinput)==0 && nativeOptionsCalls==2,
+                  "TR123 child Back returns to Options without closing inventory");
+            OpenPage(s);DrawPage123(s);
+        } else if(game<=5) {
+            s.title.m_trampoline=reinterpret_cast<void*>(&NativeOptions45);
+            s.draw.m_trampoline=reinterpret_cast<void*>(&NativeText45);
+            At<int32_t>(s,extra.selection)=12;
+            auto call=[&](int inventory=1) { return game==4 ? Options<3>(inventory) : Options<4>(inventory); };
+            At<uint64_t>(s,row.dbinput)=0x20000000;call();
+            At<uint64_t>(s,row.dbinput)=0x100000;call();
+            check(s.page.open && nativeOptionsCalls==1,"TR45 in-game Options opens VR child");
+            UpdateMenuState(s);check(s.page.open,"TR45 in-game update cannot close the child each frame");
+            At<uint64_t>(s,row.dbinput)=0x200000;call();
+            check(!s.page.open && At<uint64_t>(s,row.dbinput)==0 && nativeOptionsCalls==2,
+                  "TR45 child Back stays in parent Options");
+            check(call(7)==7,"native Options return value and inventory argument are preserved");
+            OpenPage(s);
+        } else {
+            s.title.m_trampoline=reinterpret_cast<void*>(&NativeOptions6);
+            auto* menu=menuMemory+512;auto* options=reinterpret_cast<Option6*>(menuMemory+1024);
+            for(int i=0;i<12;++i) { options[i].next=i<11 ? &options[i+1] : nullptr;options[i].last=i ? &options[i-1] : nullptr; }
+            Field<Option6*>(menu,120)=options;Field<uint8_t>(menu,106)=12;Field<uint8_t>(menu,107)=12;
+            At<void*>(s,extra.optionsMenu)=At<void*>(s,extra.active)=menu;
+            Options6(menu,5);check(s.page.open && Field<uint8_t>(menu,106)==13,"TR6 pause Options inserts and opens VR row");
+            MenuContext(title,false);UpdateMenuState(s);
+            check(s.page.open && Field<uint8_t>(menu,106)==13,"TR6 active pause menu survives without inventory flag");
+            Options6(menu,6);check(!s.page.open && nativeOptionsCalls==0,"TR6 child Back does not close parent menu");
+            OpenPage(s);At<void*>(s,extra.active)=nullptr;
+        }
+        MenuContext(false,false);UpdateMenuState(s);
+        check(!s.page.open && !s.selection.vr && !s.options123.vr,"resuming play discards old child page and virtual selection");
+        if(game<=3) check(At<int16_t>(s,extra.textCount)==0,"resuming play releases owned VR menu text");
+        if(game==6) check(Field<uint8_t>(menuMemory+512,106)==12,"resuming play restores original TR6 menu list");
+        MenuContext(false,true);OpenPage(s);testConfig.enabled=false;UpdateMenuState(s);
+        check(!Available() && !s.page.open,"disabling mod closes VR page inside in-game menus");
+        testConfig.enabled=true;OpenPage(s);VR().m_system=nullptr;UpdateMenuState(s);
+        check(!Available() && !s.page.open,"VR shutdown also cleans an in-game page");
+        VR().m_system=reinterpret_cast<vr::IVRSystem*>(1);
+        s.title.m_trampoline=s.draw.m_trampoline=nullptr;s.module=nullptr;s.row=nullptr;s.extra=nullptr;
+    }
+    VR().m_system=nullptr;MenuContext(false,false);
 }
 }
 int main() {
@@ -146,5 +250,6 @@ int main() {
     check(!At<void*>(slot,extra.nativeTexts+16*8) && !At<void*>(slot,extra.nativeTexts+17*8),"virtual selection hides underlying native value arrows");
     At<int32_t>(slot,extra.firstVisible)=0;DrawOptionsRow123(slot);
     check(!slot.texts[0] && Field<int16_t>(background,58)==190,"earlier scrolling pages retain their original layout");
+    TestInGameMenus(check);
     std::printf("PASS: %d native submenu checks\n",n);
 }
