@@ -203,6 +203,7 @@
     <ClInclude Include="src\CollectionParity.h" />
     <ClInclude Include="src\InventoryProjection.h" />
     <ClInclude Include="src\FirstPersonBodyIK.h" />
+    <ClInclude Include="src\JumpArmIK.h" />
     <ClInclude Include="src\PhysicalHolster.h" />
     <ClInclude Include="src\PistolAnimationBlend.h" />
     <ClInclude Include="src\WorldInventory.h" />

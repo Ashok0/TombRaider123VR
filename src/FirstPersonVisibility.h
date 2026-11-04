@@ -11,7 +11,7 @@ constexpr uint32_t HandMeshBits = 0x2400u;
 inline bool TraversalTransitionHandsOnly(int state,int game,uint32_t recoveryMask) {
     // Reveal arms on the first upright frame, including immediate movement.
     // Torso/camera/wrist recovery can continue without hiding the arms.
-    if(locomotion::IsGroundLocomotionState(state,game)) return false;
+    if(locomotion::IsGroundLocomotionState(state,game) || state==15 || state==28) return false;
     return locomotion::IsLedgeMountState(state,game) ||
         (!locomotion::IsLedgeArmsOnlyState(state,game) && recoveryMask==ArmMeshBits);
 }

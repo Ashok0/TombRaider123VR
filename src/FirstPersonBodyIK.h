@@ -36,6 +36,12 @@ inline Basis LimitRotation(Basis rotation,float radians) {
     return angle>radians && Unit(q.v,axis) ? RotationMatrix(AxisRotation(axis,radians)) : rotation;
 }
 
+inline Basis BlendRotation(const Basis& from,const Basis& to,float t) {
+    auto a=RotationOf(from),b=RotationOf(to);
+    if(a.w*b.w+Dot(a.v,b.v)<0) { b.w=-b.w;b.v=Scale(b.v,-1); }
+    return RotationMatrix({a.w+(b.w-a.w)*t,Add(Scale(a.v,1-t),Scale(b.v,t))});
+}
+
 // Native climbing animation owns the contact and hand orientation. Headset
 // fitting may move the shoulder only within reach, never elongate either bone.
 inline bool SolveGripArm(const Frame (&native)[3],Vec shoulder,Vec fallbackPole,Frame (&posed)[3]) {

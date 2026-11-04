@@ -27,6 +27,7 @@
 #include "LedgePullGesture.h"
 #include "LedgeCatchHaptics.h"
 #include "JumpLanding.h"
+#include "JumpArmIK.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -380,6 +381,7 @@ uint32_t g_bodySkinMask=0;
 float g_bodySkinPalette[32*12]{}; // Complete native animation for physics.
 float g_bodyRenderPalette[32*12]{}; // Eye-view IK; never feeds the simulation.
 firstperson::ArmTwistState g_unarmedTwist[2]{};
+firstperson::JumpArmIK g_jumpArms[2];
 motiongun::Vec g_handSkinCentre{};
 int g_firingHand = -1;
 int16_t g_firingBaseAim[2]{};
@@ -449,6 +451,7 @@ firstperson::BodyFollowSettings BodyFollowSettings() {
     s.followSpeed=Cfg().firstPersonBodyFollowSpeedMetres;return s;
 }
 void ResetBodyFollower() {
+    for(auto& arm:g_jumpArms) arm.Reset();
     g_mountCamera.Reset();
     g_pistolRoll={};
     g_pistolArmPose.valid=false;
@@ -1196,15 +1199,17 @@ public:
         if (object<0) return;
         auto* current=Ptr<uint8_t>(g_boundDll->objects)+object*off::object_stride+off::object_geom;
         const auto* hands=Ptr<uint8_t>(g_boundDll->laraHands);
-        for (int restIndex:{1,6}) { // Bare and gloved TR1-3 HAND_NAMES banks.
+        const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+        for (int restIndex:{1,6}) for(int variant:{1,3}) { // Bare/gloved run and open hands.
+            if(variant==3 && state!=28) continue;
             const auto* rest=hands+restIndex*off::geom_stride;
-            const auto* run=rest+off::geom_stride;
+            const auto* run=rest+variant*off::geom_stride;
             if (std::memcmp(current,run,sizeof(saved)) ||
                 !*reinterpret_cast<const void* const*>(rest+off::geom_mesh)) continue;
             geometry=current;
             std::memcpy(saved,current,sizeof(saved));
             std::memcpy(current,rest,sizeof(saved));
-            break;
+            return;
         }
     }
     ~UnarmedRestHandScope() { if (geometry) std::memcpy(geometry,saved,sizeof(saved)); }
@@ -1861,7 +1866,7 @@ bool UnarmedIKReadyForPass(bool shadow) {
     if (gun!=0 && !MotionWeaponSupported(gun)) return false;
     const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
     if (!CanWalk(item) && !CanSteerCrouch(item) && state!=3 && state!=9 && state!=15 &&
-        state!=25 && state!=26 && state!=27) return false;
+        state!=25 && state!=26 && state!=27 && state!=28) return false;
     if (locomotion::IsLedgeArmsOnlyState(state,BoundGame()) || IsRollState(item)) return false;
     motiongun::Frame wrist{}; motiongun::Basis controller{};
     return BuildControllerWrist(0,wrist,controller) && BuildControllerWrist(1,wrist,controller);
@@ -2177,6 +2182,18 @@ bool PistolBodyArmPose(uint8_t* item,float* joints,int count,int pass,bool captu
 
 #include "PhysicalHolster.inl"
 
+bool PrepareJumpArm(uint8_t* item,int hand,const motiongun::Frame& reference,motiongun::Frame (&chain)[3]) {
+    const int state=*reinterpret_cast<const int16_t*>(item+off::item_anim_state);
+    const bool jumping=state==15 || state==28;
+    if(*Ptr<int16_t>(g_boundDll->lara+off::lara_gun_status)!=0 || MotionReady() || FlareIKReady() ||
+       !GroundBodyAvailable(item) || (!jumping && !CanWalk(item))) {
+        g_jumpArms[hand].Reset();return true;
+    }
+    const bool mainBody=g_bodySkinScope &&
+        (*reinterpret_cast<const uint32_t*>(item+off::item_mesh_bits)&0x49)==0x49;
+    return g_jumpArms[hand].Apply(item,VR().PoseSerial(),TurnTime(),jumping,mainBody,reference,chain);
+}
+
 bool ApplyFullBodyIK(uint8_t* item,float* joints,int count) {
     using namespace motiongun;
     if(!FullBodyIKReady()) {
@@ -2428,6 +2445,8 @@ bool ApplyFullBodyIK(uint8_t* item,float* joints,int count) {
             continue;
         }
         const Frame armBind[3]={bind[first],bind[first+1],bind[first+2]};
+        const Frame jumpReference{referenceYaw,Sub(eye,cameraOffset)};
+        if(!PrepareJumpArm(item,hand,jumpReference,chain)) return false;
         if(!grip && MotionReady() && CurrentMotionWeapon()==1 &&
            !firstperson::PistolArmReference(posed[7],bind[7],armBind,pistolBodyScale,chain)) return false;
         auto roll=g_pistolBodyScope ? PistolRollSeed(hand,item) : firstperson::ArmRollContinuity{};
@@ -2533,6 +2552,13 @@ bool ApplyArmIK(uint8_t* item, float* joints, int count, bool shadow=false) {
                 target.origin=motiongun::Sub(trackedOrigin,BodyPaletteCameraOrigin(item,head));
             }
         }
+        if(!shadow && !armed && g_boundDll->w2vMatrix) {
+            // Hand-only palettes can omit the head. They still share the
+            // body's actual camera origin, never an interpolated gameplay wrist.
+            const auto* w=Ptr<int32_t>(g_boundDll->w2vMatrix);
+            if(w[0] || w[5] || w[10])
+                target.origin=Sub(trackedOrigin,{float(w[3]),float(w[7]),float(w[11])});
+        }
         const float heading=locomotion::Radians(reinterpret_cast<const PHD_3DPOS*>(item+off::item_pos)->y_rot);
         const float side=hand ? 1.f : -1.f;
         const motiongun::Vec pole{side*.6f*std::cos(heading)-.25f*std::sin(heading),
@@ -2554,6 +2580,17 @@ bool ApplyArmIK(uint8_t* item, float* joints, int count, bool shadow=false) {
             }
         }
         motiongun::Frame changes[3]{};
+        const bool unarmedView=!shadow && !armed && !FlareIKReady();
+        if(unarmedView) {
+            const float scale=LiveWorldUnitsPerMetre();
+            locomotion::Vec view{};VR().FirstPersonViewOffset(view.x,view.z);
+            view=locomotion::Rotate(view,g_heading.base)*scale;
+            const motiongun::Vec eye{float(g_scenePose.x_pos)+view.x,
+                float(g_scenePose.y_pos)+VR().FirstPersonVerticalOffset()*scale,float(g_scenePose.z_pos)+view.z};
+            const auto cameraOffset=Sub(trackedOrigin,target.origin);
+            const motiongun::Frame jumpReference{firstperson::RotationMatrix(firstperson::AxisRotation({0,1,0},g_heading.base)),Sub(eye,cameraOffset)};
+            if(!PrepareJumpArm(item,hand,jumpReference,chain)) return false;
+        }
         auto roll=bindReference[hand] ? PistolRollSeed(hand,item) : firstperson::ArmRollContinuity{};
         if (!firstperson::SolveTrackedArm(chain,target,pole,bind,changes,present[0],bindReference[hand] ? &roll : nullptr)) return false;
         if(bindReference[hand]) {
@@ -2561,7 +2598,7 @@ bool ApplyArmIK(uint8_t* item, float* joints, int count, bool shadow=false) {
             g_pistolRoll.minConfidence[hand]=std::min(g_pistolRoll.minConfidence[hand],roll.confidence);
         }
         for(int i=0;i<3;++i) {
-            if(!bindReference[hand]) {
+            if(!bindReference[hand] && !unarmedView) {
                 correction[hand*3+i]=changes[i];
                 continue;
             }
@@ -2721,6 +2758,7 @@ void __cdecl Detour_GetJoints(uint8_t* item) {
                     if(g_pistolBodyScope) { g_pistolArmPose.valid=false;g_pistolArmSolveReady=false; }
                     bool solved=g_pistolForearmScope && PistolBodyArmPose(item,g_bodyRenderPalette,count,pass,false);
                     if(!solved) solved=ApplyFullBodyIK(item,g_bodyRenderPalette,count);
+                    if(!UnarmedIKReady()) for(auto& arm:g_jumpArms) arm.Reset();
                     if(!solved && (MotionReady() || UnarmedIKReady())) solved=ApplyArmIK(item,g_bodyRenderPalette,count);
                     if(solved) {
                         ++g_armIKSolved;

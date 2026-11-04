@@ -1,0 +1,10 @@
+﻿{
+    "Installed":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+    "Backup":  "C:\\dev\\TombRaider456VR\\build\\tr123-jump-arm-port\\before-install-20261103-195423",
+    "SHA256":  "D9D02A7EB14FFD4C771338F9C70859B93121DCD9EBD32CBD40BF57969F5EF184",
+    "INIUnchanged":  true,
+    "FocusedChecks":  16198,
+    "FullRegressionChecks":  1234382,
+    "PhysicsGraphicsChecks":  2314,
+    "InHeadsetTested":  false
+}

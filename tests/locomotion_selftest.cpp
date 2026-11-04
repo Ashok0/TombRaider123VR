@@ -381,8 +381,10 @@ void TestResponsiveEntry() {
 #include "climbing_arm_selftest.h"
 #include "mount_camera_smoothing_selftest.h"
 #include "manor_piano_selftest.h"
+#include "jump_arm_selftest.h"
 
 int main() {
+    TestJumpArms();
     TestManorPiano();
     TestMountCameraSmoothing();
     TestClimbingArms();
