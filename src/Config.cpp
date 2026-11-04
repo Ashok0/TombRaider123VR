@@ -242,6 +242,8 @@ void LoadConfig(const wchar_t* ini) {
     g_cfg.firstPersonBodyFollowSpeedMetres = GetFloat(L"FirstPersonBodyFollowSpeedMetres", g_cfg.firstPersonBodyFollowSpeedMetres, ini);
     g_cfg.firstPersonBodyHandYawWeight = GetFloat(L"FirstPersonBodyHandYawWeight", g_cfg.firstPersonBodyHandYawWeight, ini);
     g_cfg.firstPersonBodyScale = GetFloat(L"FirstPersonBodyScale", g_cfg.firstPersonBodyScale, ini);
+    const float bodyForward=GetFloat(L"FirstPersonBodyForwardCm",0,ini);
+    g_cfg.firstPersonBodyForwardCm=std::isfinite(bodyForward) ? std::round(std::clamp(bodyForward,0.f,20.f)) : 0;
     g_cfg.firstPersonPhysicalCrouch = GetBool(L"FirstPersonPhysicalCrouch", g_cfg.firstPersonPhysicalCrouch, ini);
     g_cfg.firstPersonWallCollision = GetBool(L"FirstPersonWallCollision", g_cfg.firstPersonWallCollision, ini);
     g_cfg.worldInventory = GetBool(L"WorldInventory", g_cfg.worldInventory, ini);

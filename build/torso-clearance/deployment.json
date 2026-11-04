@@ -1,0 +1,22 @@
+﻿[
+    {
+        "Collection":  "123",
+        "Installed":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider I-III Remastered\\TombRaiderVR.dll",
+        "SHA256":  "7F5377B678404E41F8D631783B56D0034CB3825535D216F2A1F186C88D46E2C3",
+        "Backup":  "C:\\dev\\TombRaider456VR\\build\\torso-clearance\\before-install-20261104-035626\\123",
+        "INIUnchanged":  true,
+        "RenderChecks":  1257706,
+        "GLChecks":  1707,
+        "InHeadsetTested":  false
+    },
+    {
+        "Collection":  "456",
+        "Installed":  "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tomb Raider IV-VI Remastered\\TombRaiderVR.dll",
+        "SHA256":  "05578A3E34E2E0209135D39897D07173673E5545A2F4B93CF19FB2E78F5881DF",
+        "Backup":  "C:\\dev\\TombRaider456VR\\build\\torso-clearance\\before-install-20261104-035626\\456",
+        "INIUnchanged":  true,
+        "RenderChecks":  1643013,
+        "GLChecks":  3466,
+        "InHeadsetTested":  false
+    }
+]

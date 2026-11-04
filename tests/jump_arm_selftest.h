@@ -1,5 +1,39 @@
 // Exercise TR1-3's actual render hooks through takeoff, flight and touchdown.
 namespace {
+void TestBodyPosition() {
+    using namespace tr;using namespace tr::motiongun;
+    for(int game:{1,2,3}) for(bool fullBody:{false,true}) for(bool armed:{false,true})
+    for(float yaw:{0.f,1.5707963f,-1.5707963f}) {
+        BodyRig(game,armed);testConfig.firstPersonFullBodyIK=fullBody;testConfig.firstPersonBodyScale=1;
+        g_haveManualInput=false;g_heading.base=yaw;
+        Field<PHD_3DPOS>(off::item_pos).y_rot=Field<PHD_3DPOS>(off::item_pos_prev).y_rot=locomotion::Angle(yaw);
+        Field<uint32_t>(off::item_mesh_bits)=0x7fff;g_bodySkinScope=true;
+        ++testVR.m_poseSerial;Detour_GetJoints(item);
+        uint32_t mask=0;float original[384];std::memcpy(original,FirstPersonBodySkin(mask),sizeof(original));
+        uint8_t itemBefore[sizeof(item)];std::memcpy(itemBefore,item,sizeof(item));
+        const auto cameraBefore=g_scenePose;
+        for(float cm:{1.f,10.f,20.f,0.f}) {
+            testConfig.firstPersonBodyForwardCm=cm;Detour_GetJoints(item);
+            const auto* render=FirstPersonBodySkin(mask);Check(render!=nullptr,"body slider retains rendered palette");
+            for(int j=0;j<15;++j) {
+                const auto before=ReadRows(original+j*12),after=ReadRows(render+j*12);
+                if(j<8 || j==14) Check(firstperson::Length(Sub(after.origin,Add(before.origin,{std::sin(yaw)*cm*10,0,std::cos(yaw)*cm*10})))<.06f,
+                    "body position follows Lara's forward axis with full-body IK on or off");
+                if(j==10 || j==13) Check(firstperson::Length(Sub(after.origin,before.origin))<.04f &&
+                    WristBasisError(after.basis,before.basis)<.001f,"body adjustment keeps armed and unarmed controller wrists exact");
+            }
+            Check(!std::memcmp(itemBefore,item,sizeof(item)) && !std::memcmp(&cameraBefore,&g_scenePose,sizeof(cameraBefore)),
+                "body position never alters collision or camera");
+            Check(!std::memcmp(FirstPersonNativeBodySkin(),ikNative,15*12*sizeof(float)),"body position leaves native physics intact");
+        }
+        testConfig.firstPersonBodyForwardCm=10;
+        *Ptr<int32_t>(dll.renderPass)=4;Check(locomotion::Length(BodyMeshOffset(item))==0,"native shadows retain their original body placement");
+        *Ptr<int32_t>(dll.renderPass)=0;Field<int16_t>(off::item_anim_state)=10;
+        Check(locomotion::Length(BodyMeshOffset(item))==0,"ledge contacts keep their native body placement");
+        Field<int16_t>(off::item_anim_state)=2;g_active=false;
+        Check(locomotion::Length(BodyMeshOffset(item))==0,"third-person body position remains native");
+    }
+}
 void TestJumpArms() {
     using namespace tr;using namespace tr::motiongun;
     for(int game:{1,2,3}) for(bool fullBody:{false,true}) for(int count:{15,32}) {
@@ -74,6 +108,23 @@ void TestJumpArms() {
                         Check(firstperson::Length(Sub(actual.origin,target.origin))<.04f &&
                               WristBasisError(actual.basis,target.basis)<.001f,"tracked wrists stay exact across native animation changes");
                     }
+                }
+                uint8_t itemBefore[sizeof(item)];std::memcpy(itemBefore,item,sizeof(itemBefore));
+                const auto cameraBefore=g_scenePose;
+                for(float cm:{1.f,5.f,20.f,10.f,0.f}) {
+                    testConfig.firstPersonBodyForwardCm=cm;Detour_GetJoints(item);render=FirstPersonBodySkin(mask);
+                    for(int i=0;i<count;++i) {
+                        const int j=mapping[i];const auto old=Multiply(ReadRows(saved+i*12),bind[j]);
+                        const auto adjusted=Multiply(ReadRows(render+i*12),bind[j]);
+                        if(j<8 || j==14) Check(firstperson::Length(Sub(adjusted.origin,Add(old.origin,{0,0,cm*10})))<.05f,
+                            "body slider moves torso and legs by the selected distance and restores exact zero");
+                        if(j==10 || j==13) Check(firstperson::Length(Sub(adjusted.origin,old.origin))<.04f &&
+                            WristBasisError(adjusted.basis,old.basis)<.001f,"body position keeps both controller wrists fixed");
+                    }
+                    Check(!std::memcmp(itemBefore,item,sizeof(itemBefore)) && !std::memcmp(&cameraBefore,&g_scenePose,sizeof(cameraBefore)),
+                        "body adjustment does not change camera or simulated Lara");
+                    Check(!std::memcmp(FirstPersonNativeBodySkin(),ikNative,count*12*sizeof(float)),
+                        "body adjustment leaves native physics skeleton unchanged");
                 }
                 Field<uint32_t>(off::item_mesh_bits)=0x3600;Detour_GetJoints(item);render=FirstPersonBodySkin(mask);
                 for(int i=0;i<count;++i) if(mapping[i]>=8 && mapping[i]<=13)

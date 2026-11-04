@@ -4,7 +4,8 @@ const std::array<Setting,SettingCount>& Settings() {
     static const std::array<Setting,SettingCount> settings{{
         {L"ValveIndexControllers",L"Controller Type",0,1,1,true,[]{return Cfg().valveIndexControllers ? 1.f : 0.f;}},
         {L"VRBrighterColors",L"Color Scheme",0,1,1,true,[]{return Cfg().vrBrighterColors ? 1.f : 0.f;}},
-        {L"HybridModernTankControls",L"Hybrid Modern/Tank Controls",0,1,1,true,[]{return Cfg().hybridModernTankControls ? 1.f : 0.f;}}
+        {L"HybridModernTankControls",L"Hybrid Modern/Tank Controls",0,1,1,true,[]{return Cfg().hybridModernTankControls ? 1.f : 0.f;}},
+        {L"FirstPersonBodyForwardCm",L"Body Position",0,20,1,false,[]{return Cfg().firstPersonBodyForwardCm;}}
     }};
     return settings;
 }
@@ -12,6 +13,7 @@ bool ValidSettings(const Values& values) {
     for(int i=0;i<SettingCount;++i) {
         const auto& s=Settings()[i];const float v=values[i];
         if(!std::isfinite(v) || v<s.minimum || v>s.maximum || (s.toggle && v!=0 && v!=1)) return false;
+        if(!s.toggle && std::fabs(v/s.step-std::round(v/s.step))>.0001f) return false;
     }
     return true;
 }
@@ -20,7 +22,7 @@ Values ReadSettings() {
     for(int i=0;i<SettingCount;++i) {
         const auto& s=Settings()[i];float value=GetFloat(s.key,s.fallback(),g_iniPath.c_str());
         if(!std::isfinite(value)) value=s.fallback();
-        result[i]=s.toggle ? (value!=0 ? 1.f : 0.f) : std::clamp(value,s.minimum,s.maximum);
+        result[i]=s.toggle ? (value!=0 ? 1.f : 0.f) : std::round(std::clamp(value,s.minimum,s.maximum)/s.step)*s.step;
     }
     return result;
 }
@@ -53,7 +55,8 @@ bool SaveSettings(const Values& values,const Values& original,std::wstring& erro
     // controller bindings still require a restart, so leave that config alone.
     if(values[1]!=original[1]) g_cfg.vrBrighterColors=values[1]!=0;
     if(values[2]!=original[2]) g_cfg.hybridModernTankControls=values[2]!=0;
-    Log("VR Options saved; colors and Hybrid Modern/Tank Controls apply immediately, controller type requires restart");
+    if(values[3]!=original[3]) g_cfg.firstPersonBodyForwardCm=values[3];
+    Log("VR Options saved; colors, hybrid controls and body position apply immediately; controller type requires restart");
     return true;
 }
 }

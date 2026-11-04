@@ -216,6 +216,7 @@ struct Config {
     float firstPersonBodyFollowSpeedMetres = .9f;
     float firstPersonBodyHandYawWeight = .15f;
     float firstPersonBodyScale = 0;
+    float firstPersonBodyForwardCm = 0; // Cosmetic offset; zero restores the original fit.
     bool firstPersonPhysicalCrouch = true; // TR3 only; opt out in INI.
     // Base eye clearance always applies; this optionally clamps physical leaning too.
     bool firstPersonWallCollision = false;

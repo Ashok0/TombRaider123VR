@@ -2,15 +2,17 @@ namespace {
 void TestJumpBodyCentering() {
     using namespace tr;
     using namespace tr::motiongun;
-    for(int game:{1,2,3}) for(bool armed:{false,true}) for(float heading:{0.f,.8f,-2.f})
-    for(bool cameraMatrix:{false,true}) {
+    for(int game:{1,2,3}) for(bool armed:{false,true}) for(float heading:{0.f,.8f,-2.f,1.5707963f,3.1415926f,6.2831853f})
+    for(bool cameraMatrix:{false,true}) for(bool turning:{false,true}) for(bool fullBody:{false,true}) {
         BodyRig(game,armed);
         if(!cameraMatrix) dll.w2vMatrix=0;
         g_pistolBodyScope=armed;
-        testConfig.firstPersonFullBodyIK=testConfig.firstPersonMovementStabilization=true;
+        testConfig.firstPersonFullBodyIK=fullBody;testConfig.firstPersonMovementStabilization=true;
         testConfig.firstPersonBodyScale=1;
-        g_heading.base=heading;testHeadYaw=0;
-        g_groundEye.Apply({0,0,0},heading,{0,-850,0},heading);
+        g_heading.base=heading;testHeadYaw=turning ? .7f : 0.f;
+        const locomotion::Vec calibrated=turning ? locomotion::Vec{35,140} : locomotion::Vec{};
+        testConfig.firstPersonBodyForwardCm=turning ? 11.f : 0.f;
+        g_groundEye.Apply({0,0,0},0,{calibrated.x,-850,calibrated.z},0);
         g_dragCurrent=g_dragPrevious=g_dragShown={};g_previousBody={600,400};
         testViewRight=testFloorRight=.18f;testViewForward=testFloorForward=-.12f;
         testControllerOffset[0].x+=testViewRight;testControllerOffset[1].x+=testViewRight;
@@ -28,7 +30,7 @@ void TestJumpBodyCentering() {
             auto& previous=Field<PHD_3DPOS>(off::item_pos_prev);
             previous={600+step*30,-step*40,400+step*20};current=previous;
             current.x_pos+=30;current.y_pos-=40;current.z_pos+=20;
-            current.y_rot=previous.y_rot=locomotion::Angle(heading);
+            current.y_rot=previous.y_rot=turning ? 0 : locomotion::Angle(heading); // Native takeoff facing can lag a VR turn.
             *Ptr<int32_t>(dll.frameFrac)=fraction;
             const motiongun::Vec root{float(Lerp(previous.x_pos,current.x_pos,fraction)),
                            float(Lerp(previous.y_pos,current.y_pos,fraction)),
@@ -37,12 +39,16 @@ void TestJumpBodyCentering() {
             // physical tracking offset after a roomscale step.
             std::memcpy(ikNative,source,sizeof(source));
             for(int j=0;j<15;++j) {
-                ikNative[j*12+3]+=root.x;ikNative[j*12+7]+=root.y;ikNative[j*12+11]+=root.z;
+                const float sway=turning && cameraMatrix ? fraction*.1f : 0.f;
+                ikNative[j*12+3]+=root.x+sway;ikNative[j*12+7]+=root.y;ikNative[j*12+11]+=root.z-sway;
             }
-            PHD_3DPOS eye{int32_t(root.x),int32_t(root.y-850),int32_t(root.z)};
+            const auto anchor=locomotion::Rotate(calibrated,heading);
+            PHD_3DPOS eye{int32_t(std::lround(root.x+anchor.x)),int32_t(root.y-850),int32_t(std::lround(root.z+anchor.z))};
             const auto animated=eye;UpdateLocomotion(eye);FitBodyToRenderedEye(item,eye,animated);
             g_scenePose=eye;g_scenePoseValid=true;
             const auto physical=locomotion::Rotate({testViewRight,testViewForward},heading)*LiveWorldUnitsPerMetre();
+            const auto behind=locomotion::Rotate(calibrated-locomotion::Vec{0,testConfig.firstPersonBodyForwardCm*LiveWorldUnitsPerMetre()*.01f},heading+testHeadYaw);
+            const auto expected=locomotion::Vec{float(eye.x_pos),float(eye.z_pos)}+physical-behind;
             const auto before=std::string(reinterpret_cast<char*>(item),sizeof(item));
             ++testVR.m_poseSerial;
             for(int pass:{0,2}) {
@@ -50,10 +56,10 @@ void TestJumpBodyCentering() {
                 Frame hips{};
                 Check(ReadIKJoint(Ptr<uint8_t>(dll.objects),g_bodyRenderPalette,15,0,nullptr,nullptr,0,hips),
                     "jump-centering fixture resolves rendered pelvis");
-                if(std::fabs(hips.origin.x-root.x-physical.x)>=1 || std::fabs(hips.origin.z-root.z-physical.z)>=1)
+                if(std::fabs(hips.origin.x-expected.x)>=1 || std::fabs(hips.origin.z-expected.z)>=1)
                     std::fprintf(stderr,"centering game=%d state=%d pass=%d root=(%.1f,%.1f) hips=(%.1f,%.1f) tracking=(%.1f,%.1f)\n",
                         game,state,pass,root.x,root.z,hips.origin.x,hips.origin.z,physical.x,physical.z);
-                Check(std::fabs(hips.origin.x-root.x-physical.x)<1 && std::fabs(hips.origin.z-root.z-physical.z)<1,
+                Check(std::fabs(hips.origin.x-expected.x)<1 && std::fabs(hips.origin.z-expected.z)<1,
                     "roomscale body stays under physical player through standing, jump and landing");
                 if(state!=2) {
                     for(int j:{0,1,2,3,4,5,6,7,14}) {
@@ -78,16 +84,16 @@ void TestJumpBodyCentering() {
                     "body centering leaves native root, skeleton, velocity and gravity untouched");
             }
         };
-        render(2,256,0);
-        for(int state:{3,9,25,26,27,28,29}) for(int fraction:{0,64,128,192,256}) render(state,fraction,3);
-        render(2,256,0);
+        if(!turning && fullBody) render(2,256,0);
+        for(int state:{3,9,15,25,26,27,28,29}) for(int fraction:{0,64,128,192,256}) render(state,fraction,3);
+        if(!turning && fullBody) render(2,256,0);
     }
     for(int exclusion=0;exclusion<11;++exclusion) {
         BodyRig(3,false);testConfig.firstPersonFullBodyIK=true;
         g_groundEye.Apply({0,0,0},0,{0,-850,0},0);
         Field<int16_t>(off::item_anim_state)=3;Field<uint16_t>(off::item_flags)=8;
         if(exclusion==0) g_active=false;
-        if(exclusion==1) testConfig.firstPersonFullBodyIK=false;
+        if(exclusion==1) g_haveHeading=false;
         if(exclusion==2) testConfig.firstPersonMovementStabilization=false;
         if(exclusion==3) testConfig.positionalTracking=false;
         if(exclusion==4) testConfig.firstPersonHeadTranslation=false;

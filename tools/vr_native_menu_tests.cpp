@@ -176,12 +176,22 @@ int main() {
     check(slot.page.hybrid && vrmenu::saved[2]==1 && vrmenu::saved[0]==1 && vrmenu::saved[1]==1,
         "hybrid change saves only its own value and updates the display");
     PreparePage6(slot);
-    check(Field<uint8_t>(slot.controllerMenu.data(),106)==3 && Field<uint8_t>(slot.controllerMenu.data(),107)==2,"TR6 native page exposes and selects third row");
+    check(Field<uint8_t>(slot.controllerMenu.data(),106)==4 && Field<uint8_t>(slot.controllerMenu.data(),107)==2,"TR6 native page exposes four settings and selects hybrid row");
     for(int i=0;i<vrmenu::SettingCount;++i)
         check(slot.controllerOptions[i].next==(i+1<vrmenu::SettingCount ? &slot.controllerOptions[i+1] : nullptr) &&
             slot.controllerOptions[i].last==(i ? &slot.controllerOptions[i-1] : nullptr),"TR6 child row links are bounded and independent");
     check(std::strcmp(slot.controllerOptions[1].text,"Color Scheme: Brighter")==0,"TR6 draws the saved bright choice");
     check(std::strcmp(slot.controllerOptions[2].text,"Hybrid Modern/Tank Controls: On")==0,"TR6 draws the hybrid value");
+    PageInput(slot,0x20000000);
+    check(slot.page.selected==3 && slot.page.bodyForwardCm==0,"Down reaches body offset at its original position");
+    PageInput(slot,0x80000000);
+    check(slot.page.bodyForwardCm==1 && vrmenu::saved[3]==1,"Right saves one centimetre forward");
+    vrmenu::saveOK=false;PageInput(slot,0x80000000);
+    check(slot.page.bodyForwardCm==1 && slot.page.saveFailed,"failed save cannot change displayed body position");
+    vrmenu::saveOK=true;PageInput(slot,0x100000);
+    check(slot.page.bodyForwardCm==0 && vrmenu::saved[3]==0,"Select restores default body position");
+    PreparePage6(slot);
+    check(std::strcmp(slot.controllerOptions[3].text,"Body Position: Default (0 cm)")==0,"TR6 body row displays its value");
     check(!PageInput(slot,0x200000),"Back closes native child page");
     row.game=1;row.transition=0x800;extra.textCount=300;
     extra.textPool=0x1000;extra.textBuffers=0x3000;extra.nativeTexts=512;extra.firstVisible=480;
@@ -215,7 +225,7 @@ int main() {
     PageInput(slot,vrmenu::Options123Buttons(0x10000));DrawPage123(slot);
     check(slot.page.hybrid && std::strcmp(Field<char*>(slot.texts[3],72),"> Hybrid Modern/Tank Controls: On")==0,
         "TR123 Right saves and draws the hybrid On value");
-    for(bool index:{false,true}) for(bool bright:{false,true}) for(bool hybrid:{false,true}) for(int selected:{0,1,2}) {
+    for(bool index:{false,true}) for(bool bright:{false,true}) for(bool hybrid:{false,true}) for(int selected:{0,1,2,3}) {
         slot.page.Open(index,bright,hybrid);slot.page.selected=selected;DrawPage123(slot);
         const char* controller=Field<char*>(slot.texts[1],72);
         const char* colors=Field<char*>(slot.texts[2],72);
@@ -230,12 +240,15 @@ int main() {
         check((controller[0]=='>')==(selected==0) && (colors[0]=='>')==(selected==1) && (hybridText[0]=='>')==(selected==2),
               "the active row stays marked without wrapping values in icon tokens");
     }
+    slot.page.selected=3;slot.page.bodyForwardCm=20;DrawPage123(slot);
+    check(std::strcmp(Field<char*>(slot.texts[4],72),"> Body Position: Forward 20 cm")==0,
+          "TR123 draws the selected body distance as plain visible text");
     const auto savedBeforeBack=vrmenu::saved;
     check(!PageInput(slot,vrmenu::Options123Buttons(0x200000)) && vrmenu::saved==savedBeforeBack,"child Back closes without changing saved values");
     uint8_t ringBefore[96];std::memset(&At<uint8_t>(slot,row.transition),0xa5,96);std::memcpy(ringBefore,&At<uint8_t>(slot,row.transition),96);
     Restore(slot);
     check(std::memcmp(ringBefore,&At<uint8_t>(slot,row.transition),96)==0,"cleanup never changes original ring objects, count or selection");
-    check(At<int16_t>(slot,300)==1,"all six child text records are released on exit");
+    check(At<int16_t>(slot,300)==1,"all child text records are released on exit");
     for(int repeat=0;repeat<100;++repeat) {
         for(int i=0;i<Slot::TextCount;++i) { slot.texts[i]=record(i+27,"old");strcpy_s(slot.textValues[i].data(),128,"old"); }
         At<int16_t>(slot,300)=Slot::TextCount+1;DrawPage123(slot);ClearTexts(slot);

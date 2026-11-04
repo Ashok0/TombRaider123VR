@@ -53,7 +53,7 @@ struct PistolAnimationBlend {
             }
             last[i]=result;
             const int parent=i%3 ? i+7 : 7;
-            pose[i+8]=Multiply(pose[parent],result);
+            if(weight<1) pose[i+8]=Multiply(pose[parent],result);
         }
         if(t>=1) blending=false;
     }

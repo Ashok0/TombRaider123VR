@@ -77,7 +77,7 @@ void TestPhysicalSwitch() {
     for(int game:{1,2,3}) for(int initial:{0,1}) {
         Reset(2,{},true);dll.module=game==1 ? L"tomb1.dll" : game==2 ? L"tomb2.dll" : L"tomb3.dll";
         // Resolve executable callbacks and globals through one synthetic image base.
-        const auto base=std::min(reinterpret_cast<uint64_t>(module),reinterpret_cast<uint64_t>(&FakeLeverMatrices))&~0xffffull;
+        const auto base=reinterpret_cast<uint64_t>(GetModuleHandleW(nullptr));
         const auto delta=uint32_t(reinterpret_cast<uint64_t>(module)-base);g_boundBase=base;
         for(auto* field:{&dll.laraItem,&dll.camera,&dll.analogInput,&dll.input,&dll.lara}) *field+=delta;
         const auto rva=[&](const void* p) { const auto n=reinterpret_cast<uint64_t>(p)-base;Check(n<0x100000000ull,"synthetic RVA fits");return uint32_t(n); };

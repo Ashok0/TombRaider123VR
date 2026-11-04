@@ -53,6 +53,7 @@ const float* FirstPersonHandSkin(int& wristJoint);
 // Complete animation palette for jiggle sampling, before arm IK/visibility masking.
 const float* FirstPersonNativeBodySkin();
 const float* FirstPersonBodySkin(uint32_t& visibleJoints);
+bool FirstPersonBodyClearance(float out[4],uint64_t& mask);
 uint32_t FirstPersonBodyWristSeamMask();
 // Complete tracked light-pass palette before native attachment masking.
 const float* FirstPersonShadowSkin(uint32_t& visibleJoints,uint32_t& wristJoints);

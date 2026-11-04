@@ -18,9 +18,11 @@ int main() {
     const std::wstring ini=std::wstring(cwd)+L"\\vr-menu-test.ini";
     { std::ofstream f("vr-menu-test.ini");f<<"; keep comment\n[VR]\nValveIndexControllers=0\nValveIndexGripPress=0.63\nValveIndexGripRelease=0.31\nDpadShift=0\nFirstPersonTurnDegreesPerSecond=123\nFirstPersonMotionGunPitchDegrees=-17\n[Other]\nCustom=77\n"; }
     tr::LoadConfig(ini.c_str());
-    check(SettingCount==3 && std::wstring(Settings()[0].label)==L"Controller Type" &&
+    check(SettingCount==4 && std::wstring(Settings()[0].label)==L"Controller Type" &&
         std::wstring(Settings()[1].label)==L"Color Scheme" &&
-        std::wstring(Settings()[2].label)==L"Hybrid Modern/Tank Controls","all three requested settings are exposed");
+        std::wstring(Settings()[2].label)==L"Hybrid Modern/Tank Controls" &&
+        std::wstring(Settings()[3].label)==L"Body Position","all four settings are exposed");
+    check(ReadSettings()[3]==0 && tr::Cfg().firstPersonBodyForwardCm==0,"existing INIs retain the exact default body position");
     check(!tr::Cfg().hybridModernTankControls && ReadSettings()[2]==0,"older INIs show hybrid controls Off by default");
     check(!tr::Cfg().vrBrighterColors && ReadSettings()[1]==0,"old INIs without a color key retain the original dark look");
     auto original=ReadSettings(),next=original;std::wstring error;next[0]=1;
@@ -58,6 +60,20 @@ int main() {
     original=ReadSettings();next=original;next[2]=.5f;
     check(!SaveSettings(next,original,error) && !tr::Cfg().hybridModernTankControls,"invalid hybrid choice is rejected");
     tr::LoadConfig(ini.c_str());check(!tr::Cfg().hybridModernTankControls,"hybrid Off survives restart");
+    for(float cm:{1.f,5.f,20.f,10.f,0.f}) {
+        original=ReadSettings();next=original;next[3]=cm;
+        check(SaveSettings(next,original,error) && tr::Cfg().firstPersonBodyForwardCm==cm,"body adjustment applies immediately after saving");
+        check(ReadSettings()[3]==cm && ReadSettings()[0]==original[0] && ReadSettings()[1]==original[1] && ReadSettings()[2]==original[2],
+              "body adjustment preserves every other menu choice");
+        tr::LoadConfig(ini.c_str());check(tr::Cfg().firstPersonBodyForwardCm==cm,"body position survives restart including restoring zero");
+    }
+    for(float invalid:{-1.f,21.f,.5f,std::numeric_limits<float>::infinity(),std::numeric_limits<float>::quiet_NaN()}) {
+        original=ReadSettings();next=original;next[3]=invalid;
+        check(!SaveSettings(next,original,error) && tr::Cfg().firstPersonBodyForwardCm==0,"invalid body positions cannot change the saved or live body");
+    }
+    original=ReadSettings();next=original;next[3]=5;tr::g_iniPath=goodPath+L".missing";
+    check(!SaveSettings(next,original,error) && tr::Cfg().firstPersonBodyForwardCm==0,"failed body save keeps the visible body in place");
+    tr::g_iniPath=goodPath;
     ControllerPage page;
     check(page.Input(0x100000)==Action::None,"closed page leaves native Select alone");
     page.Open(false);check(std::string(page.Value())=="Meta Touch","Touch name uses requested text");
@@ -70,12 +86,20 @@ int main() {
     check(page.Input(0x80000000)==Action::Change && page.selected==1,"Right changes the selected color row");
     check(std::string(page.Message())=="Colors apply immediately","color row explains immediate application");
     check(page.Input(0x10000000)==Action::None && page.selected==0,"Up returns to Controller Type");
-    check(page.Input(0x10000000)==Action::None && page.selected==2,"Up from first row wraps to hybrid controls");
+    check(page.Input(0x10000000)==Action::None && page.selected==3,"Up from first row wraps to Body Position");
+    check(std::string(page.Value(3))=="Default (0 cm)" && page.ChangedValue(0x40000000)==0,"body adjustment cannot move behind default");
+    check(page.ChangedValue(0x80000000)==1,"Right moves body forward one centimetre");
+    page.bodyForwardCm=20;
+    check(page.ChangedValue(0x80000000)==20 && page.ChangedValue(0x40000000)==19 && page.ChangedValue(0x100000)==0,
+          "body setting clamps maximum, steps backwards, and resets on Select");
+    check(page.Input(0xc0000000)==Action::None,"opposite adjustment directions cancel");
+    check(page.Input(0x10000000)==Action::None && page.selected==2,"Up from body row visits hybrid controls");
     check(std::string(page.Name(2))=="Hybrid Modern/Tank Controls" && std::string(page.Value(2))=="Off",
         "hybrid row uses the requested label and readable Off value");
     check(page.Input(0x80000000)==Action::Change && page.selected==2,"Right adjusts hybrid controls");
     check(page.Input(0x30000000)==Action::None && page.selected==2,"opposite directions do not move the third row");
-    check(page.Input(0x20100000)==Action::None && page.selected==0,"Down wraps and cannot toggle when Select arrives with navigation");
+    check(page.Input(0x20100000)==Action::None && page.selected==3,"Down to body cannot reset it when Select arrives with navigation");
+    check(page.Input(0x20000000)==Action::None && page.selected==0,"Down wraps from the body setting");
     check(page.Input(0x20000000)==Action::None && page.selected==1,"Down visits color row");
     check(page.Input(0x20000000)==Action::None && page.selected==2,"Down visits hybrid row");
     check(std::string(page.Message())=="Third person only; applies immediately","hybrid row explains live application");

@@ -5,6 +5,16 @@ Native stereoscopic 3D with 6DOF head tracking for *Tomb Raider I-III Remastered
 
 ## Recent updates
 
+### Jump body centering after VR turns (2026-11-04)
+
+In TR1-3 first person, jumping now keeps the visible body beneath the tracked
+player after partial analog-stick turns and roomscale movement. Airborne placement
+and Body Position use the current tracked facing instead of the native takeoff
+heading. The HD palette is fitted from its actual pelvis each draw, preserving
+native joint rotations, jump height, controller targets and gameplay collision.
+This works with full-body IK enabled or disabled; it requires movement
+stabilization and positional head tracking. No 360-degree turn or recenter is needed.
+
 ### Key and puzzle-item camera (2026-11-03)
 
 In all three games, using a key or inserting a puzzle item temporarily shows
@@ -71,7 +81,7 @@ for its equivalent face buttons.
 | Physical push button, TR2/3 | Touch the face with either controller, then withdraw before pressing again. |
 | Throw lit flare, TR2/3 | Swing the left controller in Remastered first person; no grip release required. |
 | Native Action / block pushing | Y or both grips. Native Action remains available for all interactions. |
-| VR Options | Open the original Options item in the title ring, scroll to VR Options, then use Up/Down and Left/Right or Select. |
+| VR Options | Open the original Options item in the title or in-game inventory ring, scroll to VR Options, then use Up/Down and Left/Right or Select. |
 
 ### Current interaction coverage
 
@@ -257,11 +267,11 @@ information.
 
 ## VR Options
 
-Open the original **Options** item in the title inventory ring, scroll to the
+Open the original **Options** item in the title or in-game inventory ring, scroll to the
 bottom of its settings, and select **VR Options**. The ring retains its five
 original items; no extra ring object is added. This uses the game's native menu, with no popup.
 Use Up/Down to select a row, Left/Right or Select to change it, and Back to return.
-All three rows display their current selected value on the native page.
+All four rows display their current selected value on the native page.
 
 - **Controller Type:** Meta Touch or Valve Index. Changes apply after restarting.
 - **Color Scheme:** Dark (default) or Brighter. Changes apply immediately in the headset.
@@ -274,8 +284,24 @@ All three rows display their current selected value on the native page.
   immediately. Off retains native Modern walking towards the camera; On enables
   the third-person Walk + back hop in TR1-3. First-person controls stay unchanged.
 
-Changes save automatically to `ValveIndexControllers`, `VRBrighterColors` and
-`HybridModernTankControls` in the
+- **Body Position:** Default (0 cm) through 20 cm forward, in 1 cm steps.
+  Left/Right adjusts the visible first-person body in TR1-3 immediately; Select restores
+  the exact default. With movement stabilization enabled, ground movement and stopping
+  keep the pelvis and chest at this position without the native run/stop torso
+  blend or idle settling. Real headset movement and physical crouching remain active. Camera, controller wrists
+  and collision remain in place. A 20 cm clearance volume around the headset
+  trims nearby body surfaces so the view cannot fill with the inside of the torso;
+  tracked arms/hands are excluded. Shadows and third-person rendering stay native.
+
+First-person button draw/holster transitions play the native sidearm arm
+animations with a 160 ms blend to/from controller tracking. This works with
+full-body and arm-only IK; physical holster grabs stay controller-driven.
+Empty hands retain their standing pose instead of spreading the fingers. Native
+weapon sequencing and equipped gun grips remain intact. Rolls hide the body
+with tracked weapons too, including TR3's running sprint somersault.
+
+Changes save automatically to `ValveIndexControllers`, `VRBrighterColors`,
+`HybridModernTankControls` and `FirstPersonBodyForwardCm` in the
 installed INI. Existing INIs without a color setting keep Dark; new INIs include
 `VRBrighterColors=0`. Other settings stay unchanged, and the previous INI is backed
 up as `TombRaiderVR.ini.vr-options.bak`. Index mode uses the existing
@@ -528,7 +554,7 @@ Two further fixes are ported from TombRaider456VR to all three games:
   backpedaling use a stable upper-body reference that travels and turns with
   Lara. Native torso sway no longer rocks the tracked shoulders/elbows with
   either empty hands or weapons drawn. Feet keep their stepping animation,
-  real head/hand motion stays live, and native draw/holster arms remain animated.
+  real head/hand motion stays live, including through weapon draw/holster.
 
 Production regression tests cover all three games, armed/unarmed paths,
 native/HD palettes, moving roots/cameras, live tracking, repeated stereo draws,

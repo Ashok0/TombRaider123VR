@@ -7,6 +7,7 @@
 #include "InlineHook.h"
 #include "Log.h"
 #include "FirstPerson.h"
+#include "BodyClearanceShader.h"
 #include "HandSkin.h"
 #include "WristCap.h"
 #include "EnhancedEffects.h"
@@ -241,6 +242,16 @@ void __fastcall Detour_shader_init(Shader* shader, int cull, int fvf,
             }
         }
     }
+    std::string clearanceVs,clearanceFs;
+    if(c.enabled && useVs && useFs) {
+        clearanceVs=useVs;clearanceFs=useFs;
+        if(bodyclearance::Patch(clearanceVs,clearanceFs)) {
+            gl::Load();
+            if(gl::LoadedShaderApi() && HandProgramCompiles(clearanceVs,clearanceFs)) {
+                useVs=clearanceVs.c_str();useFs=clearanceFs.c_str();
+            } else Log("body clearance: shader rejected; retaining previous shader");
+        }
+    }
     original(shader, cull, fvf, useVs, useFs);
 
     // shader_init just gave this Shader a fresh program. If the name is being
@@ -259,6 +270,8 @@ void __fastcall Detour_shader_init(Shader* shader, int cull, int fvf,
 constexpr uint32_t kMaxProgram = 4096;
 
 struct ProgramState {
+    GLint locClearance=-2,locClearanceJoints=-2;
+    bool clearanceLive=false;
     GLint locBone   = -2;     // -2 = not looked up yet, -1 = not one of ours
     GLint locRegion = -2;
     bool  live      = false;  // uDynBone.w currently uploaded as 1
@@ -996,6 +1009,20 @@ void BoneSkinAfterValidate(bool jointApplied) {
         const GLuint program=Shaders()[state.shader].id;
         if (program && program<kMaxProgram) {
             auto& p=g_prog[program];
+            if(p.locClearance==-2) {
+                p.locClearance=gl::GetUniformLocation(program,"uBodyClearance");
+                p.locClearanceJoints=gl::GetUniformLocation(program,"uBodyClearanceJoints");
+            }
+            if(p.locClearance>=0 && p.locClearanceJoints>=0) {
+                float sphere[4]{};uint64_t joints=0;
+                const bool active=FirstPersonBodyClearance(sphere,joints);
+                if(active || p.clearanceLive) {
+                    const float mask[4]={float(joints&0xffffu),float((joints>>16)&0xffffu),float(joints>>32),0};
+                    gl::Uniform4fv(p.locClearance,1,sphere);
+                    gl::Uniform4fv(p.locClearanceJoints,1,mask);
+                }
+                p.clearanceLive=active;
+            }
             if (p.locHand==-2) {
                 p.locHand=gl::GetUniformLocation(program,"uTrackedHand");
                 p.locJoints=gl::GetUniformLocation(program,"uJoints[0]");

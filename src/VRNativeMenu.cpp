@@ -65,17 +65,16 @@ template<class T> T& At(Slot& s,uint32_t rva) { return *reinterpret_cast<T*>(rei
 template<class T> T& Field(void* p,size_t off) { return *reinterpret_cast<T*>(static_cast<uint8_t*>(p)+off); }
 uint32_t HookRva(const Slot& s) { return s.extra->options ? s.extra->options : s.row->title; }
 void OpenPage(Slot& s) {
-    const auto values=vrmenu::ReadSettings();s.page.Open(values[0]!=0,values[1]!=0,values[2]!=0);
+    const auto values=vrmenu::ReadSettings();s.page.Open(values[0]!=0,values[1]!=0,values[2]!=0,values[3]);
 }
 bool PageInput(Slot& s,uint64_t input) {
     if(s.page.Input(input)==vrmenu::Action::Change) {
         auto original=vrmenu::ReadSettings(),values=original;
         const int row=s.page.selected;
-        const bool enabled=s.page.Enabled(row);
-        values[row]=enabled ? 0.f : 1.f;
+        values[row]=s.page.ChangedValue(input);
         std::wstring error;
         s.page.saveFailed=!vrmenu::SaveSettings(values,original,error);
-        if(!s.page.saveFailed) { s.page.index=values[0]!=0;s.page.bright=values[1]!=0;s.page.hybrid=values[2]!=0; }
+        if(!s.page.saveFailed) { s.page.index=values[0]!=0;s.page.bright=values[1]!=0;s.page.hybrid=values[2]!=0;s.page.bodyForwardCm=values[3]; }
     }
     return s.page.open;
 }
@@ -284,7 +283,9 @@ uint8_t Options6(void* menu,uint8_t event) {
         if(event==6) PageInput(s,0x200000);
         else if(event==1) PageInput(s,0x10000000);
         else if(event==2) PageInput(s,0x20000000);
-        else if(event==3 || event==4 || event==5) PageInput(s,0x100000);
+        else if(event==3) PageInput(s,0x40000000);
+        else if(event==4) PageInput(s,0x80000000);
+        else if(event==5) PageInput(s,0x100000);
         if(event==11) DrawPage6(s);
         return 0;
     }
